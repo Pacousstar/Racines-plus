@@ -1,0 +1,35 @@
+# Racines+ — Fichiers à ne pas versionner
+
+# Dépendances
+node_modules/
+.pnp
+.pnp.js
+
+# Variables d'environnement et secrets (jamais de secrets dans le repo)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Build / sorties
+dist/
+build/
+.next/
+out/
+*.log
+npm-debug.log*
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Tests / couverture
+coverage/
+.nyc_output/
+
+# Optionnel : gros fichiers binaires si besoin plus tard
+# *.zip
