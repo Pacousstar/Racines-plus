@@ -251,50 +251,48 @@ export default function Onboarding() {
         setError(null);
 
         try {
-            const { data: authData, error: authError } = await supabase.auth.signUp({
+            // Préparer FormData pour envoyer photo + données texte en une requête
+            const fd = new FormData();
+            fd.append('email', formData.email);
+            fd.append('password', formData.password);
+            fd.append('firstName', formData.firstName);
+            fd.append('lastName', formData.lastName);
+            fd.append('birthDate', formData.birthDate || '');
+            fd.append('gender', formData.gender);
+            fd.append('villageOrigin', formData.villageOrigin);
+            fd.append('quartierNom', formData.quartierNom || '');
+            fd.append('residenceCountry', formData.residenceCountry);
+
+            // Ajouter la photo si présente
+            if (photoBlob) {
+                const photoFile = new File([photoBlob], 'avatar.jpg', { type: 'image/jpeg' });
+                fd.append('photo', photoFile);
+            }
+
+            // Appel API server-side (contourne RLS)
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                body: fd,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Erreur lors de l\'inscription');
+            }
+
+            // Succès : connexion automatique puis redirection dashboard
+            const { error: signInError } = await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password,
             });
 
-            if (authError) throw authError;
-
-            if (authData.user) {
-                let avatarUrl: string | null = null;
-
-                // Upload photo si présente
-                if (photoBlob) {
-                    const ext = 'jpg';
-                    const path = `${authData.user.id}.${ext}`;
-                    const { error: uploadError } = await supabase.storage
-                        .from('avatars')
-                        .upload(path, photoBlob, { upsert: true, contentType: 'image/jpeg' });
-                    if (!uploadError) {
-                        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-                        avatarUrl = urlData.publicUrl;
-                    }
-                }
-
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: authData.user.id,
-                        first_name: formData.firstName,
-                        last_name: formData.lastName,
-                        birth_date: formData.birthDate || null,
-                        gender: formData.gender,
-                        village_origin: formData.villageOrigin,
-                        quartier_nom: formData.quartierNom || null,
-                        residence_country: formData.residenceCountry,
-                        is_founder: true,
-                        role: 'user',
-                        status: 'pending',
-                        ...(avatarUrl && { avatar_url: avatarUrl }),
-                    });
-
-                if (profileError) console.warn("Profile update warning:", profileError);
+            if (signInError) {
+                // L'user est créé mais la connexion auto a échoué → page login
+                router.push('/login?registered=1');
+            } else {
+                router.push('/dashboard');
             }
-
-            router.push('/dashboard');
 
         } catch (err: unknown) {
             console.error("Erreur d'inscription:", err);
@@ -304,6 +302,7 @@ export default function Onboarding() {
             setIsLoading(false);
         }
     };
+
 
     const steps = [
         { num: 1, label: 'Identité' },

@@ -21,10 +21,10 @@ export default function InviteModal({
     const [email, setEmail] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sent, setSent] = useState(false);
+    const [emailSentForReal, setEmailSentForReal] = useState(false);
     const [copied, setCopied] = useState(false);
     const [error, setError] = useState('');
 
-    // Lien d'inscription avec référence au village
     const inviteLink = typeof window !== 'undefined'
         ? `${window.location.origin}/onboarding?ref=${encodeURIComponent(villageNom)}&inv=${encodeURIComponent(inviterName)}`
         : '';
@@ -51,16 +51,37 @@ export default function InviteModal({
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-                // Enregistrer l'invitation dans la table invitations
-                await supabase.from('invitations').insert({
-                    inviter_id: user.id,
-                    email_invite: email.trim().toLowerCase(),
-                });
+                // Enregistrer dans invitations (ignore si table inexistante)
+                try {
+                    await supabase.from('invitations').insert({
+                        inviter_id: user.id,
+                        email_invite: email.trim().toLowerCase(),
+                    });
+                } catch {
+                    // ignore — table peut ne pas exister encore
+                }
             }
+
+            // Envoyer le vrai email via API Resend
+            const resp = await fetch('/api/send-invitation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    emailTo: email.trim(),
+                    inviterName: inviterName || 'Un membre de votre famille',
+                    villageNom,
+                    inviteLink,
+                }),
+            });
+
+            const result = await resp.json();
+            setEmailSentForReal(result.success === true);
             setSent(true);
             setEmail('');
         } catch {
-            setError("L'envoi d'invitation sera disponible dès que le service email est configuré.");
+            setError("Erreur réseau. Partagez le lien manuellement.");
+            setEmailSentForReal(false);
+            setSent(true);
         } finally {
             setIsSending(false);
         }
@@ -68,6 +89,7 @@ export default function InviteModal({
 
     const handleClose = () => {
         setSent(false);
+        setEmailSentForReal(false);
         setEmail('');
         setError('');
         onClose();
@@ -102,7 +124,7 @@ export default function InviteModal({
                                 Ils seront directement rattachés au village <strong>{villageNom}</strong>.
                             </p>
 
-                            {/* Partage par lien */}
+                            {/* Lien d'invitation */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                                     <Link2 className="w-3.5 h-3.5" /> Lien d&apos;invitation
@@ -155,13 +177,26 @@ export default function InviteModal({
                         </>
                     ) : (
                         <div className="text-center py-6">
-                            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <CheckCircle className="w-8 h-8 text-green-500" />
+                            <div className={`w-16 h-16 ${emailSentForReal ? 'bg-green-50' : 'bg-orange-50'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                                {emailSentForReal
+                                    ? <CheckCircle className="w-8 h-8 text-green-500" />
+                                    : <Share2 className="w-8 h-8 text-orange-500" />
+                                }
                             </div>
-                            <h3 className="font-bold text-gray-900 mb-2">Invitation enregistrée !</h3>
+                            <h3 className="font-bold text-gray-900 mb-2">
+                                {emailSentForReal ? '✅ Invitation envoyée !' : 'Partagez le lien'}
+                            </h3>
                             <p className="text-sm text-gray-500 mb-5">
-                                L&apos;invitation sera envoyée dès que le système d&apos;email sera configuré. En attendant, partagez le lien directement.
+                                {emailSentForReal
+                                    ? 'Votre invitation a bien été envoyée par email. Votre famille recevra un lien pour rejoindre Racines+.'
+                                    : 'Copiez et partagez le lien ci-dessous en attendant la configuration du système email.'
+                                }
                             </p>
+                            {!emailSentForReal && (
+                                <div className="bg-gray-50 rounded-xl p-3 text-xs font-mono text-gray-600 mb-4 text-left break-all">
+                                    {inviteLink}
+                                </div>
+                            )}
                             <button onClick={handleClose} className="bg-racines-green text-white px-6 py-3 rounded-xl font-bold text-sm">
                                 Fermer
                             </button>
@@ -169,14 +204,16 @@ export default function InviteModal({
                     )}
 
                     {/* Partage WhatsApp */}
-                    <a
-                        href={`https://wa.me/?text=${encodeURIComponent(`Rejoins-moi sur Racines+ pour construire notre arbre généalogique : ${inviteLink}`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full border border-green-200 bg-green-50 text-green-700 py-3 rounded-xl font-bold text-sm hover:bg-green-100 transition-colors"
-                    >
-                        <span className="text-lg">📲</span> Partager sur WhatsApp
-                    </a>
+                    {!sent && (
+                        <a
+                            href={`https://wa.me/?text=${encodeURIComponent(`Rejoins-moi sur Racines+ pour construire notre arbre généalogique : ${inviteLink}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 w-full border border-green-200 bg-green-50 text-green-700 py-3 rounded-xl font-bold text-sm hover:bg-green-100 transition-colors"
+                        >
+                            <span className="text-lg">📲</span> Partager sur WhatsApp
+                        </a>
+                    )}
                 </div>
             </div>
         </div>

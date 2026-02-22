@@ -80,8 +80,8 @@ export default function Dashboard() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const fileExt = file.name.split('.').pop();
-            const filePath = `avatars/${user.id}.${fileExt}`;
+            const fileExt = file.name.split('.').pop() || 'jpg';
+            const filePath = `${user.id}.${fileExt}`;  // Path relatif au bucket, sans préfixe 'avatars/'
 
             // Upload dans Supabase Storage (bucket "avatars")
             const { error: uploadError } = await supabase.storage
