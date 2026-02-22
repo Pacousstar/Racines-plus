@@ -21,8 +21,7 @@ CREATE TABLE IF NOT EXISTS public.villages (
 );
 
 -- Contrainte UNIQUE nécessaire pour ON CONFLICT
-ALTER TABLE public.villages
-    ADD CONSTRAINT IF NOT EXISTS villages_nom_unique UNIQUE (nom);
+CREATE UNIQUE INDEX IF NOT EXISTS villages_nom_unique ON public.villages(nom);
 
 -- Village pilote pré-rempli
 INSERT INTO public.villages (nom, region, pays)
@@ -40,8 +39,7 @@ CREATE TABLE IF NOT EXISTS public.quartiers (
 );
 
 -- Contrainte UNIQUE nécessaire pour ON CONFLICT
-ALTER TABLE public.quartiers
-    ADD CONSTRAINT IF NOT EXISTS quartiers_nom_village_unique UNIQUE (nom, village_id);
+CREATE UNIQUE INDEX IF NOT EXISTS quartiers_nom_village_unique ON public.quartiers(nom, village_id);
 
 -- Quartiers de Toa-Zéo
 DO $$
@@ -75,8 +73,8 @@ CREATE TABLE IF NOT EXISTS public.ancestres (
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.ancestres
-    ADD CONSTRAINT IF NOT EXISTS ancestres_village_unique UNIQUE (village_id);
+-- Un seul ancêtre fondateur certifié par village
+CREATE UNIQUE INDEX IF NOT EXISTS ancestres_village_unique ON public.ancestres(village_id) WHERE is_certified = TRUE;
 
 -- ─────────────────────────────────────
 -- 5. TABLE : profiles (étendue)
