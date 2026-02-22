@@ -173,7 +173,7 @@ export default function Dashboard() {
                             }
                         </div>
                         <span className="text-sm font-semibold hidden md:block truncate max-w-[120px]">
-                            {isLoading ? '...' : `${profileData?.firstName} ${profileData?.lastName}`}
+                            {isLoading ? '...' : (profileData?.firstName || profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Mon Profil')}
                         </span>
                     </div>
                     <button
@@ -195,7 +195,7 @@ export default function Dashboard() {
                     {/* Carte Profil */}
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                         {/* Bandeau couleur statut */}
-                        <div className={`h-16 ${profileData?.status === 'confirmed' ? 'bg-gradient-to-br from-green-400/30 to-racines-green/10' : profileData?.status === 'rejected' ? 'bg-gradient-to-br from-red-400/20 to-red-100' : 'bg-gradient-to-br from-[#FF6600]/15 to-orange-50'}`}></div>
+                        <div className={`h-16 ${profileData?.status === 'confirmed' ? 'bg-gradient-to-br from-green-400/30 to-racines-green/10' : profileData?.status === 'rejected' ? 'bg-gradient-to-br from-red-400/20 to-red-100' : 'bg-gradient-to-r from-[#FF6600] to-amber-500'}`}></div>
 
                         <div className="relative px-6 pb-6">
                             {/* Avatar cliquable */}
@@ -219,7 +219,7 @@ export default function Dashboard() {
 
                             <div className="text-center">
                                 <h2 className="text-lg font-bold leading-tight">
-                                    {isLoading ? <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" /> : `${profileData?.firstName} ${profileData?.lastName}`}
+                                    {isLoading ? <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" /> : (profileData?.firstName || profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Mon Profil')}
                                 </h2>
                                 <p className="text-sm text-gray-500 flex items-center gap-1 justify-center mt-1">
                                     <MapPin className="w-3 h-3" />
@@ -261,18 +261,18 @@ export default function Dashboard() {
                     </div>
 
                     {/* Panneau IA */}
-                    <div className="bg-gray-900 text-white p-5 rounded-3xl">
-                        <div className="flex items-center gap-2 mb-3 text-amber-400">
+                    <div className="bg-green-800 text-white p-5 rounded-3xl">
+                        <div className="flex items-center gap-2 mb-3 text-green-200">
                             <ShieldCheck className="w-4 h-4" />
                             <span className="font-bold text-sm">IA de Racines+</span>
-                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse ml-auto"></span>
+                            <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse ml-auto"></span>
                         </div>
-                        <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+                        <p className="text-sm text-green-100/80 mb-4 leading-relaxed">
                             L&apos;IA analyse vos données et vous suggère des liens de parenté probables.
                         </p>
                         <button
                             onClick={() => alert("Analyse IA : Fonctionnalité en cours d'intégration.")}
-                            className="text-xs font-bold uppercase tracking-wider bg-white text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors w-full"
+                            className="text-xs font-bold uppercase tracking-wider bg-white text-green-800 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors w-full"
                         >
                             Voir l&apos;analyse
                         </button>
@@ -288,7 +288,7 @@ export default function Dashboard() {
                                 <div>
                                     <h1 className="text-2xl font-bold">Mon Arbre Généalogique</h1>
                                     <p className="text-gray-500 text-sm mt-1">
-                                        {isLoading ? '...' : `Lignée : ${profileData?.firstName} ${profileData?.lastName} • ${profileData?.village}`}
+                                        {isLoading ? '...' : `Lignée : ${profileData?.firstName && profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}` : 'Mon Profil'} • ${profileData?.village || 'Toa-Zéo'}`}
                                     </p>
                                 </div>
                                 <StatusBadge status={profileData?.status || 'pending'} />
