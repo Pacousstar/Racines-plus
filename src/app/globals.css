@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+
+
+:root {
+  --background: #faf9f6;
+  /* Blanc cassé / Papier ancien */
+  --foreground: #1c2b23;
+  /* Vert très très foncé (presque noir) */
+
+  --color-primary: #124e35;
+  /* Vert profond (Racines/Vie) */
+  --color-primary-light: #1f6b4a;
+
+  --color-secondary: #c05c3c;
+  /* Ocre / Terre Cuite (Héritage) */
+  --color-accent: #d4af37;
+  /* Doré discret (Prestige / Valeur) */
+}
+
+/* Note: Le "Unknown at rule @theme" est un avertissement de l'éditeur de code qui ne connait pas encore Tailwind v4. Le code fonctionne parfaitement ! */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-outfit), sans-serif;
+
+  /* Couleurs personnalisées pour Racines+ */
+  --color-racines-green: var(--color-primary);
+  --color-racines-light: var(--color-primary-light);
+  --color-racines-earth: var(--color-secondary);
+  --color-racines-gold: var(--color-accent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111a15;
+    /* Vert ultra sombre / nuit */
+    --foreground: #f0eadd;
+    /* Beige très clair (meilleur contraste) */
+
+    --color-primary: #1b6345;
+    /* Légèrement plus clair sur fond sombre */
+    --color-secondary: #d36e4f;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
