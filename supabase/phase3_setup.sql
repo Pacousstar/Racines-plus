@@ -100,6 +100,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- MIGRATION : ajout des colonnes Phase 3 si la table profiles existait déjà
+-- (idempotent : sans effet si les colonnes existent déjà)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_locked             BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rejection_motif       TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rejection_observations TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS quartier_nom          TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS village_origin        TEXT DEFAULT 'Toa-Zéo';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS residence_country     TEXT DEFAULT 'CI';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url            TEXT;
+-- ancestral_root_id : FK vers ancestres (table créée avant profiles dans ce script)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS ancestral_root_id UUID REFERENCES public.ancestres(id);
+
 -- ─────────────────────────────────────
 -- 6. TABLE : validations (journal d'audit CHO)
 -- ─────────────────────────────────────
