@@ -1,18 +1,197 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowLeft, Camera, ShieldCheck, MapPin, Loader2, Eye, EyeOff, Check } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Camera, ShieldCheck, MapPin, Loader2, Eye, EyeOff, Check, X, ZoomIn, ZoomOut, RotateCcw, Home } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
+// ─────────────────────────────────────
+// Composant de recadrage de photo
+// ─────────────────────────────────────
+interface PhotoCropperProps {
+    src: string;
+    onConfirm: (croppedBlob: Blob) => void;
+    onCancel: () => void;
+}
+
+function PhotoCropper({ src, onConfirm, onCancel }: PhotoCropperProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const previewRef = useRef<HTMLCanvasElement>(null);
+    const imgRef = useRef<HTMLImageElement | null>(null);
+    const [scale, setScale] = useState(1);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
+
+    const CROP_SIZE = 240;
+
+    const drawPreview = useCallback(() => {
+        const canvas = previewRef.current;
+        const img = imgRef.current;
+        if (!canvas || !img) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        canvas.width = CROP_SIZE;
+        canvas.height = CROP_SIZE;
+
+        // Cercle de crop
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CROP_SIZE / 2, CROP_SIZE / 2, CROP_SIZE / 2, 0, Math.PI * 2);
+        ctx.clip();
+
+        const scaledW = img.naturalWidth * scale;
+        const scaledH = img.naturalHeight * scale;
+        const drawX = (CROP_SIZE - scaledW) / 2 + offset.x;
+        const drawY = (CROP_SIZE - scaledH) / 2 + offset.y;
+
+        ctx.drawImage(img, drawX, drawY, scaledW, scaledH);
+        ctx.restore();
+
+        // Bordure
+        ctx.strokeStyle = '#FF6600';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(CROP_SIZE / 2, CROP_SIZE / 2, CROP_SIZE / 2 - 1, 0, Math.PI * 2);
+        ctx.stroke();
+    }, [scale, offset]);
+
+    useEffect(() => {
+        const img = new window.Image();
+        img.onload = () => {
+            imgRef.current = img;
+            // Centrer l'image par défaut
+            const s = Math.max(CROP_SIZE / img.naturalWidth, CROP_SIZE / img.naturalHeight);
+            setScale(s);
+            drawPreview();
+        };
+        img.src = src;
+    }, [src, drawPreview]);
+
+    useEffect(() => { drawPreview(); }, [drawPreview]);
+
+    const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+        setIsDragging(true);
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        dragStart.current = { x: clientX, y: clientY, ox: offset.x, oy: offset.y };
+    };
+
+    const handleMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!isDragging) return;
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+        setOffset({
+            x: dragStart.current.ox + (clientX - dragStart.current.x),
+            y: dragStart.current.oy + (clientY - dragStart.current.y),
+        });
+    };
+
+    const handleConfirm = () => {
+        const canvas = canvasRef.current;
+        const img = imgRef.current;
+        if (!canvas || !img) return;
+
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(128, 128, 128, 0, Math.PI * 2);
+        ctx.clip();
+
+        const scaledW = img.naturalWidth * scale;
+        const scaledH = img.naturalHeight * scale;
+        const drawX = (CROP_SIZE - scaledW) / 2 + offset.x;
+        const drawY = (CROP_SIZE - scaledH) / 2 + offset.y;
+        // Ratio pour canvas de sortie 256px
+        const ratio = 256 / CROP_SIZE;
+        ctx.drawImage(img, drawX * ratio, drawY * ratio, scaledW * ratio, scaledH * ratio);
+        ctx.restore();
+
+        canvas.toBlob((blob) => { if (blob) onConfirm(blob); }, 'image/jpeg', 0.9);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
+                <div className="flex items-center justify-between mb-5">
+                    <h3 className="font-bold text-gray-900">Recadrer la photo</h3>
+                    <button onClick={onCancel} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                        <X className="w-4 h-4 text-gray-600" />
+                    </button>
+                </div>
+
+                {/* Zone de preview */}
+                <div className="flex justify-center mb-4">
+                    <canvas
+                        ref={previewRef}
+                        width={CROP_SIZE}
+                        height={CROP_SIZE}
+                        className="rounded-full border-4 border-[#FF6600]/30 cursor-move touch-none"
+                        style={{ width: CROP_SIZE, height: CROP_SIZE }}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={() => setIsDragging(false)}
+                        onMouseLeave={() => setIsDragging(false)}
+                        onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
+                        onTouchEnd={() => setIsDragging(false)}
+                    />
+                </div>
+                <p className="text-xs text-gray-400 text-center mb-4">Glissez pour repositionner</p>
+
+                {/* Contrôles zoom */}
+                <div className="flex items-center gap-3 mb-5">
+                    <button onClick={() => setScale(s => Math.max(0.3, s - 0.1))} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                        <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <input type="range" min="0.3" max="3" step="0.05" value={scale}
+                        onChange={e => setScale(parseFloat(e.target.value))}
+                        className="flex-1 accent-[#FF6600]" />
+                    <button onClick={() => setScale(s => Math.min(3, s + 0.1))} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                        <ZoomIn className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => { setOffset({ x: 0, y: 0 }); setScale(1); }} className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors">
+                        <RotateCcw className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={onCancel} className="flex-1 py-3 rounded-2xl border-2 border-gray-200 text-gray-600 font-bold text-sm hover:bg-gray-50 transition-colors">
+                        Annuler
+                    </button>
+                    <button onClick={handleConfirm} className="flex-1 py-3 rounded-2xl bg-[#FF6600] text-white font-bold text-sm hover:bg-[#e55c00] transition-colors shadow-lg shadow-[#FF6600]/25">
+                        Confirmer ✓
+                    </button>
+                </div>
+
+                {/* Canvas caché pour export */}
+                <canvas ref={canvasRef} className="hidden" />
+            </div>
+        </div>
+    );
+}
+
+// ─────────────────────────────────────
+// Composant principal Onboarding
+// ─────────────────────────────────────
 export default function Onboarding() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
     const supabase = createClient();
+
+    // Photo states
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [cropSrc, setCropSrc] = useState<string | null>(null);
+    const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -30,28 +209,41 @@ export default function Onboarding() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Charger les quartiers depuis Supabase selon le village
     useEffect(() => {
         const loadQuartiers = async () => {
             if (!formData.villageOrigin) return;
-            // Chercher le village par nom
             const { data: village } = await supabase
-                .from('villages')
-                .select('id')
-                .eq('nom', formData.villageOrigin)
-                .single();
+                .from('villages').select('id').eq('nom', formData.villageOrigin).single();
             if (!village) return;
             const { data: qs } = await supabase
-                .from('quartiers')
-                .select('id, nom')
-                .eq('village_id', village.id);
+                .from('quartiers').select('id, nom').eq('village_id', village.id);
             setQuartiers(qs || []);
         };
         loadQuartiers();
-    }, [formData.villageOrigin, supabase]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData.villageOrigin]);
 
     const updateFormData = (field: string, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
+    // Gestion de la sélection de photo
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setCropSrc(ev.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+        // Reset input pour permettre re-sélection du même fichier
+        e.target.value = '';
+    };
+
+    const handleCropConfirm = (blob: Blob) => {
+        setPhotoBlob(blob);
+        setPhotoPreview(URL.createObjectURL(blob));
+        setCropSrc(null);
     };
 
     const handleRegister = async () => {
@@ -67,6 +259,21 @@ export default function Onboarding() {
             if (authError) throw authError;
 
             if (authData.user) {
+                let avatarUrl: string | null = null;
+
+                // Upload photo si présente
+                if (photoBlob) {
+                    const ext = 'jpg';
+                    const path = `${authData.user.id}.${ext}`;
+                    const { error: uploadError } = await supabase.storage
+                        .from('avatars')
+                        .upload(path, photoBlob, { upsert: true, contentType: 'image/jpeg' });
+                    if (!uploadError) {
+                        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+                        avatarUrl = urlData.publicUrl;
+                    }
+                }
+
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .upsert({
@@ -80,7 +287,8 @@ export default function Onboarding() {
                         residence_country: formData.residenceCountry,
                         is_founder: true,
                         role: 'user',
-                        status: 'pending'
+                        status: 'pending',
+                        ...(avatarUrl && { avatar_url: avatarUrl }),
                     });
 
                 if (profileError) console.warn("Profile update warning:", profileError);
@@ -106,26 +314,47 @@ export default function Onboarding() {
     return (
         <div className="min-h-screen relative flex flex-col bg-background">
 
-            {/* Fond décoratif animé */}
+            {/* Recadrage photo */}
+            {cropSrc && (
+                <PhotoCropper
+                    src={cropSrc}
+                    onConfirm={handleCropConfirm}
+                    onCancel={() => setCropSrc(null)}
+                />
+            )}
+
+            {/* Fond décoratif */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" />
                 <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/3 rounded-full blur-3xl" />
             </div>
 
-            {/* Header */}
-            <header className="relative w-full max-w-4xl mx-auto flex justify-between items-center z-10 px-6 pt-8 mb-8">
-                <Link href="/" className="hover:opacity-80 transition-opacity">
-                    <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={110} height={38} className="object-contain" />
-                </Link>
-                <div className="flex items-center gap-2 text-sm text-foreground/80 font-medium bg-foreground/5 px-4 py-2 rounded-full backdrop-blur-sm border border-black/10 dark:border-white/20">
+            {/* Header avec bouton retour accueil */}
+            <header className="relative w-full max-w-4xl mx-auto flex justify-between items-center z-10 px-4 sm:px-6 pt-6 mb-8">
+                <div className="flex items-center gap-3">
+                    {/* Retour accueil */}
+                    <Link
+                        href="/"
+                        className="flex items-center gap-1.5 text-sm font-semibold text-foreground/60 hover:text-[#FF6600] transition-colors group"
+                    >
+                        <span className="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 group-hover:bg-[#FF6600]/10 group-hover:text-[#FF6600] transition-all">
+                            <Home className="w-4 h-4" />
+                        </span>
+                        <span className="hidden sm:inline">Retour</span>
+                    </Link>
+                    <Link href="/" className="hover:opacity-80 transition-opacity">
+                        <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={100} height={34} className="object-contain" />
+                    </Link>
+                </div>
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-foreground/80 font-medium bg-foreground/5 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-black/10 dark:border-white/20">
                     <ShieldCheck className="w-4 h-4 text-[#FF6600]" />
-                    Données souveraines cryptées
+                    <span className="hidden sm:inline">Données souveraines cryptées</span>
+                    <span className="sm:hidden">RGPD ✓</span>
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="relative flex-1 flex flex-col items-center w-full max-w-4xl mx-auto z-10 px-6 pb-12">
+            {/* Main */}
+            <main className="relative flex-1 flex flex-col items-center w-full max-w-4xl mx-auto z-10 px-4 sm:px-6 pb-8">
 
                 {/* Stepper */}
                 <div className="w-full max-w-sm mb-8">
@@ -149,66 +378,101 @@ export default function Onboarding() {
                 </div>
 
                 {/* Form Card */}
-                <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/20 overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #FF6600 0%, #FF8C00 40%, #FF4500 100%)' }}>
+                <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl shadow-black/20 overflow-hidden relative"
+                    style={{ background: 'linear-gradient(135deg, #FF6600 0%, #FF8C00 40%, #FF4500 100%)' }}>
 
-                    {/* STEP 1 : Identité */}
+                    {/* ── STEP 1 : Identité ── */}
                     {step === 1 && (
-                        <form className="p-8" onSubmit={e => e.preventDefault()}>
+                        <form className="p-6 sm:p-8" onSubmit={e => e.preventDefault()}>
                             <h1 className="text-2xl font-bold mb-1 text-white">Qui êtes-vous ?</h1>
                             <p className="text-white/80 mb-6 text-sm">Le premier nœud de l&apos;Arbre, c&apos;est vous.</p>
 
+                            {/* Zone photo avec crop */}
                             <div className="flex justify-center mb-6">
-                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
-                                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-20 h-20 rounded-full bg-white/10 border-2 border-dashed border-white/40 flex flex-col items-center justify-center text-white/80 cursor-pointer hover:bg-white/20 hover:border-white hover:text-white transition-all group">
-                                    <Camera className="w-7 h-7 mb-0.5 group-hover:scale-110 transition-transform" />
-                                    <span className="text-[9px] font-bold uppercase tracking-wider">Photo</span>
-                                </button>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                />
+                                <div className="relative">
+                                    {photoPreview ? (
+                                        <div className="relative group">
+                                            <img
+                                                src={photoPreview}
+                                                alt="Aperçu"
+                                                className="w-24 h-24 rounded-full object-cover border-4 border-white/40 shadow-lg"
+                                            />
+                                            {/* Actions sur la photo */}
+                                            <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="p-1.5 bg-white/90 rounded-full hover:bg-white transition-colors"
+                                                    title="Changer"
+                                                >
+                                                    <Camera className="w-3.5 h-3.5 text-[#FF6600]" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setPhotoPreview(null); setPhotoBlob(null); }}
+                                                    className="p-1.5 bg-white/90 rounded-full hover:bg-white transition-colors"
+                                                    title="Supprimer"
+                                                >
+                                                    <X className="w-3.5 h-3.5 text-red-500" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-24 h-24 rounded-full bg-white/10 border-2 border-dashed border-white/40 flex flex-col items-center justify-center text-white/80 cursor-pointer hover:bg-white/20 hover:border-white hover:text-white transition-all group"
+                                        >
+                                            <Camera className="w-7 h-7 mb-0.5 group-hover:scale-110 transition-transform" />
+                                            <span className="text-[9px] font-bold uppercase tracking-wider">Photo</span>
+                                        </button>
+                                    )}
+                                    {photoPreview && (
+                                        <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md">
+                                            <Check className="w-4 h-4 text-[#FF6600]" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
+                            {photoPreview && (
+                                <p className="text-center text-[11px] text-white/70 -mt-3 mb-4">
+                                    Survolez la photo pour modifier ou supprimer
+                                </p>
+                            )}
 
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Prénoms</label>
-                                        <input
-                                            type="text"
-                                            value={formData.firstName}
-                                            onChange={(e) => updateFormData('firstName', e.target.value)}
+                                        <input type="text" value={formData.firstName} onChange={(e) => updateFormData('firstName', e.target.value)}
                                             className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white placeholder:text-gray-300 text-gray-900 font-medium"
-                                            placeholder="Koffi"
-                                        />
+                                            placeholder="Koffi" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Nom</label>
-                                        <input
-                                            type="text"
-                                            value={formData.lastName}
-                                            onChange={(e) => updateFormData('lastName', e.target.value)}
+                                        <input type="text" value={formData.lastName} onChange={(e) => updateFormData('lastName', e.target.value)}
                                             className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white placeholder:text-gray-300 text-gray-900 font-medium"
-                                            placeholder="Oulaï"
-                                        />
+                                            placeholder="Oulaï" />
                                     </div>
                                 </div>
-
                                 <div>
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Date de naissance</label>
-                                    <input
-                                        type="date"
-                                        value={formData.birthDate}
-                                        onChange={(e) => updateFormData('birthDate', e.target.value)}
-                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-700"
-                                    />
+                                    <input type="date" value={formData.birthDate} onChange={(e) => updateFormData('birthDate', e.target.value)}
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-700" />
                                 </div>
-
                                 <div>
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-2">Sexe</label>
                                     <div className="grid grid-cols-2 gap-3">
                                         {['Homme', 'Femme'].map(g => (
-                                            <button
-                                                key={g}
-                                                type="button"
-                                                onClick={() => updateFormData('gender', g)}
-                                                className={`py-3 rounded-2xl border-2 text-sm font-bold transition-all ${formData.gender === g ? 'border-[#FF6600] bg-[#FF6600]/5 text-[#FF6600]' : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-[#FF6600]/40 hover:bg-orange-50'}`}
-                                            >
+                                            <button key={g} type="button" onClick={() => updateFormData('gender', g)}
+                                                className={`py-3 rounded-2xl border-2 text-sm font-bold transition-all ${formData.gender === g ? 'border-[#FF6600] bg-[#FF6600]/5 text-[#FF6600]' : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-[#FF6600]/40'}`}>
                                                 {g}
                                             </button>
                                         ))}
@@ -216,24 +480,19 @@ export default function Onboarding() {
                                 </div>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={() => setStep(2)}
-                                disabled={!formData.firstName || !formData.lastName}
-                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                            >
+                            <button type="button" onClick={() => setStep(2)} disabled={!formData.firstName || !formData.lastName}
+                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Continuer <ArrowRight className="w-5 h-5" />
                             </button>
                         </form>
                     )}
 
-                    {/* STEP 2 : Origines */}
+                    {/* ── STEP 2 : Origines ── */}
                     {step === 2 && (
-                        <form className="p-8" onSubmit={e => e.preventDefault()}>
+                        <form className="p-6 sm:p-8" onSubmit={e => e.preventDefault()}>
                             <button type="button" onClick={() => setStep(1)} className="mb-4 p-1.5 text-white/70 hover:text-white transition-colors rounded-full hover:bg-white/10">
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
-
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center">
                                     <MapPin className="w-6 h-6" />
@@ -243,50 +502,35 @@ export default function Onboarding() {
                                     <p className="text-white/80 text-sm">Village d&apos;origine pour la cartographie.</p>
                                 </div>
                             </div>
-
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Village d&apos;origine</label>
                                     <div className="relative">
                                         <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#FF6600]/60 pointer-events-none" />
-                                        <select
-                                            value={formData.villageOrigin}
-                                            onChange={(e) => updateFormData('villageOrigin', e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 font-medium appearance-none"
-                                        >
+                                        <select value={formData.villageOrigin} onChange={(e) => updateFormData('villageOrigin', e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 font-medium appearance-none">
                                             <option value="Toa-Zéo">Toa-Zéo (Pilote actif)</option>
                                             <option value="autre" disabled>D&apos;autres villages arrivent bientôt...</option>
                                         </select>
                                     </div>
                                     <p className="text-[11px] font-semibold text-white mt-2 flex items-center gap-1.5 opacity-90">
-                                        <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block"></span>
+                                        <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
                                         Pilote Toa-Zéo actif &mdash; zone prioritaire
                                     </p>
                                 </div>
-
-                                {/* Sélection du quartier */}
                                 <div>
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Quartier</label>
-                                    <select
-                                        value={formData.quartierNom}
-                                        onChange={(e) => updateFormData('quartierNom', e.target.value)}
-                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 appearance-none"
-                                    >
+                                    <select value={formData.quartierNom} onChange={(e) => updateFormData('quartierNom', e.target.value)}
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 appearance-none">
                                         <option value="">-- Sélectionnez un quartier --</option>
-                                        {quartiers.map(q => (
-                                            <option key={q.id} value={q.nom}>{q.nom}</option>
-                                        ))}
-                                        {quartiers.length === 0 && <option value="" disabled>Chargement des quartiers...</option>}
+                                        {quartiers.map(q => (<option key={q.id} value={q.nom}>{q.nom}</option>))}
+                                        {quartiers.length === 0 && <option value="" disabled>Chargement...</option>}
                                     </select>
                                 </div>
-
                                 <div>
-                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Pays de résidence actuel</label>
-                                    <select
-                                        value={formData.residenceCountry}
-                                        onChange={(e) => updateFormData('residenceCountry', e.target.value)}
-                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-900"
-                                    >
+                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Pays de résidence</label>
+                                    <select value={formData.residenceCountry} onChange={(e) => updateFormData('residenceCountry', e.target.value)}
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-900">
                                         <option value="CI">🇨🇮 Côte d&apos;Ivoire</option>
                                         <option value="FR">🇫🇷 France (Diaspora)</option>
                                         <option value="US">🇺🇸 États-Unis (Diaspora)</option>
@@ -294,25 +538,19 @@ export default function Onboarding() {
                                     </select>
                                 </div>
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setStep(3)}
-                                disabled={!formData.villageOrigin}
-                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                            >
+                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin}
+                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Étape finale <ArrowRight className="w-5 h-5" />
                             </button>
                         </form>
                     )}
 
-                    {/* STEP 3 : Sécurité */}
+                    {/* ── STEP 3 : Sécurité ── */}
                     {step === 3 && (
-                        <form className="p-8" onSubmit={e => { e.preventDefault(); handleRegister(); }}>
+                        <form className="p-6 sm:p-8" onSubmit={e => { e.preventDefault(); handleRegister(); }}>
                             <button type="button" onClick={() => setStep(2)} disabled={isLoading} className="mb-4 p-1.5 text-white/70 hover:text-white transition-colors rounded-full hover:bg-white/10 disabled:opacity-40">
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
-
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center">
                                     <ShieldCheck className="w-6 h-6" />
@@ -322,35 +560,20 @@ export default function Onboarding() {
                                     <p className="text-white/80 text-sm">Votre arbre, privé et souverain.</p>
                                 </div>
                             </div>
-
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Email Souverain</label>
-                                    <input
-                                        type="email"
-                                        autoComplete="email"
-                                        value={formData.email}
-                                        onChange={(e) => updateFormData('email', e.target.value)}
+                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Email</label>
+                                    <input type="email" autoComplete="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)}
                                         className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 font-medium"
-                                        placeholder="vous@email.com"
-                                    />
+                                        placeholder="vous@email.com" />
                                 </div>
-
                                 <div className="relative">
-                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Mot de passe souverain</label>
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        autoComplete="new-password"
-                                        value={formData.password}
-                                        onChange={(e) => updateFormData('password', e.target.value)}
+                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Mot de passe</label>
+                                    <input type={showPassword ? "text" : "password"} autoComplete="new-password" value={formData.password} onChange={(e) => updateFormData('password', e.target.value)}
                                         className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 font-medium"
-                                        placeholder="••••••••"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-8 p-2 text-gray-400 hover:text-[#FF6600] transition-colors rounded-xl hover:bg-orange-50"
-                                    >
+                                        placeholder="••••••••" />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-8 p-2 text-gray-400 hover:text-[#FF6600] transition-colors rounded-xl hover:bg-orange-50">
                                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
                                     <p className="text-xs text-white/70 mt-1.5 flex items-center gap-1">
@@ -361,16 +584,11 @@ export default function Onboarding() {
                             </div>
 
                             {error && (
-                                <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
-                                    {error}
-                                </div>
+                                <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>
                             )}
 
-                            <button
-                                type="submit"
-                                disabled={isLoading || !formData.email || formData.password.length < 6}
-                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                            >
+                            <button type="submit" disabled={isLoading || !formData.email || formData.password.length < 6}
+                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 {isLoading ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Chiffrement souverain...</>
                                 ) : (
@@ -384,6 +602,13 @@ export default function Onboarding() {
                         </form>
                     )}
                 </div>
+
+                {/* Mention RGPD en bas */}
+                <p className="mt-6 text-center text-xs text-foreground/30 leading-relaxed max-w-sm">
+                    Données chiffrées • Souveraineté africaine • Racines+ MVP
+                    <br />
+                    <span className="text-foreground/20">Validation des données respectée avec application des règles RGPD en vigueur</span>
+                </p>
             </main>
         </div>
     );

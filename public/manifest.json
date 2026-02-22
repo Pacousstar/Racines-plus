@@ -1,0 +1,37 @@
+{
+    "name": "Racines+",
+    "short_name": "Racines+",
+    "description": "Forteresse numérique souveraine pour votre lignée africaine",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#FF6600",
+    "orientation": "portrait-primary",
+    "lang": "fr",
+    "categories": [
+        "lifestyle",
+        "social"
+    ],
+    "icons": [
+        {
+            "src": "/LOGO_Racines.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/LOGO_Racines.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/LOGO_Racines.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ]
+}
