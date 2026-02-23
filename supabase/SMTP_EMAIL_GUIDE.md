@@ -120,6 +120,6 @@ Cliquez pour confirmer votre email :
 Si tu veux un endpoint API `/api/send-email` dans Next.js, ajouter dans **Vercel → Settings → Environment Variables** :
 
 ```
-RESEND_API_KEY=re_VOTRE_CLE_API
+RESEND_API_KEY=
 EMAIL_FROM=noreply@resend.dev
 ```

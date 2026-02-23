@@ -37,7 +37,8 @@ export default function Login() {
 
                 const role = profile?.role || 'user';
                 if (role === 'admin') router.push('/admin');
-                else if (['cho', 'choa'].includes(role)) router.push('/cho');
+                else if (role === 'cho') router.push('/cho');
+                else if (role === 'choa') router.push('/choa');
                 else router.push('/dashboard');
             }
         } catch (err: unknown) {

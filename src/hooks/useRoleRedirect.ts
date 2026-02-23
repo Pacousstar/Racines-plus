@@ -42,7 +42,8 @@ export function useRoleRedirect(allowedRoles: AllowedRole[]) {
             if (!userRole || !allowedRoles.includes(userRole)) {
                 // Redirection vers le bon dashboard selon le rôle réel
                 if (userRole === 'admin') router.replace('/admin');
-                else if (userRole === 'cho' || userRole === 'choa') router.replace('/cho');
+                else if (userRole === 'cho') router.replace('/cho');
+                else if (userRole === 'choa') router.replace('/choa');
                 else router.replace('/dashboard');
             }
         };

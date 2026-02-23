@@ -1,144 +1,183 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Client avec service_role pour bypass RLS
+// Client service_role pour bypass RLS
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+// Helper : uploader la photo via service_role
+async function uploadPhoto(userId: string, photoFile: File): Promise<string | null> {
+    try {
+        const arrayBuffer = await photoFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const path = `${userId}.jpg`;
+
+        const { error } = await supabaseAdmin.storage
+            .from('avatars')
+            .upload(path, buffer, { upsert: true, contentType: 'image/jpeg' });
+
+        if (error) {
+            console.warn('[register] Photo upload error:', error.message);
+            return null;
+        }
+
+        const { data } = supabaseAdmin.storage.from('avatars').getPublicUrl(path);
+        return data.publicUrl;
+    } catch (e) {
+        console.warn('[register] Photo upload exception:', e);
+        return null;
+    }
+}
+
+// Helper : upsert profil via service_role
+async function upsertProfile(userId: string, data: Record<string, unknown>) {
+    const { error } = await supabaseAdmin.from('profiles').upsert({
+        id: userId,
+        ...data,
+        updated_at: new Date().toISOString(),
+    });
+    if (error) console.error('[register] Profile upsert error:', error);
+    return error;
+}
+
+// Helper : email de bienvenue
+async function sendWelcomeEmail(email: string, firstName: string, lastName: string, village: string) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) return;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://racines-plus.vercel.app';
+    try {
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                from: process.env.EMAIL_FROM || 'noreply@resend.dev',
+                to: email,
+                subject: `Bienvenue dans Racines+, ${firstName} !`,
+                html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;">
+                    <h1 style="color:#FF6600;">Bienvenue dans Racines+ 🌳</h1>
+                    <p>Bonjour <strong>${firstName} ${lastName}</strong>,</p>
+                    <p>Votre inscription au village de <strong>${village}</strong> a été enregistrée.</p>
+                    <p>En attente de validation par le CHO de votre village.</p>
+                    <a href="${siteUrl}/dashboard" style="display:inline-block;background:#FF6600;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;">
+                        Accéder à mon tableau de bord →
+                    </a>
+                    <p style="color:#999;font-size:12px;">Données chiffrées • Souveraineté africaine • Racines+ MVP</p>
+                </div>`,
+            }),
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            console.warn('[register] Email bienvenue Resend error:', JSON.stringify(err));
+        }
+    } catch (e) {
+        console.warn('[register] Email bienvenue exception:', e);
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
 
-        const email = formData.get('email') as string;
+        const email    = (formData.get('email') as string || '').trim().toLowerCase();
         const password = formData.get('password') as string;
-        const firstName = formData.get('firstName') as string;
-        const lastName = formData.get('lastName') as string;
-        const birthDate = formData.get('birthDate') as string | null;
-        const gender = formData.get('gender') as string;
-        const villageOrigin = formData.get('villageOrigin') as string;
-        const quartierNom = formData.get('quartierNom') as string | null;
-        const residenceCountry = formData.get('residenceCountry') as string;
-        const photoFile = formData.get('photo') as File | null;
+        const firstName      = (formData.get('firstName') as string || '').trim();
+        const lastName       = (formData.get('lastName') as string || '').trim();
+        const birthDate      = formData.get('birthDate') as string | null;
+        const gender         = formData.get('gender') as string;
+        const villageOrigin  = (formData.get('villageOrigin') as string) || 'Toa-Zéo';
+        const quartierNom    = formData.get('quartierNom') as string | null;
+        const residenceCountry = (formData.get('residenceCountry') as string) || 'CI';
+        const photoFile      = formData.get('photo') as File | null;
 
         if (!email || !password || !firstName || !lastName) {
-            return NextResponse.json(
-                { error: 'Champs obligatoires manquants (email, mot de passe, prénom, nom)' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Prénom, nom, email et mot de passe obligatoires.' }, { status: 400 });
         }
 
-        // 1. Créer l'utilisateur dans auth.users (via admin API)
+        let userId: string;
+        let isNewUser = true;
+
+        // ── 1. Tenter de créer le compte ──────────────────────────────────────
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: true, // Confirmer automatiquement l'email (pas besoin de cliquer un lien)
+            email_confirm: true,
         });
 
         if (authError) {
-            // Utilisateur déjà existant ?
-            if (authError.message.includes('already registered')) {
-                return NextResponse.json({ error: 'Cet email est déjà utilisé. Essayez de vous connecter.' }, { status: 409 });
-            }
-            return NextResponse.json({ error: authError.message }, { status: 400 });
-        }
+            // ── 1b. L'email existe déjà → récupérer l'utilisateur existant ─────
+            if (
+                authError.message.toLowerCase().includes('already registered') ||
+                authError.message.toLowerCase().includes('already been registered') ||
+                authError.message.toLowerCase().includes('already exists') ||
+                authError.code === 'email_exists'
+            ) {
+                // Chercher l'utilisateur existant par email
+                const { data: listData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
+                if (listErr || !listData) {
+                    return NextResponse.json({ error: 'Impossible de récupérer le compte existant.' }, { status: 500 });
+                }
+                const existingUser = listData.users.find(u => u.email?.toLowerCase() === email);
+                if (!existingUser) {
+                    return NextResponse.json({ error: 'Email déjà utilisé mais compte introuvable. Essayez de vous connecter.' }, { status: 409 });
+                }
 
-        const userId = authData.user.id;
-        let avatarUrl: string | null = null;
-
-        // 2. Upload photo si présente
-        if (photoFile && photoFile.size > 0) {
-            const arrayBuffer = await photoFile.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const ext = 'jpg';
-            const path = `${userId}.${ext}`;
-
-            const { error: uploadError } = await supabaseAdmin.storage
-                .from('avatars')
-                .upload(path, buffer, {
-                    upsert: true,
-                    contentType: 'image/jpeg',
+                // Mettre à jour le mot de passe si différent (l'utilisateur veut recommencer)
+                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+                    password,
+                    email_confirm: true,
                 });
 
-            if (!uploadError) {
-                const { data: urlData } = supabaseAdmin.storage
-                    .from('avatars')
-                    .getPublicUrl(path);
-                avatarUrl = urlData.publicUrl;
+                userId = existingUser.id;
+                isNewUser = false;
             } else {
-                console.warn('[register] Upload photo failed:', uploadError.message);
+                return NextResponse.json({ error: authError.message }, { status: 400 });
             }
+        } else {
+            userId = authData.user.id;
         }
 
-        // 3. Créer/mettre à jour le profil (bypass RLS via service_role)
-        const { error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .upsert({
-                id: userId,
-                first_name: firstName,
-                last_name: lastName,
-                birth_date: birthDate || null,
-                gender: gender || null,
-                village_origin: villageOrigin || 'Toa-Zéo',
-                quartier_nom: quartierNom || null,
-                residence_country: residenceCountry || 'CI',
-                is_founder: true,
-                role: 'user',
-                status: 'pending',
-                ...(avatarUrl && { avatar_url: avatarUrl }),
-                updated_at: new Date().toISOString(),
-            });
-
-        if (profileError) {
-            console.error('[register] Profile upsert error:', profileError);
-            // On ne bloque pas — l'utilisateur est créé, le profil sera mis à jour plus tard
+        // ── 2. Upload photo ────────────────────────────────────────────────────
+        let avatarUrl: string | null = null;
+        if (photoFile && photoFile.size > 0) {
+            avatarUrl = await uploadPhoto(userId, photoFile);
         }
 
-        // 4. Envoyer un email de bienvenue via Resend (si configuré)
-        const resendApiKey = process.env.RESEND_API_KEY;
-        if (resendApiKey) {
-            try {
-                await fetch('https://api.resend.com/emails', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${resendApiKey}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        from: process.env.EMAIL_FROM || 'noreply@resend.dev',
-                        to: email,
-                        subject: `Bienvenue dans Racines+, ${firstName} !`,
-                        html: `
-                            <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto;">
-                                <h1 style="color: #FF6600;">Bienvenue dans Racines+ 🌳</h1>
-                                <p>Bonjour <strong>${firstName} ${lastName}</strong>,</p>
-                                <p>Votre inscription au village de <strong>${villageOrigin || 'Toa-Zéo'}</strong> a bien été enregistrée.</p>
-                                <p>Votre profil est actuellement en attente de validation par le Chief Heritage Officer (CHO) de votre village.</p>
-                                <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://racines-plus.vercel.app'}/dashboard"
-                                   style="display:inline-block; background:#FF6600; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold; margin:16px 0;">
-                                    Accéder à mon tableau de bord →
-                                </a>
-                                <p style="color: #999; font-size: 12px;">Données chiffrées • Souveraineté africaine • Racines+ MVP</p>
-                            </div>
-                        `,
-                    }),
-                });
-            } catch (emailErr) {
-                console.warn('[register] Email de bienvenue non envoyé:', emailErr);
-            }
+        // ── 3. Upsert profil (toujours, même si user existait) ────────────────
+        const profilePayload: Record<string, unknown> = {
+            first_name: firstName,
+            last_name:  lastName,
+            birth_date: birthDate || null,
+            gender:     gender || null,
+            village_origin:    villageOrigin,
+            quartier_nom:      quartierNom || null,
+            residence_country: residenceCountry,
+            is_founder: true,
+            // Ne pas écraser le rôle si l'user existait et avait déjà un rôle
+            ...(isNewUser && { role: 'user', status: 'pending' }),
+        };
+        if (avatarUrl) profilePayload.avatar_url = avatarUrl;
+
+        await upsertProfile(userId, profilePayload);
+
+        // ── 4. Email de bienvenue (seulement pour les nouveaux) ───────────────
+        if (isNewUser) {
+            await sendWelcomeEmail(email, firstName, lastName, villageOrigin);
         }
 
         return NextResponse.json({
             success: true,
             userId,
-            message: `Compte créé avec succès pour ${firstName} ${lastName}`,
+            isNewUser,
+            message: isNewUser
+                ? `Compte créé avec succès — bienvenue ${firstName} !`
+                : `Profil mis à jour pour ${firstName} ${lastName}.`,
         });
 
     } catch (err: unknown) {
         console.error('[register] Unexpected error:', err);
-        const message = err instanceof Error ? err.message : 'Erreur inattendue';
-        return NextResponse.json({ error: message }, { status: 500 });
+        return NextResponse.json({ error: err instanceof Error ? err.message : 'Erreur inattendue' }, { status: 500 });
     }
 }

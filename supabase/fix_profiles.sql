@@ -1,56 +1,65 @@
 -- ============================================================
--- RACINES+ — Script SQL Fix : Profil manquant après inscription
--- À exécuter dans Supabase → SQL Editor → New Query → Run
--- Ce script corrige les profils créés SANS données (prénom/nom vides)
--- car le trigger a créé le profil avant l'upsert de l'onboarding.
+-- RACINES+ — Nettoyage des doublons et correction de l'inscription
+-- Copiez et exécutez bloc par bloc dans Supabase → SQL Editor
 -- ============================================================
 
--- 1. Vérifier les profils sans first_name (créés par le trigger seul)
--- SELECT id, first_name, last_name, role, status, created_at
--- FROM public.profiles
--- ORDER BY created_at DESC;
+-- ══════════════════════════════════════════════════════════
+-- BLOC 1 : Vérifier les utilisateurs dans auth.users
+-- (Pour voir les doublons avant de les supprimer)
+-- ══════════════════════════════════════════════════════════
+SELECT
+    u.id,
+    u.email,
+    u.email_confirmed_at,
+    u.created_at,
+    p.first_name,
+    p.last_name,
+    p.role,
+    p.status
+FROM auth.users u
+LEFT JOIN public.profiles p ON p.id = u.id
+ORDER BY u.created_at DESC;
 
--- 2. S'assurer que le trigger handle_new_user existe et fonctionne
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-    INSERT INTO public.profiles (id, role, status)
-    VALUES (NEW.id, 'user', 'pending')
-    ON CONFLICT (id) DO NOTHING;  -- Ne pas écraser si l'upsert a déjà tourné
-    RETURN NEW;
-END;
-$$;
+-- ══════════════════════════════════════════════════════════
+-- BLOC 2 : Supprimer le compte test/doublon de pacous2000@gmail.com
+-- (ATTENTION : ceci supprime DÉFINITIVEMENT le compte auth + profil en cascade)
+-- Décommentez et exécutez SEULEMENT si vous voulez repartir de zéro
+-- ══════════════════════════════════════════════════════════
+-- DELETE FROM auth.users WHERE email = 'pacous2000@gmail.com';
 
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+-- ══════════════════════════════════════════════════════════
+-- BLOC 3 : Alternativement, juste mettre à jour le profil existant
+-- (si l'utilisateur existe déjà et que vous voulez corriger les données)
+-- ══════════════════════════════════════════════════════════
+-- UPDATE public.profiles
+-- SET
+--     first_name = 'Votre_Prenom',
+--     last_name  = 'Votre_Nom',
+--     village_origin = 'Toa-Zéo',
+--     role = 'admin',    -- ← passer en admin ici directement
+--     status = 'pending'
+-- WHERE id = (SELECT id FROM auth.users WHERE email = 'pacous2000@gmail.com');
 
--- 3. Politique RLS pour permettre à l'utilisateur de mettre à jour son propre profil
---    (correction du bug : on_conflict(id) DO UPDATE nécessite la politique UPDATE)
-DROP POLICY IF EXISTS "user_update_own_profile" ON public.profiles;
-CREATE POLICY "user_update_own_profile" ON public.profiles
-    FOR UPDATE USING (auth.uid() = id);
-
--- Politique upsert corrigée (permet INSERT même si le trigger a déjà créé le profil)
-DROP POLICY IF EXISTS "user_insert_own_profile" ON public.profiles;
-CREATE POLICY "user_insert_own_profile" ON public.profiles
-    FOR INSERT WITH CHECK (auth.uid() = id);
-
--- 4. Pour passer ton compte en Admin : remplacer TON_EMAIL_ICI par ton email
+-- ══════════════════════════════════════════════════════════
+-- BLOC 4 : Passer un utilisateur en Admin (à faire APRÈS inscription réussie)
+-- Remplacez 'pacous2000@gmail.com' par l'email exact
+-- ══════════════════════════════════════════════════════════
 -- UPDATE public.profiles
 -- SET role = 'admin'
--- WHERE id = (SELECT id FROM auth.users WHERE email = 'TON_EMAIL_ICI');
+-- WHERE id = (SELECT id FROM auth.users WHERE email = 'pacous2000@gmail.com');
 
--- 5. Vérification finale
+-- ══════════════════════════════════════════════════════════
+-- BLOC 5 : Vérification après corrections
+-- ══════════════════════════════════════════════════════════
 SELECT
     u.email,
     p.first_name,
     p.last_name,
     p.role,
     p.status,
-    p.created_at
+    p.village_origin,
+    p.avatar_url,
+    u.created_at
 FROM public.profiles p
 JOIN auth.users u ON u.id = p.id
-ORDER BY p.created_at DESC
-LIMIT 10;
+ORDER BY u.created_at DESC;

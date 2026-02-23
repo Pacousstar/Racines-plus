@@ -34,8 +34,8 @@ export default function ChoBoard() {
     const router = useRouter();
     const supabase = createClient();
     // Double protection côté client
-    useRoleRedirect(['cho']);
-    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected' | 'ancestor' | 'team'>('tasks');
+    useRoleRedirect(['choa']);
+    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
@@ -61,7 +61,7 @@ export default function ChoBoard() {
             setCurrentUserId(user.id);
 
             const { data: profile } = await supabase.from('profiles').select('first_name, last_name, role, village_origin').eq('id', user.id).single();
-            if (!profile || profile.role !== 'cho') { router.push('/dashboard'); return; }
+            if (!profile || profile.role !== 'choa') { router.push('/dashboard'); return; }
             setMyProfile(profile);
 
             // Charger tous les profils utilisateurs
@@ -119,8 +119,6 @@ export default function ChoBoard() {
         { key: 'tasks', label: 'À valider', icon: Clock, count: pendingProfiles.length, countColor: 'bg-orange-500' },
         { key: 'confirmed', label: 'Confirmés', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
         { key: 'rejected', label: 'Rejetés', icon: XCircle, count: rejectedProfiles.length, countColor: 'bg-red-500' },
-        { key: 'ancestor', label: 'Ancêtre Village', icon: Stamp, count: 0, countColor: 'bg-purple-500' },
-        { key: 'team', label: 'Mon Équipe', icon: Users, count: 0, countColor: 'bg-blue-500' },
     ];
 
     const StatusBadge = ({ status }: { status: string }) => {
@@ -162,10 +160,10 @@ export default function ChoBoard() {
                         🟠 Probable
                     </button>
                     <button
-                        onClick={() => handleStatusChange(profile.id, 'confirmed', true)}
+                        onClick={() => handleStatusChange(profile.id, 'confirmed')}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 transition-colors font-bold"
                     >
-                        <Stamp className="w-3.5 h-3.5" /> Bascule Patrimoniale ✅
+                        ✅ Approuver
                     </button>
 
                     <button
@@ -185,9 +183,9 @@ export default function ChoBoard() {
             <header className="fixed top-0 w-full bg-white border-b border-gray-100 px-6 py-3 flex justify-between items-center z-50 shadow-sm">
                 <div className="flex items-center gap-4">
                     <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={90} height={32} className="object-contain" /></Link>
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border bg-purple-50 border-purple-200 text-purple-600">
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border bg-blue-50 border-blue-200 text-blue-600">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        CHO — Directeur du Patrimoine
+                        CHOa — Adjoint Quartier
                     </div>
                 </div>
 
@@ -263,80 +261,6 @@ export default function ChoBoard() {
                     </div>
                 )}
 
-                {/* Ancêtre */}
-                {activeTab === 'ancestor' && (
-                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center">
-                                <TreePine className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-lg">Inscrire l&apos;Ancêtre du Village</h2>
-                                <p className="text-sm text-gray-500">Action réservée exclusivement au CHO</p>
-                            </div>
-                        </div>
-                        {ancestreSaved ? (
-                            <div className="text-center py-8">
-                                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                                <h3 className="font-bold text-lg mb-1">Ancêtre certifié !</h3>
-                                <p className="text-sm text-gray-500">L&apos;ancêtre <strong>{ancestreNom}</strong> a été inscrit dans le registre patrimonial.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">Nom de l&apos;Ancêtre *</label>
-                                    <input type="text" value={ancestreNom} onChange={e => setAncetreNom(e.target.value)} placeholder="Ex: Fondateur Koffi" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 outline-none text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">Siècle / Période approximative</label>
-                                    <input type="text" value={ancestrePeriode} onChange={e => setAncretrePeriode(e.target.value)} placeholder="Ex: XIXe siècle, ~1850" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 outline-none text-sm" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">Source historique / Témoignage</label>
-                                    <input type="text" value={ancestreSource} onChange={e => setAncetreSource(e.target.value)} placeholder="Nom du témoin ou source orale" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 outline-none text-sm" />
-                                </div>
-                                <button
-                                    disabled={!ancestreNom.trim() || isSavingAncetre}
-                                    onClick={async () => {
-                                        if (!ancestreNom.trim()) return;
-                                        setIsSavingAncetre(true);
-                                        const { data: village } = await supabase.from('villages').select('id').eq('nom', myProfile?.village_origin || 'Toa-Zéo').single();
-                                        if (village) {
-                                            await supabase.from('ancestres').insert({
-                                                village_id: village.id,
-                                                nom_complet: ancestreNom,
-                                                periode: ancestrePeriode,
-                                                source: ancestreSource,
-                                                is_certified: true,
-                                                certified_by: (await supabase.auth.getUser()).data.user?.id,
-                                                certified_at: new Date().toISOString()
-                                            });
-                                        }
-                                        setIsSavingAncetre(false);
-                                        setAncretreSaved(true);
-                                    }}
-                                    className="w-full bg-purple-600 disabled:bg-gray-200 disabled:text-gray-400 hover:bg-purple-700 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-colors mt-2"
-                                >
-                                    {isSavingAncetre
-                                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        : <><Stamp className="w-5 h-5" /> Certifier l&apos;Ancêtre Fondateur</>
-                                    }
-                                </button>
-                                <p className="text-xs text-gray-400 text-center">Cette action est irréversible et sera enregistrée dans le registre patrimonial.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Équipe — CHO UNIQUEMENT */}
-                {/* Équipe */}
-                {activeTab === 'team' && (
-                    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                        <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-blue-500" /> Mon Équipe CHOa</h2>
-                        <p className="text-sm text-gray-500 text-center py-8">Liste des CHOa assignés à ce village. Les comptes CHOa sont créés par l&apos;Admin Principal.<br />Consultez le backoffice Admin pour les créer.</p>
-                        <Link href="/admin" className="block text-center text-sm text-[#FF6600] font-bold hover:underline">→ Aller dans l&apos;interface Admin</Link>
-                    </div>
-                )}
             </main>
 
             {/* Modale Motif de Rejet */}

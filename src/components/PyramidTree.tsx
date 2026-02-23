@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Loader2, TreePine, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
 
 // Types
 type PersonStatus = "confirmed" | "probable" | "pending" | "rejected" | string;
@@ -23,7 +24,7 @@ type PersonData = {
 // ─────────────────────────────────────
 // Composant Nœud individuel
 // ─────────────────────────────────────
-const TreeNode = ({ person, depth = 0 }: { person: PersonData; depth?: number }) => {
+const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; depth?: number; onSelectNode?: (person: PersonData) => void }) => {
     const [isExpanded, setIsExpanded] = useState(depth < 2);
 
     const statusStyles: Record<string, { ring: string; dot: string; badge: string }> = {
@@ -45,15 +46,17 @@ const TreeNode = ({ person, depth = 0 }: { person: PersonData; depth?: number })
     return (
         <div className="flex flex-col items-center">
             {/* Carte personne */}
-            <div className={`
+            <div
+                onClick={() => onSelectNode?.(person)}
+                className={`
                 relative flex items-center gap-3 p-4 rounded-2xl border-2 w-64 shadow-lg
-                transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-default
+                transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer
                 ${person.isDeceased
-                    ? 'bg-stone-100/80 border-gray-300 grayscale-[50%]'
-                    : isAncestor
-                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 shadow-amber-100'
-                        : 'bg-white border-gray-100 hover:border-emerald-200'
-                }
+                        ? 'bg-stone-100/80 border-gray-300 grayscale-[50%]'
+                        : isAncestor
+                            ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 shadow-amber-100'
+                            : 'bg-white border-gray-100 hover:border-emerald-200'
+                    }
             `}>
                 {/* Badge type */}
                 {person.isDeceased && (
@@ -128,7 +131,7 @@ const TreeNode = ({ person, depth = 0 }: { person: PersonData; depth?: number })
                             {person.parents.map((parent) => (
                                 <div key={parent.id} className="relative flex flex-col items-center">
                                     <div className="w-px h-4 bg-gray-200 mb-0" />
-                                    <TreeNode person={parent} depth={depth + 1} />
+                                    <TreeNode person={parent} depth={depth + 1} onSelectNode={onSelectNode} />
                                 </div>
                             ))}
                         </div>
@@ -181,7 +184,24 @@ export default function PyramidTree() {
     const [villageMembers, setVillageMembers] = useState<PersonData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [source, setSource] = useState<'neo4j' | 'supabase' | 'empty'>('empty');
+    const [selectedPerson, setSelectedPerson] = useState<AncestorModalData | null>(null);
     const supabase = createClient();
+
+    const handleSelectNode = (person: PersonData) => {
+        setSelectedPerson({
+            id: person.id,
+            nom: person.name,
+            roleOuLien: person.role,
+            periodeOuNaissance: person.birthYear,
+            status: person.status,
+            quartier: person.quartier,
+            village: person.village,
+            isDeceased: person.isDeceased,
+            isVictim2010: person.isVictim2010,
+            isCertified: person.status === 'confirmed',
+            type: person.role.includes('Fondateur') ? 'ancetre' : 'other'
+        });
+    };
 
     useEffect(() => {
         fetchTree();
@@ -339,7 +359,7 @@ export default function PyramidTree() {
                     ) : source === 'neo4j' && treeData ? (
                         /* Mode Neo4j — arbre récursif */
                         <div className="min-w-max p-8 border border-gray-100 rounded-3xl bg-gray-50/50 shadow-inner flex flex-col-reverse items-center justify-end">
-                            <TreeNode person={treeData} />
+                            <TreeNode person={treeData} onSelectNode={handleSelectNode} />
                         </div>
                     ) : source === 'supabase' && villageMembers.length > 0 ? (
                         /* Mode Supabase fallback — grille de membres */
@@ -352,7 +372,7 @@ export default function PyramidTree() {
                                     </h3>
                                     <div className="flex flex-wrap justify-center gap-4">
                                         {villageMembers.filter(m => m.role === 'Ancêtre Fondateur').map(m => (
-                                            <TreeNode key={m.id} person={m} />
+                                            <TreeNode key={m.id} person={m} onSelectNode={handleSelectNode} />
                                         ))}
                                     </div>
                                     <div className="w-px h-10 bg-gray-200 mt-4" />
@@ -364,7 +384,7 @@ export default function PyramidTree() {
                                     <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Membres Inscrits</h3>
                                     <div className="flex flex-wrap justify-center gap-4">
                                         {villageMembers.filter(m => m.role !== 'Ancêtre Fondateur').map(m => (
-                                            <TreeNode key={m.id} person={m} />
+                                            <TreeNode key={m.id} person={m} onSelectNode={handleSelectNode} />
                                         ))}
                                     </div>
                                 </div>
@@ -384,6 +404,7 @@ export default function PyramidTree() {
                     )}
                 </div>
             </div>
+            <AncestorDetailsModal isOpen={!!selectedPerson} onClose={() => setSelectedPerson(null)} person={selectedPerson} />
         </section>
     );
 }

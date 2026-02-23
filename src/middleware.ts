@@ -49,15 +49,21 @@ export async function middleware(req: NextRequest) {
             return NextResponse.redirect(new URL('/dashboard', req.url));
         }
 
-        // Protéger /cho : seulement pour cho et choa
-        if (pathname.startsWith('/cho') && !['cho', 'choa'].includes(role)) {
+        // Protéger /cho : seulement pour cho
+        if (pathname.startsWith('/cho') && !pathname.startsWith('/choa') && role !== 'cho') {
+            return NextResponse.redirect(new URL('/dashboard', req.url));
+        }
+
+        // Protéger /choa : seulement pour choa
+        if (pathname.startsWith('/choa') && role !== 'choa') {
             return NextResponse.redirect(new URL('/dashboard', req.url));
         }
 
         // Si connecté et sur /login ou /onboarding, rediriger vers le bon dashboard
         if (['/login', '/onboarding'].includes(pathname)) {
             if (role === 'admin') return NextResponse.redirect(new URL('/admin', req.url));
-            if (['cho', 'choa'].includes(role)) return NextResponse.redirect(new URL('/cho', req.url));
+            if (role === 'cho') return NextResponse.redirect(new URL('/cho', req.url));
+            if (role === 'choa') return NextResponse.redirect(new URL('/choa', req.url));
             return NextResponse.redirect(new URL('/dashboard', req.url));
         }
     }

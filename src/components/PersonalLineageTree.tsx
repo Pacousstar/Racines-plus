@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { TreePine, User, ChevronUp, Crown, Clock, Hash, GitBranch } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
 
 interface LineageNode {
     id: string;
@@ -31,6 +32,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
     const [lineage, setLineage] = useState<LineageNode[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [aiPosition, setAiPosition] = useState<{ generation: number; lien_probable: string; confidence: number } | null>(null);
+    const [selectedNode, setSelectedNode] = useState<AncestorModalData | null>(null);
 
     useEffect(() => {
         const loadLineage = async () => {
@@ -177,7 +179,18 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         )}
 
                         {/* Nœud */}
-                        <div className={`w-full border-2 rounded-2xl p-4 shadow-sm transition-all hover:shadow-md ${node.type === 'ancetre' ? 'border-amber-300 bg-amber-50' : getStatusColor(node.status)}`}>
+                        <div
+                            onClick={() => setSelectedNode({
+                                id: node.id,
+                                nom: node.nom,
+                                roleOuLien: node.type === 'ancetre' ? 'Ancêtre Fondateur' : (aiPosition?.lien_probable || 'Vous'),
+                                periodeOuNaissance: node.periode,
+                                status: node.status || 'confirmed',
+                                isCertified: node.is_certified,
+                                type: node.type
+                            })}
+                            className={`w-full border-2 rounded-2xl p-4 shadow-sm transition-all hover:shadow-md cursor-pointer ${node.type === 'ancetre' ? 'border-amber-300 bg-amber-50' : getStatusColor(node.status)}`}
+                        >
                             <div className="flex items-start gap-3">
                                 {/* Icône */}
                                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${node.type === 'ancetre' ? 'bg-amber-100' : 'bg-[#FF6600]/10'}`}>
@@ -228,6 +241,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     </p>
                 </div>
             )}
+
+            <AncestorDetailsModal isOpen={!!selectedNode} onClose={() => setSelectedNode(null)} person={selectedNode} />
         </div>
     );
 }

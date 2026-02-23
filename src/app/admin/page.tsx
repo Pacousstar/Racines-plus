@@ -6,12 +6,14 @@ import Link from "next/link";
 import {
     Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
-    BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2
+    BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
+import UserDashboardContent from '@/components/UserDashboardContent';
+import { TreePine } from 'lucide-react';
 
 interface Profile {
     id: string;
@@ -21,6 +23,7 @@ interface Profile {
     status: string;
     village_origin: string;
     created_at: string;
+    is_ambassadeur?: boolean;
 }
 
 interface StatsData {
@@ -35,21 +38,28 @@ export default function AdminDashboard() {
     const supabase = createClient();
     // Double protection côté client (le middleware gère côté serveur)
     useRoleRedirect(['admin']);
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'villages' | 'validations' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'villages' | 'validations' | 'settings'>('overview');
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [stats, setStats] = useState<StatsData>({ totalUsers: 0, confirmedUsers: 0, pendingUsers: 0, rejectedUsers: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [adminName, setAdminName] = useState('Admin');
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const [newVillageName, setNewVillageName] = useState('');
     const [newVillageRegion, setNewVillageRegion] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);
+    const [ancestorForm, setAncestorForm] = useState({ nom: '', periode: '', source: '', villageNom: 'Toa-Zéo' });
+    const [isSavingAncestor, setIsSavingAncestor] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterRole, setFilterRole] = useState('all');
+    const [filterStatus, setFilterStatus] = useState('all');
 
     useEffect(() => {
         const loadData = async () => {
             setIsLoading(true);
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { router.push('/login'); return; }
+            setCurrentUserId(user.id);
 
             const { data: adminProfile } = await supabase.from('profiles').select('first_name, role').eq('id', user.id).single();
             if (adminProfile?.role !== 'admin') { router.push('/dashboard'); return; }
@@ -57,7 +67,7 @@ export default function AdminDashboard() {
 
             const { data: allProfiles } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, role, status, village_origin, created_at')
+                .select('id, first_name, last_name, role, status, village_origin, created_at, is_ambassadeur')
                 .order('created_at', { ascending: false });
 
             if (allProfiles) {
@@ -79,9 +89,31 @@ export default function AdminDashboard() {
         router.push('/login');
     };
 
+    const handleToggleAmbassadeur = async (userId: string, currentStatus: boolean) => {
+        const newStatus = !currentStatus;
+        const { error } = await supabase.from('profiles').update({ is_ambassadeur: newStatus }).eq('id', userId);
+        if (error) {
+            alert("Erreur lors de la mise à jour du statut ambassadeur.");
+            return;
+        }
+        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, is_ambassadeur: newStatus } : p));
+        alert(newStatus ? "Certifié Ambassadeur Racines+ avec succès !" : "Statut d'Ambassadeur retiré.");
+    };
+
     const handleRoleChange = async (userId: string, newRole: string) => {
-        await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, role: newRole } : p));
+        const updateData: any = { role: newRole };
+        if (['cho', 'choa', 'admin'].includes(newRole)) {
+            updateData.status = 'confirmed';
+        }
+
+        await supabase.from('profiles').update(updateData).eq('id', userId);
+        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...updateData } : p));
+
+        if (updateData.status === 'confirmed') {
+            alert(`Le rôle a été changé en ${newRole.toUpperCase()} et le statut a été automatiquement confirmé.`);
+        } else {
+            alert(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
+        }
     };
 
     const handleAddVillage = async (e: React.FormEvent) => {
@@ -93,6 +125,41 @@ export default function AdminDashboard() {
         alert(`Village "${newVillageName}" ajouté avec succès !`);
     };
 
+    const handleCreateAncestor = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!ancestorForm.nom.trim()) return;
+        setIsSavingAncestor(true);
+        try {
+            const { data: village } = await supabase.from('villages').select('id').eq('nom', ancestorForm.villageNom).single();
+            if (!village) throw new Error("Village non trouvé");
+
+            await supabase.from('ancestres').insert({
+                village_id: village.id,
+                nom_complet: ancestorForm.nom,
+                periode: ancestorForm.periode,
+                source: ancestorForm.source,
+                is_certified: true,
+                certified_by: currentUserId,
+                certified_at: new Date().toISOString()
+            });
+
+            alert(`Ancêtre ${ancestorForm.nom} créé avec succès !`);
+            setAncestorForm({ nom: '', periode: '', source: '', villageNom: 'Toa-Zéo' });
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setIsSavingAncestor(false);
+        }
+    };
+
+    const filteredProfiles = profiles.filter(p => {
+        const matchSearch = (p.first_name + ' ' + p.last_name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (p.village_origin || '').toLowerCase().includes(searchTerm.toLowerCase());
+        const matchRole = filterRole === 'all' || p.role === filterRole;
+        const matchStatus = filterStatus === 'all' || p.status === filterStatus;
+        return matchSearch && matchRole && matchStatus;
+    });
+
     const kpis = [
         { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
         { label: 'Profils Confirmés ✅', value: stats.confirmedUsers, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
@@ -102,6 +169,7 @@ export default function AdminDashboard() {
 
     const tabs = [
         { key: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
+        { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine },
         { key: 'users', label: 'Comptes & Rôles', icon: Users },
         { key: 'villages', label: 'Villages & Quartiers', icon: Map },
         { key: 'validations', label: 'Validations', icon: ShieldCheck },
@@ -152,6 +220,13 @@ export default function AdminDashboard() {
             {/* Contenu principal */}
             <main className="pt-20 px-6 max-w-7xl mx-auto pb-24 md:pb-12">
 
+                {/* Mon Arbre Utilisateur */}
+                {activeTab === 'mon_arbre' && currentUserId && (
+                    <div className="mt-4">
+                        <UserDashboardContent userId={currentUserId} />
+                    </div>
+                )}
+
                 {/* Vue d'ensemble */}
                 {activeTab === 'overview' && (
                     <div className="space-y-8">
@@ -180,7 +255,7 @@ export default function AdminDashboard() {
                             <h2 className="font-bold text-lg mb-4 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-[#FF6600]" /> Actions Rapides</h2>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 {[
-                                    { label: 'Ajouter un CHO', icon: Plus, onClick: () => setActiveTab('users') },
+                                    { label: 'Associer CHO/CHOa', icon: Plus, onClick: () => setActiveTab('users') },
                                     { label: 'Nouveau village', icon: Globe, onClick: () => setActiveTab('villages') },
                                     { label: 'Voir les validations', icon: ShieldCheck, onClick: () => setActiveTab('validations') },
                                     { label: 'Inviter', icon: Share2, onClick: () => setIsInviteOpen(true) },
@@ -225,10 +300,37 @@ export default function AdminDashboard() {
                 {/* Gestion Comptes */}
                 {activeTab === 'users' && (
                     <div className="space-y-6 mt-6">
-                        <h1 className="text-2xl font-bold">Comptes & Rôles</h1>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <h1 className="text-2xl font-bold">Comptes & Rôles</h1>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <div className="relative">
+                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <input
+                                        type="text"
+                                        placeholder="Recherche (nom, village)..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm w-full md:w-64 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/10 outline-none"
+                                    />
+                                </div>
+                                <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
+                                    <option value="all">Tous Rôles</option>
+                                    <option value="user">User</option>
+                                    <option value="cho">CHO</option>
+                                    <option value="choa">CHOa</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
+                                    <option value="all">Tous Statuts</option>
+                                    <option value="confirmed">✅ Confirmés</option>
+                                    <option value="pending">⏳ En attente</option>
+                                    <option value="rejected">❌ Rejetés</option>
+                                </select>
+                            </div>
+                        </div>
                         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-5 border-b border-gray-50 flex justify-between items-center">
-                                <h2 className="font-bold">Tous les utilisateurs ({profiles.length})</h2>
+                                <h2 className="font-bold">Résultats ({filteredProfiles.length})</h2>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
@@ -243,12 +345,17 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {profiles.map(p => (
+                                        {filteredProfiles.map(p => (
                                             <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="py-3 px-5">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold relative">
                                                             {(p.first_name?.[0] || '?').toUpperCase()}
+                                                            {p.is_ambassadeur && (
+                                                                <div className="absolute -bottom-1 -right-1 bg-amber-100 rounded-full border border-white">
+                                                                    <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <span className="text-sm font-medium">{p.first_name} {p.last_name}</span>
                                                     </div>
@@ -276,9 +383,15 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <div className="flex items-center gap-2">
-                                                        <button className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><Eye className="w-3.5 h-3.5" /></button>
-                                                        <button className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
-                                                        <button className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                        <button
+                                                            onClick={() => handleToggleAmbassadeur(p.id, p.is_ambassadeur || false)}
+                                                            className={`p-1.5 rounded-lg transition-colors ${p.is_ambassadeur ? 'text-amber-500 bg-amber-50 hover:bg-amber-100 hover:text-amber-600' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                                                            title={p.is_ambassadeur ? "Retirer la certification Ambassadeur" : "Certifier Ambassadeur Racines+"}
+                                                        >
+                                                            <Star className={`w-3.5 h-3.5 ${p.is_ambassadeur ? 'fill-amber-500' : ''}`} />
+                                                        </button>
+                                                        <button className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir les détails (Bientôt disponible)"><Eye className="w-3.5 h-3.5" /></button>
+                                                        <button className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer (Bientôt disponible)"><Trash2 className="w-3.5 h-3.5" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -293,7 +406,7 @@ export default function AdminDashboard() {
                 {/* Gestion Villages */}
                 {activeTab === 'villages' && (
                     <div className="space-y-6 mt-6">
-                        <h1 className="text-2xl font-bold">Villages & Quartiers</h1>
+                        <h1 className="text-2xl font-bold">Villages & Ancêtres</h1>
                         <div className="grid md:grid-cols-2 gap-6">
                             {/* Ajouter un village */}
                             <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
@@ -307,14 +420,30 @@ export default function AdminDashboard() {
                                 </form>
                             </div>
 
+                            {/* Inscrire un ancêtre */}
+                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                                <h2 className="font-bold mb-4 flex items-center gap-2"><TreePine className="w-5 h-5 text-amber-500" /> Inscrire un Ancêtre Fondateur</h2>
+                                <form onSubmit={handleCreateAncestor} className="space-y-3">
+                                    <input type="text" value={ancestorForm.nom} onChange={e => setAncestorForm({ ...ancestorForm, nom: e.target.value })} placeholder="Nom de l'Ancêtre *" required className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none text-sm" />
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="text" value={ancestorForm.periode} onChange={e => setAncestorForm({ ...ancestorForm, periode: e.target.value })} placeholder="Période (~1850)" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none text-sm" />
+                                        <input type="text" value={ancestorForm.source} onChange={e => setAncestorForm({ ...ancestorForm, source: e.target.value })} placeholder="Source historique" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none text-sm" />
+                                    </div>
+                                    <input type="text" value={ancestorForm.villageNom} disabled className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 outline-none text-sm" />
+                                    <button disabled={isSavingAncestor} type="submit" className="w-full bg-amber-500 disabled:bg-gray-200 disabled:text-gray-400 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                                        <Plus className="w-4 h-4" /> {isSavingAncestor ? 'Création...' : 'Créer l\'Ancêtre'}
+                                    </button>
+                                </form>
+                            </div>
+
                             {/* Info */}
-                            <div className="bg-[#FF6600]/5 border border-[#FF6600]/20 rounded-3xl p-6">
+                            <div className="bg-[#FF6600]/5 border border-[#FF6600]/20 rounded-3xl p-6 md:col-span-2">
                                 <h2 className="font-bold mb-3 text-[#FF6600] flex items-center gap-2"><AlertTriangle className="w-5 h-5" /> Important</h2>
                                 <ul className="text-sm text-gray-700 space-y-2">
                                     <li>• Les villages et quartiers sont gérés exclusivement par l&apos;Admin Principal (vous).</li>
                                     <li>• Les utilisateurs sélectionnent leur village/quartier lors de l&apos;inscription.</li>
                                     <li>• Le village pilote <strong>Toa-Zéo</strong> est pré-configuré par le SQL initial.</li>
-                                    <li>• Chaque village peut avoir plusieurs quartiers.</li>
+                                    <li>• La liste des Ancêtres Fondateurs alimente la racine des différentes familles du village.</li>
                                 </ul>
                             </div>
                         </div>
@@ -368,6 +497,7 @@ export default function AdminDashboard() {
                     </div>
                 )}
             </main>
+
             <InviteModal
                 isOpen={isInviteOpen}
                 onClose={() => setIsInviteOpen(false)}
