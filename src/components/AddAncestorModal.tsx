@@ -62,7 +62,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess }: AddAnce
                         <div className="w-10 h-10 bg-racines-green/10 text-racines-green rounded-full flex items-center justify-center">
                             <UserPlus className="w-5 h-5" />
                         </div>
-                        <h2 className="text-xl font-bold text-foreground">Ajouter un ancêtre</h2>
+                        <h2 className="text-xl font-bold text-foreground">Ajouter un parent</h2>
                     </div>
                     <button onClick={onClose} className="p-2 text-gray-400 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5" />
@@ -138,19 +138,6 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess }: AddAnce
                                 </select>
                             </div>
                         </div>
-
-                        {/* Mémorial */}
-                        {formData.status === 'Décédée' && (
-                            <div className="bg-gray-100 p-4 rounded-2xl border border-gray-200">
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                    <input type="checkbox" className="mt-1 w-4 h-4 accent-gray-500 rounded" />
-                                    <span className="text-sm text-gray-700">
-                                        <strong>Mémorial 2010-2011</strong>
-                                        <span className="block text-xs text-gray-500 mt-0.5">Cochez si cette personne est une victime de la crise ivoirienne.</span>
-                                    </span>
-                                </label>
-                            </div>
-                        )}
 
                     </form>
                 </div>

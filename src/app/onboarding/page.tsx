@@ -202,7 +202,13 @@ export default function Onboarding() {
         quartierNom: '',
         residenceCountry: 'CI',
         email: '',
-        password: ''
+        password: '',
+        fatherFirstName: '',
+        fatherLastName: '',
+        fatherStatus: 'Vivant',
+        motherFirstName: '',
+        motherLastName: '',
+        motherStatus: 'Vivante'
     });
 
     const [quartiers, setQuartiers] = useState<{ id: string; nom: string }[]>([]);
@@ -263,6 +269,13 @@ export default function Onboarding() {
             fd.append('quartierNom', formData.quartierNom || '');
             fd.append('residenceCountry', formData.residenceCountry);
 
+            fd.append('fatherFirstName', formData.fatherFirstName);
+            fd.append('fatherLastName', formData.fatherLastName);
+            fd.append('fatherStatus', formData.fatherStatus);
+            fd.append('motherFirstName', formData.motherFirstName);
+            fd.append('motherLastName', formData.motherLastName);
+            fd.append('motherStatus', formData.motherStatus);
+
             // Ajouter la photo si présente
             if (photoBlob) {
                 const photoFile = new File([photoBlob], 'avatar.jpg', { type: 'image/jpeg' });
@@ -307,7 +320,8 @@ export default function Onboarding() {
     const steps = [
         { num: 1, label: 'Identité' },
         { num: 2, label: 'Origines' },
-        { num: 3, label: 'Sécurité' },
+        { num: 3, label: 'Parents' },
+        { num: 4, label: 'Sécurité' },
     ];
 
     return (
@@ -539,15 +553,91 @@ export default function Onboarding() {
                             </div>
                             <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                                Continuer <ArrowRight className="w-5 h-5" />
+                            </button>
+                        </form>
+                    )}
+
+                    {/* ── STEP 3 : Parents ── */}
+                    {step === 3 && (
+                        <form className="p-6 sm:p-8" onSubmit={e => e.preventDefault()}>
+                            <button type="button" onClick={() => setStep(2)} className="mb-4 p-1.5 text-white/70 hover:text-white transition-colors rounded-full hover:bg-white/10">
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-12 h-12 bg-white/20 text-white rounded-2xl flex items-center justify-center">
+                                    <Users className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-white">Vos Parents</h1>
+                                    <p className="text-white/80 text-sm">Créez le lien avec votre famille.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                                {/* PÈRE */}
+                                <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
+                                    <h3 className="text-white font-bold mb-3 flex items-center gap-2"><div className="w-2 h-2 bg-[#FF6600] rounded-full"></div> Père</h3>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Prénoms</label>
+                                            <input type="text" value={formData.fatherFirstName} onChange={(e) => updateFormData('fatherFirstName', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-sm outline-none focus:border-white" placeholder="Prénoms" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Nom</label>
+                                            <input type="text" value={formData.fatherLastName} onChange={(e) => updateFormData('fatherLastName', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-sm outline-none focus:border-white" placeholder="Nom" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut du père</label>
+                                        <select value={formData.fatherStatus} onChange={(e) => updateFormData('fatherStatus', e.target.value)}
+                                            className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
+                                            <option value="Vivant">Vivant</option>
+                                            <option value="Décédé naturel">Décédé naturellement</option>
+                                            <option value="Victime crise 2010">Décédé : Victime crise 2010</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* MÈRE */}
+                                <div className="bg-white/10 p-4 rounded-2xl border border-white/20">
+                                    <h3 className="text-white font-bold mb-3 flex items-center gap-2"><div className="w-2 h-2 bg-emerald-400 rounded-full"></div> Mère</h3>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Prénoms</label>
+                                            <input type="text" value={formData.motherFirstName} onChange={(e) => updateFormData('motherFirstName', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-sm outline-none focus:border-white" placeholder="Prénoms" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Nom</label>
+                                            <input type="text" value={formData.motherLastName} onChange={(e) => updateFormData('motherLastName', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-sm outline-none focus:border-white" placeholder="Nom" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut de la mère</label>
+                                        <select value={formData.motherStatus} onChange={(e) => updateFormData('motherStatus', e.target.value)}
+                                            className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
+                                            <option value="Vivante">Vivante</option>
+                                            <option value="Décédée naturele">Décédée naturellement</option>
+                                            <option value="Victime crise 2010">Décédée : Victime crise 2010</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" onClick={() => setStep(4)}
+                                className="w-full mt-6 bg-white hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Étape finale <ArrowRight className="w-5 h-5" />
                             </button>
                         </form>
                     )}
 
-                    {/* ── STEP 3 : Sécurité ── */}
-                    {step === 3 && (
+                    {/* ── STEP 4 : Sécurité ── */}
+                    {step === 4 && (
                         <form className="p-6 sm:p-8" onSubmit={e => { e.preventDefault(); handleRegister(); }}>
-                            <button type="button" onClick={() => setStep(2)} disabled={isLoading} className="mb-4 p-1.5 text-white/70 hover:text-white transition-colors rounded-full hover:bg-white/10 disabled:opacity-40">
+                            <button type="button" onClick={() => setStep(3)} disabled={isLoading} className="mb-4 p-1.5 text-white/70 hover:text-white transition-colors rounded-full hover:bg-white/10 disabled:opacity-40">
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
                             <div className="flex items-center gap-3 mb-6">

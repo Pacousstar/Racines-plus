@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
     Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
-    BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter
+    BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -26,6 +26,19 @@ interface Profile {
     is_ambassadeur?: boolean;
 }
 
+interface Victim {
+    id: string;
+    firstName: string;
+    lastName: string;
+    birthYear?: string;
+    village?: string;
+    addedByDetails?: {
+        firstName: string;
+        lastName: string;
+        village: string;
+    };
+}
+
 interface StatsData {
     totalUsers: number;
     confirmedUsers: number;
@@ -38,8 +51,9 @@ export default function AdminDashboard() {
     const supabase = createClient();
     // Double protection côté client (le middleware gère côté serveur)
     useRoleRedirect(['admin']);
-    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'villages' | 'validations' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'villages' | 'validations' | 'memorial' | 'settings'>('overview');
     const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [victims, setVictims] = useState<Victim[]>([]);
     const [stats, setStats] = useState<StatsData>({ totalUsers: 0, confirmedUsers: 0, pendingUsers: 0, rejectedUsers: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [adminName, setAdminName] = useState('Admin');
@@ -79,6 +93,19 @@ export default function AdminDashboard() {
                     rejectedUsers: allProfiles.filter(p => p.status === 'rejected').length,
                 });
             }
+
+            try {
+                const victimsRes = await fetch('/api/admin/victims');
+                if (victimsRes.ok) {
+                    const victimsData = await victimsRes.json();
+                    if (victimsData.success) {
+                        setVictims(victimsData.victims);
+                    }
+                }
+            } catch (err) {
+                console.error("Erreur récupération victimes:", err);
+            }
+
             setIsLoading(false);
         };
         loadData();
@@ -173,6 +200,7 @@ export default function AdminDashboard() {
         { key: 'users', label: 'Comptes & Rôles', icon: Users },
         { key: 'villages', label: 'Villages & Quartiers', icon: Map },
         { key: 'validations', label: 'Validations', icon: ShieldCheck },
+        { key: 'memorial', label: 'Crise 2010', icon: Flame },
         { key: 'settings', label: 'Paramètres', icon: Settings },
     ];
 
@@ -470,6 +498,73 @@ export default function AdminDashboard() {
                         </div>
                         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
                             <p className="text-gray-500 text-sm text-center py-8">Le tableau détaillé des validations CHO sera affiché ici une fois les données disponibles.</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Mémorial 2010 */}
+                {activeTab === 'memorial' && (
+                    <div className="space-y-6 mt-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
+                                <Flame className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold">Mémorial 2010 - 2011</h1>
+                                <p className="text-gray-500 text-sm">Recensement des victimes de la crise post-électorale</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                            <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                                <h2 className="font-bold flex items-center gap-2">
+                                    Total recensé : <span className="text-red-600 font-extrabold text-lg">{victims.length} victime(s)</span>
+                                </h2>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                                        <tr>
+                                            <th className="text-left py-3 px-5">Victime</th>
+                                            <th className="text-left py-3 px-4">Année d. nais.</th>
+                                            <th className="text-left py-3 px-4">Village</th>
+                                            <th className="text-left py-3 px-4">Recensé par</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {victims.map(v => (
+                                            <tr key={v.id} className="hover:bg-red-50/30 transition-colors">
+                                                <td className="py-3 px-5">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">
+                                                            {(v.firstName?.[0] || '?').toUpperCase()}
+                                                        </div>
+                                                        <span className="text-sm font-semibold">{v.firstName} {v.lastName}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4 text-sm text-gray-500">{v.birthYear || '—'}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-500">{v.village || '—'}</td>
+                                                <td className="py-3 px-4">
+                                                    {v.addedByDetails ? (
+                                                        <div>
+                                                            <p className="text-sm font-medium">{v.addedByDetails.firstName} {v.addedByDetails.lastName}</p>
+                                                            <p className="text-xs text-gray-400">{v.addedByDetails.village || '—'}</p>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-sm">—</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {victims.length === 0 && !isLoading && (
+                                    <div className="p-10 text-center">
+                                        <Flame className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-gray-500">Aucune victime recensée pour le moment dans l'arbre généalogique.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

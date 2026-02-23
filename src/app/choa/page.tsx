@@ -72,6 +72,7 @@ export default function ChoBoard() {
                 .order('created_at', { ascending: false });
 
             if (allUsers) {
+                // Le CHOa ne voit dans ses tâches QUE les 'pending'
                 setPendingProfiles(allUsers.filter(u => !u.status || u.status === 'pending'));
                 setConfirmedProfiles(allUsers.filter(u => u.status === 'confirmed'));
                 setRejectedProfiles(allUsers.filter(u => u.status === 'rejected'));
@@ -82,32 +83,41 @@ export default function ChoBoard() {
     }, [supabase, router]);
 
     const handleStatusChange = async (profileId: string, newStatus: string, isFinal: boolean = false) => {
-        if (!motifModal && newStatus === 'rejete') {
-            setMotifModal({ id: profileId, action: 'rejete' });
+        if (!motifModal && newStatus === 'rejected') {
+            setMotifModal({ id: profileId, action: 'rejected' });
             return;
         }
 
         const updateData: Record<string, unknown> = { status: newStatus };
-        if (newStatus === 'rejete' && motifText) updateData.rejection_motif = motifText;
+        if (newStatus === 'rejected' && motifText) updateData.rejection_motif = motifText;
         if (observations) updateData.rejection_observations = observations;
 
         await supabase.from('profiles').update(updateData).eq('id', profileId);
 
-        if (isFinal && newStatus === 'confirmed') {
+        // Historiser l'action du CHOa dans la table validations
+        if (newStatus === 'probable' || newStatus === 'rejected') {
+            const { data: { user } } = await supabase.auth.getUser();
             await supabase.from('validations').insert({
                 profile_id: profileId,
-                validator_id: (await supabase.auth.getUser()).data.user?.id,
+                validator_id: user?.id,
                 role_validateur: myProfile?.role,
-                statut: 'confirme',
-                decision_finale: true,
-                observations: 'Bascule Patrimoniale déclenchée par le CHO'
+                statut: newStatus,
+                decision_finale: false,
+                motif: motifText || null,
+                observations: observations || (newStatus === 'probable' ? 'Pré-validation' : null)
             });
         }
 
         // Rafraîchir
-        setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
-        if (newStatus === 'confirmed') setConfirmedProfiles(prev => [...prev, { ...pendingProfiles.find(p => p.id === profileId)!, status: 'confirmed' }]);
-        if (newStatus === 'rejected') setRejectedProfiles(prev => [...prev, { ...pendingProfiles.find(p => p.id === profileId)!, status: 'rejected' }]);
+        if (newStatus === 'probable') {
+            setPendingProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: 'probable' } : p));
+        } else {
+            const profileToMove = pendingProfiles.find(p => p.id === profileId);
+            setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
+            if (newStatus === 'rejected' && profileToMove) {
+                setRejectedProfiles(prev => [...prev, { ...profileToMove, status: 'rejected' }]);
+            }
+        }
 
         setMotifModal(null);
         setMotifText('');
@@ -156,18 +166,13 @@ export default function ChoBoard() {
                     <button
                         onClick={() => handleStatusChange(profile.id, 'probable')}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 transition-colors font-bold"
+                        title="Pré-valider et envoyer au CHO"
                     >
                         🟠 Probable
                     </button>
-                    <button
-                        onClick={() => handleStatusChange(profile.id, 'confirmed')}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-green-600 hover:bg-green-100 transition-colors font-bold"
-                    >
-                        ✅ Approuver
-                    </button>
 
                     <button
-                        onClick={() => setMotifModal({ id: profile.id, action: 'rejete' })}
+                        onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors font-bold"
                     >
                         ❌ Rejeter

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getSession } from '@/lib/neo4j';
 
 // Client service_role pour bypass RLS
 const supabaseAdmin = createClient(
@@ -81,16 +82,16 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
 
-        const email    = (formData.get('email') as string || '').trim().toLowerCase();
+        const email = (formData.get('email') as string || '').trim().toLowerCase();
         const password = formData.get('password') as string;
-        const firstName      = (formData.get('firstName') as string || '').trim();
-        const lastName       = (formData.get('lastName') as string || '').trim();
-        const birthDate      = formData.get('birthDate') as string | null;
-        const gender         = formData.get('gender') as string;
-        const villageOrigin  = (formData.get('villageOrigin') as string) || 'Toa-Zéo';
-        const quartierNom    = formData.get('quartierNom') as string | null;
+        const firstName = (formData.get('firstName') as string || '').trim();
+        const lastName = (formData.get('lastName') as string || '').trim();
+        const birthDate = formData.get('birthDate') as string | null;
+        const gender = formData.get('gender') as string;
+        const villageOrigin = (formData.get('villageOrigin') as string) || 'Toa-Zéo';
+        const quartierNom = formData.get('quartierNom') as string | null;
         const residenceCountry = (formData.get('residenceCountry') as string) || 'CI';
-        const photoFile      = formData.get('photo') as File | null;
+        const photoFile = formData.get('photo') as File | null;
 
         if (!email || !password || !firstName || !lastName) {
             return NextResponse.json({ error: 'Prénom, nom, email et mot de passe obligatoires.' }, { status: 400 });
@@ -148,11 +149,11 @@ export async function POST(request: NextRequest) {
         // ── 3. Upsert profil (toujours, même si user existait) ────────────────
         const profilePayload: Record<string, unknown> = {
             first_name: firstName,
-            last_name:  lastName,
+            last_name: lastName,
             birth_date: birthDate || null,
-            gender:     gender || null,
-            village_origin:    villageOrigin,
-            quartier_nom:      quartierNom || null,
+            gender: gender || null,
+            village_origin: villageOrigin,
+            quartier_nom: quartierNom || null,
             residence_country: residenceCountry,
             is_founder: true,
             // Ne pas écraser le rôle si l'user existait et avait déjà un rôle
@@ -162,7 +163,70 @@ export async function POST(request: NextRequest) {
 
         await upsertProfile(userId, profilePayload);
 
-        // ── 4. Email de bienvenue (seulement pour les nouveaux) ───────────────
+        // ── 4. Neo4j : Création du noeud utilisateur et ses parents ───────────
+        try {
+            const session = await getSession();
+
+            // User
+            await session.run(
+                `MERGE (u:Person {id: $userId})
+                 ON CREATE SET u.firstName = $firstName, u.lastName = $lastName, u.village = $village, u.isFounder = true`,
+                { userId, firstName, lastName, village: villageOrigin }
+            );
+
+            // Père
+            const fFirst = formData.get('fatherFirstName') as string;
+            const fLast = formData.get('fatherLastName') as string;
+            if (fFirst || fLast) {
+                const fStatus = formData.get('fatherStatus') as string;
+                const isVictim = fStatus === 'Victime crise 2010';
+                const statusStr = fStatus?.startsWith('Décédé') ? 'Décédée' : 'Vivante'; // fallback to standard Person status format 'Décédée'/'Vivante' in graph for simplicity or keep 'Décédé'
+                const fId = crypto.randomUUID();
+
+                await session.run(
+                    `MATCH (u:Person {id: $userId})
+                     CREATE (f:Person {
+                        id: $fId,
+                        firstName: $first,
+                        lastName: $last,
+                        status: $status,
+                        isVictim: $victim,
+                        addedBy: $userId
+                     })
+                     CREATE (f)-[:FATHER_OF]->(u)`,
+                    { userId, fId, first: fFirst, last: fLast, status: statusStr === 'Décédée' ? 'Décédée' : 'Vivante', victim: isVictim }
+                );
+            }
+
+            // Mère
+            const mFirst = formData.get('motherFirstName') as string;
+            const mLast = formData.get('motherLastName') as string;
+            if (mFirst || mLast) {
+                const mStatus = formData.get('motherStatus') as string;
+                const isVictim = mStatus === 'Victime crise 2010';
+                const statusStr = mStatus?.startsWith('Décédée') ? 'Décédée' : 'Vivante';
+                const mId = crypto.randomUUID();
+
+                await session.run(
+                    `MATCH (u:Person {id: $userId})
+                     CREATE (m:Person {
+                        id: $mId,
+                        firstName: $first,
+                        lastName: $last,
+                        status: $status,
+                        isVictim: $victim,
+                        addedBy: $userId
+                     })
+                     CREATE (m)-[:MOTHER_OF]->(u)`,
+                    { userId, mId, first: mFirst, last: mLast, status: statusStr, victim: isVictim }
+                );
+            }
+            await session.close();
+        } catch (neoErr) {
+            console.error('[register] Neo4j error:', neoErr);
+        }
+
+        // ── 5. Email de bienvenue (seulement pour les nouveaux) ───────────────
         if (isNewUser) {
             await sendWelcomeEmail(email, firstName, lastName, villageOrigin);
         }

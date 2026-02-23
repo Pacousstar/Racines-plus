@@ -21,6 +21,7 @@ interface PendingProfile {
     quartier_nom: string;
     status: string;
     created_at: string;
+    pre_validated_by?: string | null;
 }
 
 interface MyProfile {
@@ -72,9 +73,38 @@ export default function ChoBoard() {
                 .order('created_at', { ascending: false });
 
             if (allUsers) {
-                setPendingProfiles(allUsers.filter(u => !u.status || u.status === 'pending'));
-                setConfirmedProfiles(allUsers.filter(u => u.status === 'confirmed'));
-                setRejectedProfiles(allUsers.filter(u => u.status === 'rejected'));
+                // Fetch the names of CHOa who 'probable' pre-validated those profiles
+                const probableIds = allUsers.filter(u => u.status === 'probable').map(u => u.id);
+                const validationsMap: Record<string, string> = {};
+
+                if (probableIds.length > 0) {
+                    const { data: vals } = await supabase.from('validations')
+                        .select('profile_id, validator:profiles!validations_validator_id_fkey(first_name, last_name)')
+                        .in('profile_id', probableIds)
+                        .eq('statut', 'probable');
+
+                    if (vals) {
+                        vals.forEach(v => {
+                            if (v.validator) {
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                const validatorData = Array.isArray(v.validator) ? v.validator[0] : v.validator as Record<string, any>;
+                                const fName = validatorData?.first_name || '';
+                                const lName = validatorData?.last_name || '';
+                                validationsMap[v.profile_id] = `${fName} ${lName}`.trim();
+                            }
+                        });
+                    }
+                }
+
+                const enhancedUsers = allUsers.map(u => ({
+                    ...u,
+                    pre_validated_by: validationsMap[u.id] || null
+                }));
+
+                // Le CHO voit les 'pending' (nouveaux) ET les 'probable' (pré-traités par les CHOa)
+                setPendingProfiles(enhancedUsers.filter(u => !u.status || u.status === 'pending' || u.status === 'probable'));
+                setConfirmedProfiles(enhancedUsers.filter(u => u.status === 'confirmed'));
+                setRejectedProfiles(enhancedUsers.filter(u => u.status === 'rejected'));
             }
             setIsLoading(false);
         };
@@ -105,9 +135,18 @@ export default function ChoBoard() {
         }
 
         // Rafraîchir
-        setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
-        if (newStatus === 'confirmed') setConfirmedProfiles(prev => [...prev, { ...pendingProfiles.find(p => p.id === profileId)!, status: 'confirmed' }]);
-        if (newStatus === 'rejected') setRejectedProfiles(prev => [...prev, { ...pendingProfiles.find(p => p.id === profileId)!, status: 'rejected' }]);
+        if (newStatus === 'probable') {
+            setPendingProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: 'probable' } : p));
+        } else {
+            const profileToMove = pendingProfiles.find(p => p.id === profileId);
+            setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
+            if (newStatus === 'confirmed' && profileToMove) {
+                setConfirmedProfiles(prev => [...prev, { ...profileToMove, status: 'confirmed' }]);
+            }
+            if (newStatus === 'rejected' && profileToMove) {
+                setRejectedProfiles(prev => [...prev, { ...profileToMove, status: 'rejected' }]);
+            }
+        }
 
         setMotifModal(null);
         setMotifText('');
@@ -145,6 +184,11 @@ export default function ChoBoard() {
                         <h3 className="font-bold text-sm">{profile.first_name} {profile.last_name}</h3>
                         <p className="text-xs text-gray-500">{profile.village_origin || 'Village ?'} • {profile.quartier_nom || 'Quartier ?'}</p>
                         <p className="text-xs text-gray-400">Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}</p>
+                        {profile.status === 'probable' && profile.pre_validated_by && (
+                            <p className="text-[11px] font-semibold text-orange-600 mt-1 flex items-center gap-1 bg-orange-50 inline-flex px-2 py-0.5 rounded">
+                                🛡️ Pré-validé par {profile.pre_validated_by} (CHOa)
+                            </p>
+                        )}
                     </div>
                 </div>
                 <StatusBadge status={profile.status || 'pending'} />
