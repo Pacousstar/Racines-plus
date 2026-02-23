@@ -150,7 +150,7 @@ export default function AdminDashboard() {
             </header>
 
             {/* Contenu principal */}
-            <main className="pt-20 px-6 max-w-7xl mx-auto pb-12">
+            <main className="pt-20 px-6 max-w-7xl mx-auto pb-24 md:pb-12">
 
                 {/* Vue d'ensemble */}
                 {activeTab === 'overview' && (
@@ -374,6 +374,20 @@ export default function AdminDashboard() {
                 inviterName={adminName}
                 villageNom="Toa-Zéo"
             />
+
+            {/* Bottom Nav Mobile pour les administrateurs */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex overflow-x-auto hide-scrollbar lg:hidden shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                        className={`flex flex-col flex-1 min-w-[72px] items-center justify-center gap-1 py-3 px-1 transition-colors ${activeTab === tab.key ? 'text-[#FF6600] border-t-2 border-[#FF6600] bg-orange-50/50' : 'text-gray-400 border-t-2 border-transparent hover:text-gray-800 hover:bg-gray-50'}`}
+                    >
+                        <tab.icon className={`w-5 h-5 ${activeTab === tab.key ? 'scale-110 transition-transform' : ''}`} />
+                        <span className="text-[9px] font-bold text-center leading-tight">{tab.label.split(' ')[0]}</span>
+                    </button>
+                ))}
+            </div>
         </div>
     );
 }

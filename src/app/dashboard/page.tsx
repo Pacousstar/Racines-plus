@@ -35,6 +35,7 @@ export default function Dashboard() {
     const [profileData, setProfileData] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+    const [invitesCount, setInvitesCount] = useState(0);
     const photoInputRef = useRef<HTMLInputElement>(null);
 
     const fetchProfile = async () => {
@@ -65,6 +66,14 @@ export default function Dashboard() {
                 status: data.status || 'pending',
                 avatarUrl: data.avatar_url || null,
             });
+
+            const { count, error } = await supabase
+                .from('invitations')
+                .select('*', { count: 'exact', head: true })
+                .eq('inviter_id', user.id);
+            if (!error) {
+                setInvitesCount(count || 0);
+            }
         }
         setIsLoading(false);
     };
@@ -255,18 +264,35 @@ export default function Dashboard() {
                     {/* Actions rapides */}
                     <div className="flex flex-col gap-3">
                         <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="hidden md:flex w-full bg-[#FF6600] border border-[#FF6600] hover:bg-[#e55c00] hover:border-[#e55c00] text-white py-3 px-4 rounded-xl font-bold items-center justify-center gap-2 transition-all shadow-md active:scale-95"
+                        >
+                            <Plus className="w-5 h-5" /> Ajouter un Ancêtre
+                        </button>
+                        <button
                             onClick={() => setIsChooseAncetreOpen(true)}
-                            className="w-full bg-[#FF6600] hover:bg-[#e55c00] text-white py-3 px-4 rounded-xl font-semibold flex items-center gap-2 transition-colors shadow-md shadow-[#FF6600]/20 active:scale-95"
+                            className="w-full bg-[#FF6600] md:bg-white md:text-[#FF6600] md:border md:border-[#FF6600] hover:bg-[#e55c00] md:hover:bg-orange-50 text-white py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md md:shadow-sm active:scale-95"
                         >
                             <TreePine className="w-5 h-5" />
                             {selectedAncetre ? 'Mon ancêtre ✅' : 'Choisir mon Ancêtre'}
                         </button>
-                        <button
-                            onClick={() => setIsInviteOpen(true)}
-                            className="w-full bg-white border border-gray-200 hover:border-racines-green/40 hover:text-racines-green text-foreground/80 py-3 px-4 rounded-xl font-medium flex items-center gap-2 transition-colors"
-                        >
-                            <Share2 className="w-5 h-5 text-gray-400" /> Inviter ma famille
-                        </button>
+
+                        {/* Zone Invitation avec Cadre & Compteur */}
+                        <div className="bg-white border text-center border-gray-200 hover:border-racines-green/30 rounded-xl p-2.5 shadow-sm transition-colors mt-1">
+                            <button
+                                onClick={() => setIsInviteOpen(true)}
+                                className="w-full text-foreground/80 hover:text-racines-green py-2 font-medium flex items-center justify-center gap-2 transition-colors"
+                            >
+                                <Share2 className="w-5 h-5 text-gray-400" /> Inviter ma famille
+                            </button>
+                            <div className="w-full h-px bg-gray-100 my-2"></div>
+                            <div className="flex justify-between items-center text-[11px] font-bold px-2 text-gray-500 uppercase tracking-widest" title="Nombre d'invitations e-mails envoyées ou de liens générés">
+                                <span>Invitations</span>
+                                <span className={`bg-gray-100 px-2 py-0.5 rounded-full ${invitesCount > 0 ? 'bg-racines-green/10 text-racines-green' : ''}`}>
+                                    {invitesCount}
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Panneau IA */}
