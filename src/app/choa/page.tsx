@@ -42,7 +42,7 @@ export default function ChoBoard() {
     const [confirmedProfiles, setConfirmedProfiles] = useState<PendingProfile[]>([]);
     const [rejectedProfiles, setRejectedProfiles] = useState<PendingProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirme' | 'probable' | 'rejete' } | null>(null);
+    const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);

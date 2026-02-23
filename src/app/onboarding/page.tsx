@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowLeft, Camera, ShieldCheck, MapPin, Loader2, Eye, EyeOff, Check, X, ZoomIn, ZoomOut, RotateCcw, Home } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Camera, ShieldCheck, MapPin, Loader2, Eye, EyeOff, Check, X, ZoomIn, ZoomOut, RotateCcw, Home, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 

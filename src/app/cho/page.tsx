@@ -43,7 +43,7 @@ export default function ChoBoard() {
     const [confirmedProfiles, setConfirmedProfiles] = useState<PendingProfile[]>([]);
     const [rejectedProfiles, setRejectedProfiles] = useState<PendingProfile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirme' | 'probable' | 'rejete' } | null>(null);
+    const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -112,13 +112,13 @@ export default function ChoBoard() {
     }, [supabase, router]);
 
     const handleStatusChange = async (profileId: string, newStatus: string, isFinal: boolean = false) => {
-        if (!motifModal && newStatus === 'rejete') {
-            setMotifModal({ id: profileId, action: 'rejete' });
+        if (!motifModal && newStatus === 'rejected') {
+            setMotifModal({ id: profileId, action: 'rejected' });
             return;
         }
 
         const updateData: Record<string, unknown> = { status: newStatus };
-        if (newStatus === 'rejete' && motifText) updateData.rejection_motif = motifText;
+        if (newStatus === 'rejected' && motifText) updateData.rejection_motif = motifText;
         if (observations) updateData.rejection_observations = observations;
 
         await supabase.from('profiles').update(updateData).eq('id', profileId);
@@ -213,7 +213,7 @@ export default function ChoBoard() {
                     </button>
 
                     <button
-                        onClick={() => setMotifModal({ id: profile.id, action: 'rejete' })}
+                        onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
                         className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors font-bold"
                     >
                         ❌ Rejeter
