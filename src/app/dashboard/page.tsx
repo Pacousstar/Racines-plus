@@ -44,11 +44,19 @@ export default function Dashboard() {
 
         const { data } = await supabase
             .from('profiles')
-            .select('first_name, last_name, village_origin, quartier_nom, status, avatar_url')
+            .select('first_name, last_name, village_origin, quartier_nom, status, avatar_url, role')
             .eq('id', user.id)
             .single();
 
         if (data) {
+            if (data.role === 'admin') {
+                router.push('/admin');
+                return;
+            } else if (['cho', 'choa'].includes(data.role)) {
+                router.push('/cho');
+                return;
+            }
+
             setProfileData({
                 firstName: data.first_name || '',
                 lastName: data.last_name || '',
@@ -168,7 +176,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-extrabold overflow-hidden">
                             {profileData?.avatarUrl
-                                ? <Image src={profileData.avatarUrl} alt="avatar" width={32} height={32} className="object-cover w-full h-full" />
+                                ? <img src={profileData.avatarUrl} alt="avatar" className="object-cover w-full h-full" />
                                 : <span>{initials}</span>
                             }
                         </div>
@@ -179,9 +187,10 @@ export default function Dashboard() {
                     <button
                         onClick={handleLogout}
                         title="Déconnexion"
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-red-500 hover:bg-red-50 border border-red-100 hover:border-red-300 rounded-xl transition-colors"
                     >
                         <LogOut className="w-4 h-4" />
+                        <span className="hidden md:inline">Déconn.</span>
                     </button>
                 </div>
             </header>
@@ -202,7 +211,7 @@ export default function Dashboard() {
                             <div className="relative -mt-10 mb-4 w-fit mx-auto">
                                 <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                                     {profileData?.avatarUrl
-                                        ? <Image src={profileData.avatarUrl} alt="Photo de profil" width={80} height={80} className="object-cover w-full h-full" />
+                                        ? <img src={profileData.avatarUrl} alt="Photo de profil" className="object-cover w-full h-full" />
                                         : <User className="w-10 h-10 text-gray-300" />
                                     }
                                 </div>
@@ -408,7 +417,7 @@ export default function Dashboard() {
             <InviteModal
                 isOpen={isInviteOpen}
                 onClose={() => setIsInviteOpen(false)}
-                inviterName={`${profileData?.firstName || ''} ${profileData?.lastName || ''}`}
+                inviterName={`${profileData?.firstName || ''} ${profileData?.lastName || ''}`.trim()}
                 villageNom={profileData?.village || 'Toa-Zéo'}
             />
         </div>
