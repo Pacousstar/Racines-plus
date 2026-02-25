@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
+import InvitationsList from '@/components/InvitationsList';
 import { TreePine } from 'lucide-react';
 
 interface Profile {
@@ -51,7 +52,7 @@ export default function AdminDashboard() {
     const supabase = createClient();
     // Double protection côté client (le middleware gère côté serveur)
     useRoleRedirect(['admin']);
-    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'villages' | 'validations' | 'memorial' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'villages' | 'validations' | 'memorial' | 'invitations' | 'settings'>('overview');
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [victims, setVictims] = useState<Victim[]>([]);
     const [stats, setStats] = useState<StatsData>({ totalUsers: 0, confirmedUsers: 0, pendingUsers: 0, rejectedUsers: 0 });
@@ -67,6 +68,7 @@ export default function AdminDashboard() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [filterVillage, setFilterVillage] = useState('all');
 
     useEffect(() => {
         const loadData = async () => {
@@ -184,8 +186,11 @@ export default function AdminDashboard() {
             (p.village_origin || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchRole = filterRole === 'all' || p.role === filterRole;
         const matchStatus = filterStatus === 'all' || p.status === filterStatus;
-        return matchSearch && matchRole && matchStatus;
+        const matchVillage = filterVillage === 'all' || p.village_origin === filterVillage;
+        return matchSearch && matchRole && matchStatus && matchVillage;
     });
+
+    const uniqueVillages = Array.from(new Set(profiles.map(p => p.village_origin).filter(Boolean)));
 
     const kpis = [
         { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
@@ -201,6 +206,7 @@ export default function AdminDashboard() {
         { key: 'villages', label: 'Villages & Quartiers', icon: Map },
         { key: 'validations', label: 'Validations', icon: ShieldCheck },
         { key: 'memorial', label: 'Crise 2010', icon: Flame },
+        { key: 'invitations', label: 'Invitations', icon: Share2 },
         { key: 'settings', label: 'Paramètres', icon: Settings },
     ];
 
@@ -209,7 +215,7 @@ export default function AdminDashboard() {
             {/* Header Admin */}
             <header className="fixed top-0 w-full bg-white border-b border-gray-100 px-6 py-3 flex justify-between items-center z-50 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={90} height={32} className="object-contain" /></Link>
+                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={90} height={32} className="object-contain mix-blend-multiply" /></Link>
                     <div className="flex items-center gap-2 bg-[#FF6600]/10 border border-[#FF6600]/20 text-[#FF6600] px-3 py-1 rounded-full text-xs font-bold">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         ADMIN PRINCIPAL
@@ -353,6 +359,12 @@ export default function AdminDashboard() {
                                     <option value="confirmed">✅ Confirmés</option>
                                     <option value="pending">⏳ En attente</option>
                                     <option value="rejected">❌ Rejetés</option>
+                                </select>
+                                <select value={filterVillage} onChange={e => setFilterVillage(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
+                                    <option value="all">Tous Villages</option>
+                                    {uniqueVillages.map(v => (
+                                        <option key={v} value={v}>{v}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -566,6 +578,22 @@ export default function AdminDashboard() {
                                 )}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Invitations */}
+                {activeTab === 'invitations' && currentUserId && (
+                    <div className="animate-in fade-in duration-300 max-w-3xl mt-6">
+                        <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 mb-4">
+                            <h3 className="font-bold text-orange-800 text-lg flex items-center gap-2"><Share2 className="w-5 h-5" /> Indicateurs de Viralité</h3>
+                            <p className="text-orange-700/80 text-sm mt-1">
+                                Suivez vos invitations personnelles. À terme, cette section inclura les statistiques globales de viralité de la plateforme.
+                            </p>
+                            <button onClick={() => setIsInviteOpen(true)} className="mt-4 bg-[#FF6600] hover:bg-[#e55c00] text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md transition-transform active:scale-95">
+                                + Envoyer une nouvelle invitation
+                            </button>
+                        </div>
+                        <InvitationsList userId={currentUserId} />
                     </div>
                 )}
 

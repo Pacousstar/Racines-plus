@@ -7,9 +7,11 @@ interface AddAncestorModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
+    villageNom: string;
+    refreshTree?: () => void;
 }
 
-export default function AddAncestorModal({ isOpen, onClose, onSuccess }: AddAncestorModalProps) {
+export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNom, refreshTree }: AddAncestorModalProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         relation: 'Père',
@@ -43,6 +45,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess }: AddAnce
             console.log('Ancêtre ajouté avec succès:', data.ancestor);
 
             if (onSuccess) onSuccess();
+            if (refreshTree) refreshTree();
             onClose();
         } catch (error) {
             console.error(error);

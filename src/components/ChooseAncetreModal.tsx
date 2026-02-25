@@ -16,15 +16,17 @@ interface Ancetre {
 interface ChooseAncetreModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: (ancetreId: string, nomAncetre: string) => void;
+    onSelect: (ancetreId: string) => void;
     villageNom?: string;
+    userId?: string;
 }
 
 export default function ChooseAncetreModal({
     isOpen,
     onClose,
-    onSuccess,
-    villageNom = 'Toa-Zéo'
+    onSelect,
+    villageNom = 'Toa-Zéo',
+    userId
 }: ChooseAncetreModalProps) {
     const supabase = createClient();
     const [ancestres, setAncestres] = useState<Ancetre[]>([]);
@@ -82,8 +84,7 @@ export default function ChooseAncetreModal({
                 const data = await res.json();
                 if (data.success && data.position) {
                     setPositionResult(data.position);
-                    const ancetre = ancestres.find(a => a.id === selected);
-                    onSuccess(selected, ancetre?.nom_complet || '');
+                    onSelect(selected);
                     // Ne pas fermer immédiatement → afficher le résultat IA
                     setConfirming(false);
                     return;
@@ -93,8 +94,7 @@ export default function ChooseAncetreModal({
             }
             // Fallback : simple mise à jour sans IA
             await supabase.from('profiles').update({ ancestral_root_id: selected }).eq('id', user.id);
-            const ancetre = ancestres.find(a => a.id === selected);
-            onSuccess(selected, ancetre?.nom_complet || '');
+            onSelect(selected);
         }
         setConfirming(false);
         onClose();

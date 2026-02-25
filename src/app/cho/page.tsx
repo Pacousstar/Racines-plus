@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
+import InvitationsList from '@/components/InvitationsList';
 
 interface PendingProfile {
     id: string;
@@ -36,12 +37,13 @@ export default function ChoBoard() {
     const supabase = createClient();
     // Double protection côté client
     useRoleRedirect(['cho']);
-    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected' | 'ancestor' | 'team'>('tasks');
+    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected' | 'ancestor' | 'team' | 'invitations'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
     const [confirmedProfiles, setConfirmedProfiles] = useState<PendingProfile[]>([]);
     const [rejectedProfiles, setRejectedProfiles] = useState<PendingProfile[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
     const [motifText, setMotifText] = useState('');
@@ -65,11 +67,12 @@ export default function ChoBoard() {
             if (!profile || profile.role !== 'cho') { router.push('/dashboard'); return; }
             setMyProfile(profile);
 
-            // Charger tous les profils utilisateurs
+            // Charger tous les profils utilisateurs DU MÊME VILLAGE
             const { data: allUsers } = await supabase
                 .from('profiles')
                 .select('id, first_name, last_name, village_origin, quartier_nom, status, created_at')
                 .eq('role', 'user')
+                .eq('village_origin', profile.village_origin || 'Toa-Zéo')
                 .order('created_at', { ascending: false });
 
             if (allUsers) {
@@ -160,7 +163,17 @@ export default function ChoBoard() {
         { key: 'rejected', label: 'Rejetés', icon: XCircle, count: rejectedProfiles.length, countColor: 'bg-red-500' },
         { key: 'ancestor', label: 'Ancêtre Village', icon: Stamp, count: 0, countColor: 'bg-purple-500' },
         { key: 'team', label: 'Mon Équipe', icon: Users, count: 0, countColor: 'bg-blue-500' },
+        { key: 'invitations', label: 'Invitations', icon: Share2, count: 0, countColor: '' },
     ];
+
+    const filterBySearch = (list: PendingProfile[]) => {
+        if (!searchQuery) return list;
+        const q = searchQuery.toLowerCase();
+        return list.filter(p =>
+            (p.first_name && p.first_name.toLowerCase().includes(q)) ||
+            (p.last_name && p.last_name.toLowerCase().includes(q))
+        );
+    };
 
     const StatusBadge = ({ status }: { status: string }) => {
         const map: Record<string, { color: string; label: string }> = {
@@ -228,7 +241,7 @@ export default function ChoBoard() {
             {/* Header */}
             <header className="fixed top-0 w-full bg-white border-b border-gray-100 px-6 py-3 flex justify-between items-center z-50 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={90} height={32} className="object-contain" /></Link>
+                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={90} height={32} className="object-contain mix-blend-multiply" /></Link>
                     <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border bg-purple-50 border-purple-200 text-purple-600">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         CHO — Directeur du Patrimoine
@@ -253,6 +266,22 @@ export default function ChoBoard() {
                 <div className="mt-6 mb-6">
                     <h1 className="text-xl font-bold">Tableau de Validation</h1>
                     <p className="text-gray-500 text-sm">Village : {myProfile?.village_origin || 'Toa-Zéo'} • Rôle : {myProfile?.role?.toUpperCase()}</p>
+                </div>
+
+                {/* Barre de Recherche */}
+                <div className="mb-6 relative max-w-md">
+                    <input
+                        type="text"
+                        placeholder="Rechercher par nom ou prénom..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none text-sm transition-all"
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <XCircle className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
 
                 {/* Tabs */}
@@ -280,30 +309,30 @@ export default function ChoBoard() {
                 {activeTab === 'tasks' && (
                     <div className="space-y-4">
                         {isLoading && <p className="text-sm text-gray-400 text-center py-8">Chargement...</p>}
-                        {!isLoading && pendingProfiles.length === 0 && (
+                        {!isLoading && filterBySearch(pendingProfiles).length === 0 && (
                             <div className="bg-white rounded-3xl p-10 text-center border border-gray-100">
                                 <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                                <p className="font-semibold text-gray-700">Aucun profil en attente !</p>
-                                <p className="text-sm text-gray-400 mt-1">Tous les profils ont été traités.</p>
+                                <p className="font-semibold text-gray-700">Aucun profil en attente trouvé !</p>
+                                <p className="text-sm text-gray-400 mt-1">Tous les profils ont été traités ou la recherche ne donne rien.</p>
                             </div>
                         )}
-                        {pendingProfiles.map(p => <ProfileCard key={p.id} profile={p} />)}
+                        {filterBySearch(pendingProfiles).map(p => <ProfileCard key={p.id} profile={p} />)}
                     </div>
                 )}
 
                 {/* Confirmés */}
                 {activeTab === 'confirmed' && (
                     <div className="space-y-4">
-                        {confirmedProfiles.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Aucun profil confirmé pour l&apos;instant.</p>}
-                        {confirmedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                        {filterBySearch(confirmedProfiles).length === 0 && <p className="text-sm text-gray-400 text-center py-8">Aucun profil confirmé trouvé.</p>}
+                        {filterBySearch(confirmedProfiles).map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
                     </div>
                 )}
 
                 {/* Rejetés */}
                 {activeTab === 'rejected' && (
                     <div className="space-y-4">
-                        {rejectedProfiles.length === 0 && <p className="text-sm text-gray-400 text-center py-8">Aucun profil rejeté.</p>}
-                        {rejectedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                        {filterBySearch(rejectedProfiles).length === 0 && <p className="text-sm text-gray-400 text-center py-8">Aucun profil rejeté trouvé.</p>}
+                        {filterBySearch(rejectedProfiles).map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
                     </div>
                 )}
 
@@ -369,6 +398,19 @@ export default function ChoBoard() {
                                 <p className="text-xs text-gray-400 text-center">Cette action est irréversible et sera enregistrée dans le registre patrimonial.</p>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Invitations */}
+                {activeTab === 'invitations' && currentUserId && (
+                    <div className="animate-in fade-in duration-300 max-w-2xl mx-auto">
+                        <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6 mb-4 mt-2">
+                            <h3 className="font-bold text-orange-800 text-lg flex items-center gap-2"><Share2 className="w-5 h-5" /> Invitations du Quartier</h3>
+                            <p className="text-orange-700/80 text-sm mt-1">
+                                Retrouvez ci-dessous toutes les personnes que vous avez invitées à rejoindre l'arbre.
+                            </p>
+                        </div>
+                        <InvitationsList userId={currentUserId} />
                     </div>
                 )}
 

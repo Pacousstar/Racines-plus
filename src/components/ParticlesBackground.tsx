@@ -67,11 +67,15 @@ export default function ParticlesBackground() {
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
-        // Dessin du point
+        // Dessin du point (effet sphère lumineuse)
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.radius * 2, 0, Math.PI * 2); // Rayon doublé
         ctx.fillStyle = p.color;
-        ctx.globalAlpha = 0.6;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.globalAlpha = 1; // Opacité à 100%
+        ctx.fill();
+        ctx.shadowBlur = 0; // Réinitialiser l'ombre pour les lignes
         ctx.fill();
 
         // Dessin des lignes (connexions de graphe)
@@ -112,7 +116,7 @@ export default function ParticlesBackground() {
     <canvas
       ref={canvasRef}
       className="absolute top-0 left-0 w-full h-full pointer-events-none z-0"
-      style={{ opacity: 0.8 }}
+      style={{ opacity: 1 }} // Opacité globale à fond pour bien voir les sphères
     />
   );
 }

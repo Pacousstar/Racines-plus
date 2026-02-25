@@ -10,6 +10,7 @@ import ChooseAncetreModal from '@/components/ChooseAncetreModal';
 import InviteModal from '@/components/InviteModal';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import PersonalLineageTree from '@/components/PersonalLineageTree';
+import InvitationsList from '@/components/InvitationsList';
 import { createClient } from '@/lib/supabase';
 
 interface ProfileData {
@@ -19,6 +20,7 @@ interface ProfileData {
     quartier: string;
     status: string;
     avatarUrl: string | null;
+    role: string;
     extendedData: ExtendedProfileData;
 }
 
@@ -28,7 +30,7 @@ interface UserDashboardContentProps {
 
 export default function UserDashboardContent({ userId }: UserDashboardContentProps) {
     const supabase = createClient();
-    const [activeTab, setActiveTab] = useState<'arbre' | 'notifications'>('arbre');
+    const [activeTab, setActiveTab] = useState<'arbre' | 'notifications' | 'invitations'>('arbre');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isChooseAncetreOpen, setIsChooseAncetreOpen] = useState(false);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -44,7 +46,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
         setIsLoading(true);
         const { data } = await supabase
             .from('profiles')
-            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, adresse_residence, village_origin, quartier_nom, status, avatar_url')
+            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, enfants_detail, consentement_enfants, adresse_residence, village_origin, quartier_nom, status, avatar_url, role')
             .eq('id', userId)
             .single();
 
@@ -56,6 +58,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                 quartier: data.quartier_nom || '',
                 status: data.status || 'pending',
                 avatarUrl: data.avatar_url || null,
+                role: data.role || 'user',
                 extendedData: {
                     firstName: data.first_name || '',
                     lastName: data.last_name || '',
@@ -67,6 +70,8 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                     fonction: data.fonction || '',
                     retraite: data.retraite || false,
                     nombreEnfants: data.nombre_enfants || 0,
+                    enfantsDetail: data.enfants_detail || [],
+                    consentementEnfants: data.consentement_enfants || false,
                     adresseResidence: data.adresse_residence || ''
                 }
             });
@@ -143,24 +148,26 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                                     ? <img src={profileData.avatarUrl} alt="Photo de profil" className="object-cover w-full h-full" />
                                     : <User className="w-10 h-10 text-gray-300" />
                                 }
+                                {profileData?.status !== 'confirmed' && (
+                                    <button
+                                        onClick={() => photoInputRef.current?.click()}
+                                        disabled={isUploadingPhoto}
+                                        className="absolute bottom-0 right-0 bg-[#FF6600] text-white p-2 rounded-full shadow-lg hover:scale-110 hover:bg-[#e55c00] transition-all disabled:opacity-50 disabled:hover:scale-100"
+                                        title="Changer de photo"
+                                    >
+                                        <Camera className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
                             </div>
-                            <button
-                                onClick={() => photoInputRef.current?.click()}
-                                disabled={isUploadingPhoto}
-                                title="Changer la photo"
-                                className="absolute bottom-0 right-0 w-7 h-7 bg-[#FF6600] hover:bg-[#e55c00] text-white rounded-full flex items-center justify-center shadow-md transition-colors"
-                            >
-                                {isUploadingPhoto ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                            </button>
                             <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                         </div>
                         <div className="text-center">
-                            <h2 className="text-lg font-bold leading-tight">
-                                {isLoading ? <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" /> : (profileData?.firstName || profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Mon Profil')}
+                            <h2 className="text-xl font-extrabold leading-tight text-gray-900">
+                                {isLoading ? <span className="inline-block w-32 h-6 bg-gray-200 rounded animate-pulse" /> : (profileData?.firstName || profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Mon Profil')}
                             </h2>
-                            <p className="text-sm text-gray-500 flex items-center gap-1 justify-center mt-1">
-                                <MapPin className="w-3 h-3" />
-                                {profileData?.quartier ? `${profileData.village} • ${profileData.quartier}` : profileData?.village || 'Village...'}
+                            <p className="text-sm font-semibold text-gray-600 flex items-center gap-1.5 justify-center mt-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-[#FF6600]" />
+                                {profileData?.quartier ? `${profileData.village} • ${profileData.quartier}` : profileData?.village || 'Non renseigné'}
                             </p>
                             <div className="mt-3 flex justify-center">
                                 {isLoading ? <span className="inline-block w-28 h-6 bg-gray-200 rounded-full animate-pulse" /> : <StatusBadge status={profileData?.status || 'pending'} />}
@@ -180,22 +187,27 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
 
                 {/* Actions rapides */}
                 <div className="flex flex-col gap-3">
-                    <button onClick={() => setIsAddModalOpen(true)} className="hidden md:flex w-full bg-[#FF6600] border border-[#FF6600] text-white py-3 px-4 rounded-xl font-bold items-center justify-center gap-2 transition-all shadow-md active:scale-95 hover:bg-[#e55c00] hover:border-[#e55c00]">
-                        <Plus className="w-5 h-5" /> Ajouter un Ancêtre
+                    {/* On masque ces boutons dès que l'utilisateur est lié à l'arbre (selectedAncetre connu) */}
+                    {!selectedAncetre && (
+                        <>
+                            {(profileData?.role === 'admin' || profileData?.role === 'cho') && (
+                                <button onClick={() => setIsAddModalOpen(true)} className="hidden md:flex w-full bg-[#FF6600] border border-[#FF6600] text-white py-3 px-4 rounded-xl font-bold items-center justify-center gap-2 transition-all shadow-md active:scale-95 hover:bg-[#e55c00] hover:border-[#e55c00]">
+                                    <Plus className="w-5 h-5" /> Ajouter un parent
+                                </button>
+                            )}
+                            <button onClick={() => setIsChooseAncetreOpen(true)} className="w-full bg-[#FF6600] md:bg-white md:text-[#FF6600] md:border md:border-[#FF6600] text-white py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md md:shadow-sm active:scale-95 hover:bg-[#e55c00] md:hover:bg-orange-50">
+                                <TreePine className="w-5 h-5" /> Choisir mon Ancêtre
+                            </button>
+                        </>
+                    )}
+
+                    {/* Bouton unique d'invitation avec compteur intégré, ouvre la modal de la liste (ou le formulaire Invite) */}
+                    <button onClick={() => { setActiveTab('invitations'); setIsInviteOpen(true); }} className="w-full bg-white border border-gray-200 text-foreground/80 hover:text-racines-green hover:border-racines-green/30 py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95 mt-1">
+                        <Share2 className="w-5 h-5" /> Inviter ma famille
+                        {invitesCount > 0 && (
+                            <span className="bg-orange-100 text-[#FF6600] text-xs px-2 py-0.5 rounded-full ml-1">{invitesCount}</span>
+                        )}
                     </button>
-                    <button onClick={() => setIsChooseAncetreOpen(true)} className="w-full bg-[#FF6600] md:bg-white md:text-[#FF6600] md:border md:border-[#FF6600] text-white py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md md:shadow-sm active:scale-95 hover:bg-[#e55c00] md:hover:bg-orange-50">
-                        <TreePine className="w-5 h-5" /> {selectedAncetre ? 'Mon ancêtre ✅' : 'Choisir mon Ancêtre'}
-                    </button>
-                    <div className="bg-white border text-center border-gray-200 hover:border-racines-green/30 rounded-xl p-2.5 shadow-sm transition-colors mt-1">
-                        <button onClick={() => setIsInviteOpen(true)} className="w-full text-foreground/80 hover:text-racines-green py-2 font-medium flex items-center justify-center gap-2 transition-colors">
-                            <Share2 className="w-5 h-5 text-gray-400" /> Inviter ma famille
-                        </button>
-                        <div className="w-full h-px bg-gray-100 my-2"></div>
-                        <div className="flex justify-between items-center text-[11px] font-bold px-2 text-gray-500 uppercase tracking-widest">
-                            <span>Invitations</span>
-                            <span className={`bg-gray-100 px-2 py-0.5 rounded-full ${invitesCount > 0 ? 'bg-racines-green/10 text-racines-green' : ''}`}>{invitesCount}</span>
-                        </div>
-                    </div>
                 </div>
 
                 <div className="bg-green-800 text-white p-5 rounded-3xl">
@@ -229,6 +241,12 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                     >
                         Validations <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">1</span>
                     </button>
+                    <button
+                        onClick={() => setActiveTab('invitations')}
+                        className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'invitations' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                        Mes Invitations
+                    </button>
                 </div>
 
                 {activeTab === 'arbre' && (
@@ -236,8 +254,8 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-xl md:text-2xl font-bold">Mon Arbre Généalogique</h1>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    {isLoading ? '...' : `Lignée : ${profileData?.firstName && profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}` : 'Mon Profil'} • ${profileData?.village || 'Toa-Zéo'}`}
+                                <p className="text-gray-500 text-sm mt-1 font-medium">
+                                    {isLoading ? '...' : `Lignée : ${profileData?.firstName && profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}` : 'Mon Profil'}`}
                                 </p>
                             </div>
                             <StatusBadge status={profileData?.status || 'pending'} />
@@ -297,12 +315,44 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                         </div>
                     </div>
                 )}
+
+                {activeTab === 'invitations' && (
+                    <div className="animate-in fade-in duration-300">
+                        <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 mb-2">
+                            <h3 className="font-bold text-orange-800 text-lg flex items-center gap-2"><Share2 className="w-5 h-5" /> Viralité Racines+</h3>
+                            <p className="text-orange-700/80 text-sm mt-1">
+                                Suivez ici les membres de votre famille que vous avez invités. L'arbre généalogique grandit grâce à vous.
+                            </p>
+                            <button onClick={() => setIsInviteOpen(true)} className="mt-4 bg-[#FF6600] hover:bg-[#e55c00] text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md transition-transform active:scale-95">
+                                + Envoyer une nouvelle invitation
+                            </button>
+                        </div>
+                        <InvitationsList userId={userId} />
+                    </div>
+                )}
             </div>
 
-            <AddAncestorModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={() => { setIsAddModalOpen(false); fetchProfile(); }} />
-            <ChooseAncetreModal isOpen={isChooseAncetreOpen} onClose={() => setIsChooseAncetreOpen(false)} onSuccess={(id, nom) => { setSelectedAncetre(nom); setIsChooseAncetreOpen(false); }} villageNom={profileData?.village || 'Toa-Zéo'} />
-            <EditProfileModal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} onSuccess={() => { setIsEditProfileOpen(false); fetchProfile(); }} initialData={profileData?.extendedData} userId={userId} />
-            <InviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} inviterName={`${profileData?.firstName || ''} ${profileData?.lastName || ''}`.trim()} villageNom={profileData?.village || 'Toa-Zéo'} />
+            {/* Modals */}
+            {(profileData?.role === 'admin' || profileData?.role === 'cho') && (
+                <AddAncestorModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} villageNom={profileData?.village || 'Toa-Zéo'} refreshTree={() => setActiveTab('arbre')} />
+            )}
+            <ChooseAncetreModal isOpen={isChooseAncetreOpen} onClose={() => setIsChooseAncetreOpen(false)} onSelect={(ancetreId: string) => { console.log('Ancêtre choisi', ancetreId); setSelectedAncetre(ancetreId); setIsChooseAncetreOpen(false); setActiveTab('arbre'); }} userId={userId} villageNom={profileData?.village || 'Toa-Zéo'} />
+            <InviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} inviterId={userId} />
+
+            {/* Modale d'Édition de Profil Complet */}
+            {isEditProfileOpen && profileData && (
+                <EditProfileModal
+                    isOpen={isEditProfileOpen}
+                    onClose={() => setIsEditProfileOpen(false)}
+                    initialData={profileData.extendedData}
+                    userId={userId}
+                    isConfirmed={profileData.status === 'confirmed'}
+                    onSuccess={() => {
+                        setIsEditProfileOpen(false);
+                        fetchProfile();
+                    }}
+                />
+            )}
         </div>
     );
 }

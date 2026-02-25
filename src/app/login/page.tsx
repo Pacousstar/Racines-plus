@@ -76,7 +76,7 @@ export default function Login() {
 
             {/* Logo */}
             <Link href="/" className="mb-10 hover:opacity-80 transition-opacity">
-                <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={140} height={48} className="object-contain" priority />
+                <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={140} height={48} className="object-contain mix-blend-multiply" priority />
             </Link>
 
             <div className="w-full max-w-sm">

@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase';
 interface InviteModalProps {
     isOpen: boolean;
     onClose: () => void;
+    inviterId?: string;
     inviterName?: string;
     villageNom?: string;
 }
@@ -14,6 +15,7 @@ interface InviteModalProps {
 export default function InviteModal({
     isOpen,
     onClose,
+    inviterId = '',
     inviterName = '',
     villageNom = 'Toa-Zéo'
 }: InviteModalProps) {

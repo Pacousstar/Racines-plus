@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { X, Mail, Phone, Send, CheckCircle, Loader2 } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 
 interface ContactModalProps {
     isOpen: boolean;
@@ -23,19 +24,21 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
         setError(null);
 
         try {
-            // Envoi via mailto (ouvre l'email client du user avec les infos pré-remplies)
-            // + tentative d'envoi via API Supabase logs pour archivage
-            const subject = encodeURIComponent(`[Racines+] Message de ${form.nom}`);
-            const body = encodeURIComponent(
-                `Nom : ${form.nom}\nEmail : ${form.email}\n\nMessage :\n${form.message}\n\n---\nEnvoyé depuis racines-plus.vercel.app`
-            );
+            // Envoi via EmailJS en tâche de fond
+            // Pour que cela marche en production, il faut créer ces clés sur EmailJS
+            const serviceID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_racines';
+            const templateID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'template_contact';
+            const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'public_key';
 
-            // Ouvrir le client mail de l'utilisateur avec les infos pré-remplies
-            const mailtoLink = `mailto:pacous2000@gmail.com?subject=${subject}&body=${body}`;
-            window.open(mailtoLink, '_blank');
+            // Paramètres envoyés au template EmailJS
+            const templateParams = {
+                from_name: form.nom,
+                from_email: form.email,
+                to_email: 'pacousstar03@gmail.com',
+                message: form.message,
+            };
 
-            // Simuler un délai d'envoi
-            await new Promise(r => setTimeout(r, 800));
+            await emailjs.send(serviceID, templateID, templateParams, publicKey);
             setIsSent(true);
             setForm({ nom: '', email: '', message: '' });
         } catch {
@@ -80,7 +83,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                                 <CheckCircle className="w-8 h-8 text-green-500" />
                             </div>
                             <h3 className="font-bold text-lg text-gray-900 mb-2">Message envoyé !</h3>
-                            <p className="text-sm text-gray-500 mb-6">Votre client email s&apos;est ouvert avec votre message pré-rempli. Cliquez &quot;Envoyer&quot; dans votre messagerie.</p>
+                            <p className="text-sm text-gray-500 mb-6">Nous avons bien reçu votre message et reviendrons vers vous très vite à l'adresse fournie.</p>
                             <button
                                 onClick={() => { setIsSent(false); onClose(); }}
                                 className="bg-[#FF6600] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#e55c00] transition-colors"
@@ -160,6 +163,9 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                             <a href="tel:+2250544814924" className="hover:text-[#FF6600] transition-colors font-medium">
                                 05 44 81 49 24
                             </a>
+                        </div>
+                        <div className="text-center mt-2">
+                            <a href="mailto:pacousstar03@gmail.com" className="text-xs text-gray-500 hover:text-[#FF6600] transition-colors">pacousstar03@gmail.com</a>
                         </div>
                     </div>
                 </div>

@@ -64,7 +64,7 @@ export default function Dashboard() {
             {/* Navbar Dashboard */}
             <header className="fixed top-0 w-full bg-white border-b border-gray-100 px-4 md:px-6 py-3.5 flex justify-between items-center z-50 shadow-sm">
                 <div className="flex items-center gap-5">
-                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Logo Racines+" width={95} height={33} className="object-contain" /></Link>
+                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Logo Racines+" width={95} height={33} className="object-contain mix-blend-multiply" /></Link>
                     <nav className="hidden md:flex gap-5">
                         <div className="text-sm font-semibold pb-0.5 text-racines-green border-b-2 border-racines-green">
                             Mon Arbre
