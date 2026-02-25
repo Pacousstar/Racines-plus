@@ -49,7 +49,7 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
             <div
                 onClick={() => onSelectNode?.(person)}
                 className={`
-                relative flex items-center gap-3 p-4 rounded-2xl border-2 w-64 shadow-lg
+                relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 w-48 sm:w-64 shadow-md sm:shadow-lg
                 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer
                 ${person.isDeceased
                         ? 'bg-stone-100/80 border-gray-300 grayscale-[50%]'
@@ -60,52 +60,52 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
             `}>
                 {/* Badge type */}
                 {person.isDeceased && (
-                    <div className="absolute -top-3 -right-3 z-10">
+                    <div className="absolute -top-3 -right-2 sm:-right-3 z-10">
                         {person.isVictim2010 ? (
-                            <span className="flex items-center gap-1 bg-red-800 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow animate-pulse">
+                            <span className="flex items-center gap-1 bg-red-800 text-white text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold shadow animate-pulse">
                                 Mémorial 2010
                             </span>
                         ) : (
-                            <span className="bg-gray-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
+                            <span className="bg-gray-600 text-white text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold shadow">
                                 Défunt
                             </span>
                         )}
                     </div>
                 )}
                 {isAncestor && !person.isDeceased && (
-                    <div className="absolute -top-3 -left-2 z-10">
-                        <span className="flex items-center gap-0.5 bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
+                    <div className="absolute -top-3 -left-1 sm:-left-2 z-10">
+                        <span className="flex items-center gap-0.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold shadow">
                             <Crown className="w-2.5 h-2.5" /> Fondateur
                         </span>
                     </div>
                 )}
 
                 {/* Avatar */}
-                <div className={`relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner
+                <div className={`relative w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner
                     ${person.isDeceased ? 'bg-gray-200' : isAncestor ? 'bg-amber-100' : 'bg-[#FF6600]/10'}`}>
                     {isAncestor
-                        ? <Crown className={`w-6 h-6 ${person.isDeceased ? 'text-gray-400' : 'text-amber-600'}`} />
-                        : <User className={`w-6 h-6 ${person.isDeceased ? 'text-gray-400' : 'text-[#FF6600]'}`} />
+                        ? <Crown className={`w-4 h-4 sm:w-6 sm:h-6 ${person.isDeceased ? 'text-gray-400' : 'text-amber-600'}`} />
+                        : <User className={`w-4 h-4 sm:w-6 sm:h-6 ${person.isDeceased ? 'text-gray-400' : 'text-[#FF6600]'}`} />
                     }
                     {/* Pastille statut */}
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${s.badge}`}>
-                        {statusIcons[person.status] || <div className={`w-2 h-2 rounded-full ${s.dot}`} />}
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${s.badge}`}>
+                        {statusIcons[person.status] || <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${s.dot}`} />}
                     </div>
                 </div>
 
                 {/* Infos */}
                 <div className="flex flex-col flex-1 min-w-0">
-                    <h3 className={`font-bold text-sm leading-tight truncate ${person.isDeceased ? 'text-gray-600' : 'text-gray-900'}`}>
+                    <h3 className={`font-bold text-xs sm:text-sm leading-tight truncate ${person.isDeceased ? 'text-gray-600' : 'text-gray-900'}`}>
                         {person.name}
                     </h3>
-                    <span className={`text-xs font-medium truncate ${isAncestor ? 'text-amber-600' : 'text-[#FF6600]'}`}>
+                    <span className={`text-[9px] sm:text-xs font-medium truncate ${isAncestor ? 'text-amber-600' : 'text-[#FF6600]'}`}>
                         {person.role}
                     </span>
                     {person.quartier && (
-                        <span className="text-[10px] text-gray-400 truncate">{person.quartier}</span>
+                        <span className="text-[8px] sm:text-[10px] text-gray-400 truncate">{person.quartier}</span>
                     )}
                     {person.birthYear && person.birthYear !== 'Inconnue' && (
-                        <span className="text-[10px] text-gray-400 font-mono">~{person.birthYear}</span>
+                        <span className="text-[8px] sm:text-[10px] text-gray-400 font-mono">~{person.birthYear}</span>
                     )}
                 </div>
             </div>
