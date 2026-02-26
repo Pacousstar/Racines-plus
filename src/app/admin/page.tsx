@@ -222,7 +222,7 @@ export default function AdminDashboard() {
 
     const kpis = [
         { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-        { label: 'Profils Confirmés ✅', value: stats.confirmedUsers, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
+        { label: 'Sortie Arbre ✅', value: stats.confirmedUsers, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
         { label: 'En attente ⏳', value: stats.pendingUsers, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-100' },
         { label: 'Rejetés ❌', value: stats.rejectedUsers, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-100' },
     ];
@@ -363,7 +363,10 @@ export default function AdminDashboard() {
                 {activeTab === 'users' && (
                     <div className="space-y-6 mt-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <h1 className="text-2xl font-bold">Comptes & Rôles</h1>
+                            <div>
+                                <h1 className="text-2xl font-bold">Gestion des Comptes</h1>
+                                <p className="text-sm text-gray-500">Créez et gérez les accès CHO (Chef) et CHOa (Adjoint)</p>
+                            </div>
                             <div className="flex flex-wrap items-center gap-3">
                                 <div className="relative">
                                     <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />

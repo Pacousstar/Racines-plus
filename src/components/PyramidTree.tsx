@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, CheckCircle, ChevronDown, ChevronUp, Loader2, TreePine, Crown } from 'lucide-react';
+import { User, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Loader2, TreePine, Crown } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
 
@@ -22,7 +22,7 @@ type PersonData = {
 };
 
 // ─────────────────────────────────────
-// Composant Nœud individuel (Point)
+// Composant Nœud individuel
 // ─────────────────────────────────────
 const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; depth?: number; onSelectNode?: (person: PersonData) => void }) => {
     const [isExpanded, setIsExpanded] = useState(depth < 2);
@@ -30,62 +30,84 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
     const statusStyles: Record<string, { ring: string; dot: string; badge: string }> = {
         confirmed: { ring: 'border-emerald-400', dot: 'bg-emerald-400', badge: 'bg-emerald-500 text-white' },
         probable: { ring: 'border-orange-400', dot: 'bg-orange-400', badge: 'bg-orange-500 text-white' },
-        pending: { ring: 'border-gray-200', dot: 'bg-gray-400', badge: 'bg-gray-400 text-white' },
+        pending: { ring: 'border-gray-300', dot: 'bg-gray-400', badge: 'bg-gray-400 text-white' },
         rejected: { ring: 'border-red-400', dot: 'bg-red-400', badge: 'bg-red-500 text-white' },
     };
     const s = statusStyles[person.status] || statusStyles.pending;
 
+    const statusIcons: Record<string, React.ReactNode> = {
+        confirmed: <CheckCircle className="w-3 h-3" />,
+        probable: <AlertTriangle className="w-3 h-3" />,
+        pending: <div className="w-3 h-3 rounded-full border border-white border-t-transparent animate-spin" />,
+    };
+
     const isAncestor = person.role === 'Ancêtre Fondateur' || person.role === 'Nœud Fondateur';
 
     return (
-        <div className="flex flex-col items-center group relative">
-            {/* Petit Point (Nœud) - Taille ultra réduite pour look Graphe */}
-            <button
-                type="button"
+        <div className="flex flex-col items-center">
+            {/* Carte personne */}
+            <div
                 onClick={() => onSelectNode?.(person)}
                 className={`
-                    relative flex items-center justify-center w-4 h-4 sm:w-5 sm:h-5 rounded-full border shadow-sm
-                    transition-all duration-300 hover:shadow-lg hover:scale-150 cursor-pointer outline-none focus:ring-2 focus:ring-opacity-50
-                    ${person.isDeceased ? 'bg-gray-200 border-gray-400 grayscale' : s.badge.replace('text-white', '')}
-                    ${isAncestor && !person.isDeceased ? 'ring-2 ring-amber-300 border-amber-500 bg-amber-500 text-white' : ''}
-                    ${person.status === 'pending' ? 'border-gray-100 bg-white' : 'text-white'}
-                `}
-            >
-                {/* Icône Crown uniquement pour les fondateurs pour marquer le point de départ */}
-                {isAncestor && (
-                    <Crown className={`w-2 h-2 ${person.isDeceased ? 'text-gray-400' : 'text-white'}`} />
+                relative flex items-center gap-3 p-4 rounded-2xl border-2 w-56 sm:w-64 shadow-lg
+                transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer
+                ${person.isDeceased
+                        ? 'bg-stone-100/80 border-gray-300 grayscale-[50%]'
+                        : isAncestor
+                            ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 shadow-amber-100'
+                            : 'bg-white border-gray-100 hover:border-emerald-200'
+                    }
+            `}>
+                {/* Badge type */}
+                {person.isDeceased && (
+                    <div className="absolute -top-3 -right-3 z-10">
+                        {person.isVictim2010 ? (
+                            <span className="flex items-center gap-1 bg-red-800 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow animate-pulse">
+                                Mémorial 2010
+                            </span>
+                        ) : (
+                            <span className="bg-gray-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
+                                Défunt
+                            </span>
+                        )}
+                    </div>
+                )}
+                {isAncestor && !person.isDeceased && (
+                    <div className="absolute -top-3 -left-2 z-10">
+                        <span className="flex items-center gap-0.5 bg-amber-500 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
+                            <Crown className="w-2.5 h-2.5" /> Fondateur
+                        </span>
+                    </div>
                 )}
 
-                {/* Badge Mémorial 2010 (Mini point rouge) */}
-                {person.isDeceased && person.isVictim2010 && (
-                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-600 border border-white rounded-full animate-pulse shadow-sm" title="Victime Mémorial 2010" />
-                )}
+                {/* Avatar */}
+                <div className={`relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner
+                    ${person.isDeceased ? 'bg-gray-200' : isAncestor ? 'bg-amber-100' : 'bg-[#FF6600]/10'}`}>
+                    {isAncestor
+                        ? <Crown className={`w-6 h-6 ${person.isDeceased ? 'text-gray-400' : 'text-amber-600'}`} />
+                        : <User className={`w-6 h-6 ${person.isDeceased ? 'text-gray-400' : 'text-[#FF6600]'}`} />
+                    }
+                    {/* Pastille statut */}
+                    <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${s.badge}`}>
+                        {statusIcons[person.status] || <div className={`w-2 h-2 rounded-full ${s.dot}`} />}
+                    </div>
+                </div>
 
-                {/* Pastille statut - ultra discrète */}
-                {person.status !== 'pending' && !isAncestor && !person.isDeceased && (
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white shadow-sm ${s.dot}`} />
-                )}
-            </button>
-
-            {/* Infos sous le point (toujours visibles mais petites) ou au hover (Tooltips) */}
-            <div className="mt-1.5 flex flex-col items-center opacity-70 group-hover:opacity-100 transition-opacity max-w-[80px] text-center pointer-events-none">
-                <span className={`font-bold text-[9px] sm:text-[10px] leading-tight break-words line-clamp-2 ${person.isDeceased ? 'text-gray-400' : 'text-gray-700'}`}>
-                    {person.name}
-                </span>
-                {isAncestor && (
-                    <span className="text-[8px] font-bold text-amber-600">Fondateur</span>
-                )}
-            </div>
-
-            {/* Popover/Tooltip flottant au hover */}
-            <div className="absolute top-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50 pointer-events-none bg-black/90 backdrop-blur-md text-white text-xs rounded-xl px-3 py-2 shadow-2xl border border-white/10 whitespace-nowrap -translate-y-2 group-hover:translate-y-0">
-                <p className="font-bold flex items-center gap-1.5">
-                    {person.isDeceased ? <span className="opacity-50">🕯️</span> : <span className="text-emerald-400">●</span>}
-                    {person.name}
-                </p>
-                <p className="text-white/60 text-[10px] mt-0.5">{person.role} {person.quartier ? `• ${person.quartier}` : ''}</p>
-                {person.isDeceased && <p className="text-red-400 text-[10px] font-bold mt-1.5 border-t border-white/5 pt-1 uppercase tracking-tighter">{person.isVictim2010 ? 'Mémorial 2010' : 'Défunt'}</p>}
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black/90 rotate-45 border-l border-t border-white/10" />
+                {/* Infos */}
+                <div className="flex flex-col flex-1 min-w-0">
+                    <h3 className={`font-bold text-sm leading-tight truncate ${person.isDeceased ? 'text-gray-600' : 'text-gray-900'}`}>
+                        {person.name}
+                    </h3>
+                    <span className={`text-xs font-medium truncate ${isAncestor ? 'text-amber-600' : 'text-[#FF6600]'}`}>
+                        {person.role}
+                    </span>
+                    {person.quartier && (
+                        <span className="text-[10px] text-gray-400 truncate">{person.quartier}</span>
+                    )}
+                    {person.birthYear && person.birthYear !== 'Inconnue' && (
+                        <span className="text-[10px] text-gray-400 font-mono">~{person.birthYear}</span>
+                    )}
+                </div>
             </div>
 
             {/* Connecteur vers parents (ascendants) */}
@@ -93,22 +115,22 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
                 <div className="flex flex-col items-center mt-1">
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="z-10 w-5 h-5 bg-white border border-gray-100 rounded-full flex items-center justify-center text-gray-400 hover:text-[#FF6600] hover:border-[#FF6600] transition-all shadow-sm mb-1"
+                        className="z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-[#FF6600] hover:border-[#FF6600] transition-all shadow-sm hover:shadow-md mb-1"
                     >
-                        {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
                     </button>
 
-                    <div className={`w-px bg-gradient-to-t from-gray-200 to-transparent transition-all ${isExpanded ? 'h-4' : 'h-0'}`} />
+                    <div className={`w-px bg-gradient-to-t from-gray-200 to-transparent transition-all ${isExpanded ? 'h-5' : 'h-0'}`} />
 
                     <div className={`transition-all duration-500 origin-bottom ${isExpanded ? 'opacity-100 max-h-[2000px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
-                        <div className="flex gap-4 relative pb-2 items-end">
+                        <div className="flex gap-6 relative pb-3 items-end">
                             {/* Ligne horizontale reliant les parents */}
                             {person.parents.length > 1 && (
-                                <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gray-200 shadow-sm" />
+                                <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gray-200" />
                             )}
                             {person.parents.map((parent) => (
                                 <div key={parent.id} className="relative flex flex-col items-center">
-                                    <div className="w-px h-3 bg-gray-200 mb-0" />
+                                    <div className="w-px h-4 bg-gray-200 mb-0" />
                                     <TreeNode person={parent} depth={depth + 1} onSelectNode={onSelectNode} />
                                 </div>
                             ))}
@@ -124,16 +146,16 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
 // Légende
 // ─────────────────────────────────────
 const Legend = () => (
-    <div className="flex justify-center gap-4 flex-wrap mt-4 mb-4">
+    <div className="flex justify-center gap-4 flex-wrap mt-6 mb-10">
         {[
-            { color: 'bg-emerald-500', label: 'Certifié CHO' },
+            { color: 'bg-emerald-500', label: 'Confirmé (CHO)' },
             { color: 'bg-orange-500', label: 'Probable' },
             { color: 'bg-gray-400', label: 'En attente' },
-            { color: 'bg-red-600', label: 'Mémorial 2010' },
+            { color: 'bg-red-800', label: 'Victime 2010', pulse: true },
             { color: 'bg-amber-400', label: 'Fondateur' },
         ].map(item => (
-            <div key={item.label} className="flex items-center gap-1.5 text-[10px] font-medium text-gray-500">
-                <div className={`w-2 h-2 rounded-full ${item.color}`} />
+            <div key={item.label} className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
+                <div className={`w-2.5 h-2.5 rounded-full ${item.color} ${item.pulse ? 'animate-pulse' : ''}`} />
                 {item.label}
             </div>
         ))}
@@ -204,11 +226,12 @@ export default function PyramidTree() {
                 }
             }
         } catch {
-            // Neo4j non disponible
+            // Neo4j non disponible → fallback Supabase
         }
 
-        // 2. Fallback Supabase
+        // 2. Fallback Supabase : charger les profils + ancêtres du village pilote
         try {
+            // Charger les ancêtres certifiés
             const { data: ancestres } = await supabase
                 .from('ancestres')
                 .select('id, nom_complet, periode, is_certified')
@@ -216,6 +239,7 @@ export default function PyramidTree() {
                 .order('created_at', { ascending: true })
                 .limit(3);
 
+            // Charger les membres du village (confirmés en priorité)
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, first_name, last_name, status, quartier_nom, village_origin')
@@ -225,6 +249,7 @@ export default function PyramidTree() {
 
             const members: PersonData[] = [];
 
+            // Ajouter les ancêtres fondateurs en tête
             (ancestres || []).forEach(a => {
                 members.push({
                     id: a.id,
@@ -237,6 +262,7 @@ export default function PyramidTree() {
                 });
             });
 
+            // Ajouter les membres
             (profiles || []).forEach(p => {
                 const nom = `${p.first_name || ''} ${p.last_name || ''}`.trim();
                 if (!nom) return;
@@ -262,6 +288,7 @@ export default function PyramidTree() {
         }
     };
 
+    // Construire l'arbre récursif depuis les données Neo4j
     const buildRecursiveTree = (nodes: Neo4jNode[], links: Record<string, string>[]): PersonData | null => {
         if (!nodes || nodes.length === 0) return null;
         const founder = nodes.find(n => n.isFounder) || nodes[0];
@@ -295,49 +322,67 @@ export default function PyramidTree() {
     return (
         <section id="pyramide" className="py-24 bg-white dark:bg-black relative overflow-hidden flex flex-col items-center">
             <div className="container mx-auto px-6 max-w-6xl relative z-10 w-full flex flex-col items-center">
+                {/* Titre */}
                 <div className="text-center mb-4">
-                    <div className="inline-flex items-center gap-2 bg-[#FF6600]/10 border border-[#FF6600]/20 text-[#FF6600] text-[10px] font-bold px-3 py-1 rounded-full mb-4 uppercase">
-                        <TreePine className="w-3.5 h-3.5" /> Graphe Patrimonial
+                    <div className="inline-flex items-center gap-2 bg-[#FF6600]/10 border border-[#FF6600]/20 text-[#FF6600] text-xs font-bold px-3 py-1 rounded-full mb-4">
+                        <TreePine className="w-3.5 h-3.5" /> Arbre du Village
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-bold mb-3 text-foreground tracking-tight">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-3 text-foreground">
                         L&apos;Arbre <span className="text-emerald-600">Inviolable</span>
                     </h2>
-                    <p className="text-sm text-gray-400 max-w-2xl mx-auto">
-                        Visualisation des liens familiaux certifiés. Chaque point représente une existence validée par le conseil du village.
+                    <p className="text-base text-gray-500 max-w-2xl mx-auto">
+                        Visualisation pyramidale africaine. Les liens familiaux sont analysés et certifiés par le CHO.
                     </p>
+                    {source === 'neo4j' && (
+                        <div className="inline-flex items-center gap-1.5 mt-3 text-xs bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full font-medium">
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            Données live Neo4j Aura
+                        </div>
+                    )}
+                    {source === 'supabase' && (
+                        <div className="inline-flex items-center gap-1.5 mt-3 text-xs bg-emerald-50 text-emerald-600 border border-emerald-100 px-3 py-1 rounded-full font-medium">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Membres du village pilote — Toa-Zéo
+                        </div>
+                    )}
                 </div>
 
                 <Legend />
 
+                {/* Contenu principal */}
                 <div className="w-full overflow-x-auto pb-12 pt-4 flex justify-center items-start min-h-[400px]">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center text-gray-400 py-16">
                             <Loader2 className="w-10 h-10 animate-spin mb-3 text-[#FF6600]" />
-                            <p className="text-xs font-medium animate-pulse">Dérivation du Graphe…</p>
+                            <p className="text-sm font-medium animate-pulse">Dérivation du Graphe…</p>
                         </div>
                     ) : source === 'neo4j' && treeData ? (
-                        <div className="min-w-max p-8 border border-gray-100 rounded-[3rem] bg-gray-50/30 flex flex-col-reverse items-center justify-end">
+                        /* Mode Neo4j — arbre récursif */
+                        <div className="min-w-max p-8 border border-gray-100 rounded-3xl bg-gray-50/50 shadow-inner flex flex-col-reverse items-center justify-end">
                             <TreeNode person={treeData} onSelectNode={handleSelectNode} />
                         </div>
                     ) : source === 'supabase' && villageMembers.length > 0 ? (
+                        /* Mode Supabase fallback — grille de membres */
                         <div className="w-full space-y-8">
+                            {/* Ancêtres fondateurs */}
                             {villageMembers.filter(m => m.role === 'Ancêtre Fondateur').length > 0 && (
                                 <div className="flex flex-col items-center">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-500 mb-6 flex items-center gap-1.5 opacity-80">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-amber-500 mb-4 flex items-center gap-1.5">
                                         <Crown className="w-3.5 h-3.5" /> Ancêtres Fondateurs
                                     </h3>
-                                    <div className="flex flex-wrap justify-center gap-6">
+                                    <div className="flex flex-wrap justify-center gap-4">
                                         {villageMembers.filter(m => m.role === 'Ancêtre Fondateur').map(m => (
                                             <TreeNode key={m.id} person={m} onSelectNode={handleSelectNode} />
                                         ))}
                                     </div>
-                                    <div className="w-px h-12 bg-gradient-to-b from-gray-200 to-transparent mt-6" />
+                                    <div className="w-px h-10 bg-gray-200 mt-4" />
                                 </div>
                             )}
+                            {/* Membres */}
                             {villageMembers.filter(m => m.role !== 'Ancêtre Fondateur').length > 0 && (
                                 <div className="flex flex-col items-center">
-                                    <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-300 mb-6">Membres Certifiés</h3>
-                                    <div className="flex flex-wrap justify-center gap-6">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Membres Inscrits</h3>
+                                    <div className="flex flex-wrap justify-center gap-4">
                                         {villageMembers.filter(m => m.role !== 'Ancêtre Fondateur').map(m => (
                                             <TreeNode key={m.id} person={m} onSelectNode={handleSelectNode} />
                                         ))}
@@ -346,13 +391,14 @@ export default function PyramidTree() {
                             )}
                         </div>
                     ) : (
+                        /* Vide */
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-20 h-20 bg-[#FF6600]/5 rounded-3xl flex items-center justify-center mb-4 border border-[#FF6600]/10">
-                                <TreePine className="w-10 h-10 text-[#FF6600]/30" />
+                                <TreePine className="w-10 h-10 text-[#FF6600]/40" />
                             </div>
                             <p className="font-semibold text-gray-600 mb-1">L&apos;arbre du village est vide</p>
-                            <p className="text-xs text-gray-400 max-w-xs">
-                                Les premiers membres inscrits apparaîtront ici.
+                            <p className="text-sm text-gray-400 max-w-xs">
+                                Les premiers membres inscrits et validés par le CHO apparaîtront ici.
                             </p>
                         </div>
                     )}

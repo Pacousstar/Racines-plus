@@ -15,14 +15,15 @@ export interface ExtendedProfileData {
     fonction: string;
     retraite: boolean;
     nombreEnfants: number;
-    enfantsDetail: {
-        nom: string;
-        prenoms: string;
-        dateNaissance: string;
-        sexe: string;
-    }[];
-    consentementEnfants: boolean;
     adresseResidence: string;
+    detailsEnfants?: Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        birthDate: string;
+        gender: string;
+        isDeceased?: boolean;
+    }>;
 }
 
 interface EditProfileModalProps {
@@ -31,10 +32,9 @@ interface EditProfileModalProps {
     onSuccess: () => void;
     initialData?: ExtendedProfileData;
     userId: string;
-    isConfirmed?: boolean;
 }
 
-export default function EditProfileModal({ isOpen, onClose, onSuccess, initialData, userId, isConfirmed = false }: EditProfileModalProps) {
+export default function EditProfileModal({ isOpen, onClose, onSuccess, initialData, userId }: EditProfileModalProps) {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -50,34 +50,9 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
         fonction: '',
         retraite: false,
         nombreEnfants: 0,
-        enfantsDetail: [],
-        consentementEnfants: false,
-        adresseResidence: ''
+        adresseResidence: '',
+        detailsEnfants: []
     });
-
-    const handleAddEnfant = () => {
-        setFormData(prev => ({
-            ...prev,
-            enfantsDetail: [...(prev.enfantsDetail || []), { nom: '', prenoms: '', dateNaissance: '', sexe: 'H' }],
-            nombreEnfants: prev.nombreEnfants + 1
-        }));
-    };
-
-    const handleRemoveEnfant = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            enfantsDetail: prev.enfantsDetail.filter((_, i) => i !== index),
-            nombreEnfants: Math.max(0, prev.nombreEnfants - 1)
-        }));
-    };
-
-    const handleEnfantChange = (index: number, field: string, value: string) => {
-        setFormData(prev => {
-            const newEnfants = [...prev.enfantsDetail];
-            newEnfants[index] = { ...newEnfants[index], [field]: value };
-            return { ...prev, enfantsDetail: newEnfants };
-        });
-    };
 
     useEffect(() => {
         if (initialData && isOpen) {
@@ -105,9 +80,8 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     fonction: formData.fonction,
                     retraite: formData.retraite,
                     nombre_enfants: formData.nombreEnfants,
-                    enfants_detail: formData.enfantsDetail, // Assurez-vous que la colonne enfants_detail (JSONB) existe dans Supabase
-                    consentement_enfants: formData.consentementEnfants,
-                    adresse_residence: formData.adresseResidence
+                    adresse_residence: formData.adresseResidence,
+                    details_enfants: formData.detailsEnfants
                 })
                 .eq('id', userId);
 
@@ -115,9 +89,9 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
 
             console.log('Profil mis à jour avec succès');
             onSuccess();
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
-            alert("Erreur lors de la mise à jour du profil: " + (error?.message || "Erreur inconnue"));
+            alert("Erreur lors de la mise à jour du profil.");
         } finally {
             setIsLoading(false);
         }
@@ -144,7 +118,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                 </div>
 
                 {/* Formulaire scrollable */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="p-6 overflow-y-auto">
                     <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Identité de base */}
@@ -153,22 +127,22 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Prénoms</label>
-                                    <input type="text" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} disabled={isConfirmed} className={"w-full px-4 py-3 rounded-2xl border transition-all placeholder:text-gray-400 " + (isConfirmed ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none")} required />
+                                    <input type="text" value={formData.firstName} onChange={e => setFormData({ ...formData, firstName: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" required />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Nom</label>
-                                    <input type="text" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} disabled={isConfirmed} className={"w-full px-4 py-3 rounded-2xl border transition-all placeholder:text-gray-400 " + (isConfirmed ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none")} required />
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Nom de famille</label>
+                                    <input type="text" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" required />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Sexe</label>
-                                    <select value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })} disabled={isConfirmed} className={"w-full px-4 py-3 rounded-2xl border transition-all " + (isConfirmed ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none bg-white")}>
-                                        <option value="H">Homme</option>
-                                        <option value="F">Femme</option>
+                                    <select value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white">
+                                        <option value="Homme">Homme</option>
+                                        <option value="Femme">Femme</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Date de naissance</label>
-                                    <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} disabled={isConfirmed} className={"w-full px-4 py-3 rounded-2xl border transition-all " + (isConfirmed ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none text-gray-700")} />
+                                    <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all text-gray-700" />
                                 </div>
                             </div>
                         </div>
@@ -216,7 +190,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">3. Famille & Résidence</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Nombre d'enfants</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Nombre d&apos;enfants (total enregistré)</label>
                                     <input type="number" min="0" value={formData.nombreEnfants} onChange={e => setFormData({ ...formData, nombreEnfants: parseInt(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" />
                                 </div>
                                 <div className="md:col-span-2">
@@ -224,54 +198,118 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     <textarea value={formData.adresseResidence} onChange={e => setFormData({ ...formData, adresseResidence: e.target.value })} rows={2} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all resize-none" placeholder="Pays, Ville, Quartier, Précisions..."></textarea>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Gestion dynamique des enfants */}
-                            <div className="mt-6 border border-gray-100 bg-gray-50/50 rounded-2xl p-4">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h4 className="text-sm font-bold text-gray-700">Détails des enfants (Optionnel)</h4>
-                                    <button type="button" onClick={handleAddEnfant} className="text-xs font-bold bg-white border border-gray-200 text-[#FF6600] px-3 py-1.5 rounded-lg shadow-sm hover:bg-gray-50 transition-colors">
-                                        + Ajouter un enfant
-                                    </button>
-                                </div>
+                        {/* Gestion des enfants détaillés */}
+                        <div>
+                            <div className="flex justify-between items-center border-b pb-2 mb-4">
+                                <h3 className="text-sm font-bold text-[#FF6600]">4. Détails des Enfants</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const newChild = { id: crypto.randomUUID(), firstName: '', lastName: formData.lastName, birthDate: '', gender: '' };
+                                        const children = [...(formData.detailsEnfants || []), newChild];
+                                        setFormData({ ...formData, detailsEnfants: children, nombreEnfants: children.length });
+                                    }}
+                                    className="text-[10px] font-bold uppercase tracking-wider bg-orange-50 text-[#FF6600] px-3 py-1.5 rounded-full border border-orange-100 hover:bg-orange-100 transition-colors"
+                                >
+                                    + Ajouter un enfant
+                                </button>
+                            </div>
 
-                                {formData.enfantsDetail && formData.enfantsDetail.length > 0 && (
-                                    <div className="space-y-4 mb-4">
-                                        {formData.enfantsDetail.map((enfant, index) => (
-                                            <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-white p-3 rounded-xl border border-gray-100 relative items-end">
-                                                <button type="button" onClick={() => handleRemoveEnfant(index)} className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors">
-                                                    <X className="w-3.5 h-3.5" />
-                                                </button>
-                                                <div className="md:col-span-1">
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Nom</label>
-                                                    <input type="text" value={enfant.nom} onChange={e => handleEnfantChange(index, 'nom', e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:border-[#FF6600] outline-none" placeholder="Nom" />
+                            <div className="space-y-4">
+                                {(formData.detailsEnfants || []).length === 0 ? (
+                                    <div className="text-center py-6 bg-gray-50 border border-dashed border-gray-200 rounded-3xl">
+                                        <p className="text-xs text-gray-400">Aucun détail d&apos;enfant enregistré.</p>
+                                    </div>
+                                ) : (
+                                    formData.detailsEnfants?.map((child, index) => (
+                                        <div key={child.id} className="p-4 bg-gray-50 border border-gray-100 rounded-3xl relative animate-in slide-in-from-top-2 duration-300">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const children = (formData.detailsEnfants || []).filter(c => c.id !== child.id);
+                                                    setFormData({ ...formData, detailsEnfants: children, nombreEnfants: children.length });
+                                                }}
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-white border border-red-100 text-red-500 rounded-full flex items-center justify-center shadow-sm hover:bg-red-50 transition-colors"
+                                            >
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Prénoms</label>
+                                                    <input
+                                                        type="text"
+                                                        value={child.firstName}
+                                                        onChange={e => {
+                                                            const children = [...(formData.detailsEnfants || [])];
+                                                            children[index].firstName = e.target.value;
+                                                            setFormData({ ...formData, detailsEnfants: children });
+                                                        }}
+                                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-[#FF6600] outline-none"
+                                                        placeholder="Prénoms de l'enfant"
+                                                    />
                                                 </div>
-                                                <div className="md:col-span-2">
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Prénoms</label>
-                                                    <input type="text" value={enfant.prenoms} onChange={e => handleEnfantChange(index, 'prenoms', e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:border-[#FF6600] outline-none" placeholder="Prénoms" />
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nom</label>
+                                                    <input
+                                                        type="text"
+                                                        value={child.lastName}
+                                                        onChange={e => {
+                                                            const children = [...(formData.detailsEnfants || [])];
+                                                            children[index].lastName = e.target.value;
+                                                            setFormData({ ...formData, detailsEnfants: children });
+                                                        }}
+                                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-[#FF6600] outline-none"
+                                                    />
                                                 </div>
-                                                <div className="md:col-span-1">
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Date Nais.</label>
-                                                    <input type="date" value={enfant.dateNaissance} onChange={e => handleEnfantChange(index, 'dateNaissance', e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:border-[#FF6600] outline-none" />
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Date de naissance</label>
+                                                    <input
+                                                        type="date"
+                                                        value={child.birthDate}
+                                                        onChange={e => {
+                                                            const children = [...(formData.detailsEnfants || [])];
+                                                            children[index].birthDate = e.target.value;
+                                                            setFormData({ ...formData, detailsEnfants: children });
+                                                        }}
+                                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-[#FF6600] outline-none"
+                                                    />
                                                 </div>
-                                                <div className="md:col-span-1">
-                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Sexe</label>
-                                                    <select value={enfant.sexe} onChange={e => handleEnfantChange(index, 'sexe', e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-200 focus:border-[#FF6600] outline-none bg-white">
-                                                        <option value="H">M</option>
-                                                        <option value="F">F</option>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Sexe</label>
+                                                    <select
+                                                        value={child.gender}
+                                                        onChange={e => {
+                                                            const children = [...(formData.detailsEnfants || [])];
+                                                            children[index].gender = e.target.value;
+                                                            setFormData({ ...formData, detailsEnfants: children });
+                                                        }}
+                                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:border-[#FF6600] outline-none bg-white"
+                                                    >
+                                                        <option value="">Sélectionner</option>
+                                                        <option value="Garçon">Garçon</option>
+                                                        <option value="Fille">Fille</option>
                                                     </select>
                                                 </div>
+                                                <div className="md:col-span-2">
+                                                    <label className="flex items-center gap-2 cursor-pointer py-1 px-1">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={child.isDeceased}
+                                                            onChange={e => {
+                                                                const children = [...(formData.detailsEnfants || [])];
+                                                                children[index].isDeceased = e.target.checked;
+                                                                setFormData({ ...formData, detailsEnfants: children });
+                                                            }}
+                                                            className="w-4 h-4 accent-[#FF6600] rounded"
+                                                        />
+                                                        <span className="text-xs font-bold text-gray-500 uppercase">Mention "décédé(e)"</span>
+                                                    </label>
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {formData.enfantsDetail && formData.enfantsDetail.length > 0 && (
-                                    <label className="flex items-start gap-3 cursor-pointer bg-white border border-[#FF6600]/20 p-3 rounded-xl mt-2">
-                                        <input type="checkbox" required checked={formData.consentementEnfants} onChange={e => setFormData({ ...formData, consentementEnfants: e.target.checked })} className="mt-0.5 w-4 h-4 accent-[#FF6600] rounded flex-shrink-0" />
-                                        <span className="text-xs text-gray-600 leading-snug">
-                                            <strong>Consentement RGPD Enfants Mineurs :</strong> J'atteste être le représentant légal des enfants mineurs listés ci-dessus et j'autorise le traitement de leurs données généalogiques strictes dans Racines+.
-                                        </span>
-                                    </label>
+                                        </div>
+                                    ))
                                 )}
                             </div>
                         </div>

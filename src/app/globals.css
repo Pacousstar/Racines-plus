@@ -4,8 +4,8 @@
 
 
 :root {
-  --background: #faf9f6;
-  /* Blanc cassé / Papier ancien */
+  --background: #ebe9e4;
+  /* Plus foncé : Beige Antique / Papier ancien */
   --foreground: #1c2b23;
   /* Vert très très foncé (presque noir) */
 
@@ -34,8 +34,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #111a15;
-    /* Vert ultra sombre / nuit */
+    --background: #0d1410;
+    /* Plus foncé : Vert ultra sombre / nuit profonde */
     --foreground: #f0eadd;
     /* Beige très clair (meilleur contraste) */
 

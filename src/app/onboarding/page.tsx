@@ -118,15 +118,8 @@ function PhotoCropper({ src, onConfirm, onCancel }: PhotoCropperProps) {
     };
 
     return (
-        <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 touch-none"
-            onMouseMove={handleMouseMove}
-            onMouseUp={() => setIsDragging(false)}
-            onMouseLeave={() => setIsDragging(false)}
-            onTouchMove={handleMouseMove}
-            onTouchEnd={() => setIsDragging(false)}
-        >
-            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl" onMouseMove={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
                 <div className="flex items-center justify-between mb-5">
                     <h3 className="font-bold text-gray-900">Recadrer la photo</h3>
                     <button onClick={onCancel} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
@@ -143,7 +136,12 @@ function PhotoCropper({ src, onConfirm, onCancel }: PhotoCropperProps) {
                         className="rounded-full border-4 border-[#FF6600]/30 cursor-move touch-none"
                         style={{ width: CROP_SIZE, height: CROP_SIZE }}
                         onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={() => setIsDragging(false)}
+                        onMouseLeave={() => setIsDragging(false)}
                         onTouchStart={handleMouseDown}
+                        onTouchMove={handleMouseMove}
+                        onTouchEnd={() => setIsDragging(false)}
                     />
                 </div>
                 <p className="text-xs text-gray-400 text-center mb-4">Glissez pour repositionner</p>
@@ -203,18 +201,16 @@ export default function Onboarding() {
         villageOrigin: 'Toa-Zéo',
         quartierNom: '',
         residenceCountry: 'CI',
-        customCountry: '',
         email: '',
         password: '',
         fatherFirstName: '',
         fatherLastName: '',
-        fatherStatus: '',
+        fatherStatus: 'Vivant',
         motherFirstName: '',
         motherLastName: '',
-        motherStatus: ''
+        motherStatus: 'Vivante',
+        residenceCountryCustom: ''
     });
-
-    const [acceptCharte, setAcceptCharte] = useState(false);
 
     const [quartiers, setQuartiers] = useState<{ id: string; nom: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -272,7 +268,7 @@ export default function Onboarding() {
             fd.append('gender', formData.gender);
             fd.append('villageOrigin', formData.villageOrigin);
             fd.append('quartierNom', formData.quartierNom || '');
-            fd.append('residenceCountry', formData.residenceCountry === 'OTHER' ? formData.customCountry : formData.residenceCountry);
+            fd.append('residenceCountry', formData.residenceCountry === 'OTHER' ? formData.residenceCountryCustom : formData.residenceCountry);
 
             fd.append('fatherFirstName', formData.fatherFirstName);
             fd.append('fatherLastName', formData.fatherLastName);
@@ -307,9 +303,9 @@ export default function Onboarding() {
 
             if (signInError) {
                 // L'user est créé mais la connexion auto a échoué → page login
-                window.location.href = '/login?registered=1';
+                router.push('/login?registered=1');
             } else {
-                window.location.href = '/dashboard';
+                router.push('/dashboard');
             }
 
         } catch (err: unknown) {
@@ -330,7 +326,7 @@ export default function Onboarding() {
     ];
 
     return (
-        <div className="min-h-screen relative flex flex-col bg-gray-50/50 dark:bg-[#0a0a0a]">
+        <div className="min-h-screen relative flex flex-col bg-background">
 
             {/* Recadrage photo */}
             {cropSrc && (
@@ -360,8 +356,8 @@ export default function Onboarding() {
                         </span>
                         <span className="hidden sm:inline">Retour</span>
                     </Link>
-                    <Link href="/" className="hover:opacity-80 transition-opacity flex-shrink-0">
-                        <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={100} height={34} className="object-contain mix-blend-multiply w-[80px] sm:w-[100px] h-auto" />
+                    <Link href="/" className="hover:opacity-80 transition-opacity">
+                        <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={100} height={34} className="object-contain" />
                     </Link>
                 </div>
                 <div className="flex items-center gap-2 text-xs sm:text-sm text-foreground/80 font-medium bg-foreground/5 px-3 sm:px-4 py-2 rounded-full backdrop-blur-sm border border-black/10 dark:border-white/20">
@@ -554,14 +550,17 @@ export default function Onboarding() {
                                         <option value="US">🇺🇸 États-Unis (Diaspora)</option>
                                         <option value="OTHER">🌍 Autre pays</option>
                                     </select>
-                                    {formData.residenceCountry === 'OTHER' && (
-                                        <input type="text" value={formData.customCountry} onChange={(e) => updateFormData('customCountry', e.target.value)}
-                                            placeholder="Précisez votre pays"
-                                            className="w-full mt-3 px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-white text-gray-900 placeholder:text-gray-400" />
-                                    )}
                                 </div>
+                                {formData.residenceCountry === 'OTHER' && (
+                                    <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Précisez le pays</label>
+                                        <input type="text" value={formData.residenceCountryCustom} onChange={(e) => updateFormData('residenceCountryCustom', e.target.value)}
+                                            className="w-full px-4 py-3 rounded-2xl border-2 border-white/20 focus:border-white outline-none transition-all bg-black/20 text-white placeholder:text-white/40 font-medium"
+                                            placeholder="Ex: Canada, Belgique..." />
+                                    </div>
+                                )}
                             </div>
-                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin}
+                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin || (formData.residenceCountry === 'OTHER' && !formData.residenceCountryCustom)}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Continuer <ArrowRight className="w-5 h-5" />
                             </button>
@@ -601,12 +600,12 @@ export default function Onboarding() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut du père (si décédé)</label>
+                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut du père</label>
                                         <select value={formData.fatherStatus} onChange={(e) => updateFormData('fatherStatus', e.target.value)}
                                             className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
-                                            <option value="">Vivant</option>
-                                            <option value="Décédé">Décédé</option>
-                                            <option value="Victime crise 2010">Décédé (Victime 2010)</option>
+                                            <option value="Vivant">Vivant</option>
+                                            <option value="Décédé naturel">Décédé naturellement</option>
+                                            <option value="Victime crise 2010">Décédé : Victime crise 2010</option>
                                         </select>
                                     </div>
                                 </div>
@@ -627,12 +626,12 @@ export default function Onboarding() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut de la mère (si décédée)</label>
+                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut de la mère</label>
                                         <select value={formData.motherStatus} onChange={(e) => updateFormData('motherStatus', e.target.value)}
                                             className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
-                                            <option value="">Vivante</option>
-                                            <option value="Décédée">Décédée</option>
-                                            <option value="Victime crise 2010">Décédée (Victime 2010)</option>
+                                            <option value="Vivante">Vivante</option>
+                                            <option value="Décédée naturele">Décédée naturellement</option>
+                                            <option value="Victime crise 2010">Décédée : Victime crise 2010</option>
                                         </select>
                                     </div>
                                 </div>
@@ -659,7 +658,16 @@ export default function Onboarding() {
                                     <p className="text-white/80 text-sm">Votre arbre, privé et souverain.</p>
                                 </div>
                             </div>
-                            <div className="space-y-4">
+                            <div className="p-5 bg-orange-50 dark:bg-[#FF6600]/5 rounded-3xl border border-orange-100 dark:border-[#FF6600]/10 flex gap-4">
+                                <ShieldCheck className="w-6 h-6 text-[#FF6600] flex-shrink-0 mt-1" />
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1">Confidentialité & Souveraineté Africaine</h4>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                                        Vos données sont protégées par les standards RGPD. En validant, vous participez à la construction d&apos;une base de données mémorielle souveraine pour l&apos;Afrique.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="space-y-4 mt-4">
                                 <div>
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Email</label>
                                     <input type="email" autoComplete="email" value={formData.email} onChange={(e) => updateFormData('email', e.target.value)}
@@ -682,21 +690,12 @@ export default function Onboarding() {
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-3 bg-white/5 p-4 rounded-2xl border border-white/10 mt-6 cursor-pointer" onClick={() => setAcceptCharte(!acceptCharte)}>
-                                <div className={`mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors flex-shrink-0 ${acceptCharte ? 'bg-white border-white' : 'border-white/50 bg-black/20'}`}>
-                                    {acceptCharte && <Check className="w-4 h-4 text-[#FF6600]" />}
-                                </div>
-                                <p className="text-sm text-white/80 leading-snug">
-                                    J&apos;accepte la <Link href="/charte" target="_blank" className="text-white font-bold hover:underline" onClick={e => e.stopPropagation()}>Charte de confidentialité Racines+</Link> et j&apos;autorise le traitement de mes données généalogiques souveraines.
-                                </p>
-                            </div>
-
                             {error && (
                                 <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>
                             )}
 
-                            <button type="submit" disabled={isLoading || !formData.email || formData.password.length < 6 || !acceptCharte}
-                                className="w-full mt-6 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                            <button type="submit" disabled={isLoading || !formData.email || formData.password.length < 6}
+                                className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 {isLoading ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Chiffrement souverain...</>
                                 ) : (
@@ -712,10 +711,10 @@ export default function Onboarding() {
                 </div>
 
                 {/* Mention RGPD en bas */}
-                <p className="mt-6 text-center text-[13px] font-medium text-foreground/50 leading-relaxed max-w-sm bg-black/5 dark:bg-white/5 p-4 rounded-xl border border-black/10 dark:border-white/10">
-                    <span className="font-bold text-foreground/70">Données chiffrées • Souveraineté Africaine • Racines+ MVP</span>
-                    <br /><br />
-                    Validation des données respectée avec application des règles RGPD en vigueur.
+                <p className="mt-6 text-center text-xs text-foreground/40 leading-relaxed max-w-sm bg-black/5 dark:bg-white/5 p-4 rounded-3xl border border-black/5 dark:border-white/10">
+                    Données chiffrées • Souveraineté Africaine • Racines+ MVP
+                    <br />
+                    <span className="text-foreground/30 font-medium">Validation des données respectée avec application des règles RGPD en vigueur</span>
                 </p>
             </main>
         </div>

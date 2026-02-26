@@ -58,7 +58,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0a0a0a] relative overflow-hidden">
+    <div className="min-h-screen bg-background relative overflow-hidden">
 
       {/* Modale contact */}
       <ContactModal isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
@@ -73,7 +73,7 @@ export default function Home() {
       {showInstallBanner && (
         <div className="fixed bottom-0 sm:bottom-4 left-0 sm:left-1/2 sm:-translate-x-1/2 z-50 w-full sm:w-auto sm:max-w-md bg-white dark:bg-gray-900 border-t sm:border border-[#FF6600]/20 sm:rounded-2xl shadow-2xl shadow-[#FF6600]/10 p-4 flex items-center gap-4 animate-in slide-in-from-bottom">
           <div className="w-12 h-12 flex-shrink-0">
-            <Image src="/LOGO_Racines.png" alt="Racines+" width={48} height={48} className="rounded-xl mix-blend-multiply" />
+            <Image src="/LOGO_Racines.png" alt="Racines+" width={48} height={48} className="rounded-xl" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-sm text-gray-900 dark:text-white">Installer Racines+</p>
@@ -96,8 +96,8 @@ export default function Home() {
         ? 'bg-white/85 dark:bg-black/85 backdrop-blur-2xl border-b border-black/5 dark:border-white/10 shadow-sm'
         : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
-          <Link href="/" className="hover:opacity-80 transition-opacity flex-shrink-0">
-            <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={110} height={38} className="object-contain mix-blend-multiply w-[90px] md:w-[110px]" priority />
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={110} height={38} className="object-contain" priority />
           </Link>
           <nav className="hidden md:flex gap-8 text-sm font-semibold">
             {[{ label: 'Concept', ref: conceptRef }, { label: 'Diaspora', ref: diasporaRef }, { label: 'Certification', ref: certifRef }].map(({ label, ref }) => (
@@ -136,7 +136,7 @@ export default function Home() {
 
         <p className="text-base sm:text-lg md:text-xl text-foreground/60 max-w-2xl mb-12 text-balance leading-relaxed px-4">
           La première forteresse numérique souveraine pour préserver, valider et transmettre
-          l&apos;histoire de votre lignée africaine — pour les 50 prochaines années.
+          l&apos;histoire de votre lignée Africaine — pour les 50 prochaines années.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center px-4 sm:px-0">
@@ -155,7 +155,7 @@ export default function Home() {
 
         {/* Mention RGPD (remplace la note Admin/CHO) */}
         <p className="mt-5 text-xs text-foreground/35 max-w-md text-center leading-relaxed px-4">
-          Validation des données respectée • Application des règles RGPD en vigueur • Souveraineté africaine
+          Validation des données respectée • Application des règles RGPD en vigueur • Souveraineté Africaine
         </p>
 
         {/* Stats */}
@@ -241,13 +241,13 @@ export default function Home() {
           </p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 text-left">
             {[
-              { emojiUrl: 'https://flagcdn.com/w80/ci.png', title: "Depuis la Côte d'Ivoire", desc: "Saisissez vos ancêtres locaux, validés par votre CHO de village.", cta: 'Commencer', href: '/onboarding' },
-              { emojiUrl: 'https://flagcdn.com/w80/fr.png', title: 'Depuis la Diaspora', desc: "Rejoignez l'arbre familial existant, enrichissez-le avec vos documents.", cta: 'Rejoindre', href: '/onboarding' },
-              { emojiUrl: 'https://cdn-icons-png.flaticon.com/512/814/814513.png', title: "Depuis n'importe où", desc: "L'accès est global, la souveraineté des données reste africaine.", cta: 'Explorer', href: '#pyramide' },
+              { image: 'https://flagcdn.com/w160/ci.png', title: "Depuis la Côte d'Ivoire", desc: "Saisissez vos ancêtres locaux, validés par votre CHO de village.", cta: 'Commencer', href: '/onboarding' },
+              { image: 'https://flagcdn.com/w160/fr.png', title: 'Depuis la Diaspora', desc: "Rejoignez l'arbre familial existant, enrichissez-le avec vos documents.", cta: 'Rejoindre', href: '/onboarding' },
+              { image: 'https://flagcdn.com/w160/un.png', title: "Depuis n'importe où", desc: "L'accès est global, la souveraineté des données reste Africaine.", cta: 'Explorer', href: '#pyramide' },
             ].map(card => (
               <div key={card.title} className="bg-white dark:bg-black border border-gray-100 dark:border-white/10 rounded-3xl p-6 sm:p-7 hover:shadow-xl hover:shadow-[#FF6600]/5 hover:border-[#FF6600]/20 transition-all group hover:-translate-y-1">
-                <div className="mb-5 flex items-center h-10 w-10 overflow-hidden">
-                  <img src={card.emojiUrl} alt="Drapeau" className="object-cover w-full h-auto drop-shadow" />
+                <div className="w-16 h-10 mb-5 relative overflow-hidden rounded-lg shadow-sm border border-gray-100 flex items-center justify-center bg-gray-50">
+                  <Image src={card.image} alt={card.title} fill className="object-cover" />
                 </div>
                 <h3 className="font-bold text-base mb-2 group-hover:text-[#FF6600] transition-colors">{card.title}</h3>
                 <p className="text-sm text-foreground/50 mb-5 leading-relaxed">{card.desc}</p>
@@ -306,9 +306,9 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             {/* Logo + baseline */}
             <div className="sm:col-span-2 md:col-span-1">
-              <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={100} height={35} className="object-contain opacity-80 mb-3 mix-blend-multiply" />
+              <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={100} height={35} className="object-contain opacity-80 mb-3" />
               <p className="text-xs text-foreground/40 leading-relaxed max-w-[200px]">
-                Forteresse numérique souveraine pour la mémoire africaine.
+                Forteresse numérique souveraine pour la mémoire Africaine.
               </p>
             </div>
 
@@ -354,7 +354,7 @@ export default function Home() {
               </button>
               <p className="text-xs text-foreground/40 leading-relaxed">
                 Validation des données RGPD en vigueur.<br />
-                Souveraineté africaine garantie.
+                Souveraineté Africaine garantie.
               </p>
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function Home() {
           <div className="pt-6 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-3">
             <p className="text-xs text-foreground/25 order-2 sm:order-1">© 2026 Racines+. Tous droits réservés.</p>
             <p className="text-xs text-foreground/25 order-1 sm:order-2 text-center sm:text-right">
-              Données chiffrées • Souveraineté africaine • Racines+ MVP
+              Données chiffrées • Souveraineté Africaine • Racines+ MVP
             </p>
           </div>
         </div>

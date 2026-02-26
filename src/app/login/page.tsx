@@ -163,7 +163,7 @@ export default function Login() {
                                                 placeholder="••••••••"
                                                 required
                                             />
-                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-white/50 hover:text-white transition-colors">
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-orange-400 hover:text-orange-200 transition-colors">
                                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                             </button>
                                         </div>
