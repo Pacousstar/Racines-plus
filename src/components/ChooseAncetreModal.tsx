@@ -16,7 +16,7 @@ interface Ancetre {
 interface ChooseAncetreModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (ancetreId: string) => void;
+    onSelect: (ancetreId: string, ancetreNom: string) => void;
     villageNom?: string;
     userId?: string;
 }
@@ -84,7 +84,8 @@ export default function ChooseAncetreModal({
                 const data = await res.json();
                 if (data.success && data.position) {
                     setPositionResult(data.position);
-                    onSelect(selected);
+                    const sel = ancestres.find(a => a.id === selected);
+                    onSelect(selected, sel?.nom_complet || '');
                     // Ne pas fermer immédiatement → afficher le résultat IA
                     setConfirming(false);
                     return;
@@ -94,7 +95,8 @@ export default function ChooseAncetreModal({
             }
             // Fallback : simple mise à jour sans IA
             await supabase.from('profiles').update({ ancestral_root_id: selected }).eq('id', user.id);
-            onSelect(selected);
+            const sel = ancestres.find(a => a.id === selected);
+            onSelect(selected, sel?.nom_complet || '');
         }
         setConfirming(false);
         onClose();
