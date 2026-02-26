@@ -101,7 +101,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                                     value={formData.firstName}
                                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-gray-400"
-                                    placeholder="Ex: Koffi"
+                                    placeholder="Ex: Jean-Claude"
                                 />
                             </div>
                             <div className="flex-1">
@@ -112,7 +112,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                                     value={formData.lastName}
                                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                                     className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-gray-400"
-                                    placeholder="Ex: Oulaï"
+                                    placeholder="Ex: Kalou"
                                 />
                             </div>
                         </div>
