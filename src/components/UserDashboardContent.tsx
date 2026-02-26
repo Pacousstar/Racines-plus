@@ -176,8 +176,13 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                                 <span className="bg-[#FF6600]/10 text-[#FF6600] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Nœud Fondateur</span>
                             </div>
                             <button
-                                onClick={() => setIsEditProfileOpen(true)}
-                                className="mt-4 text-xs font-semibold text-[#FF6600] border border-[#FF6600]/30 bg-[#FF6600]/5 px-3 py-1.5 rounded-lg hover:bg-[#FF6600]/10 transition-colors relative z-50 cursor-pointer"
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsEditProfileOpen(true);
+                                }}
+                                className="mt-4 text-xs font-semibold text-[#FF6600] border border-[#FF6600]/30 bg-[#FF6600]/5 px-3 py-1.5 rounded-lg hover:bg-[#FF6600]/10 transition-colors relative z-50 cursor-pointer shadow-sm hover:shadow active:scale-95"
                             >
                                 Fiche détaillée complète 📝
                             </button>

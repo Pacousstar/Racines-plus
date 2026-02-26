@@ -44,70 +44,52 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
     const isAncestor = person.role === 'Ancêtre Fondateur' || person.role === 'Nœud Fondateur';
 
     return (
-        <div className="flex flex-col items-center">
-            {/* Carte personne */}
-            <div
+        <div className="flex flex-col items-center group relative">
+            {/* Petit Point (Nœud) */}
+            <button
+                type="button"
                 onClick={() => onSelectNode?.(person)}
                 className={`
-                relative flex items-center gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 w-48 sm:w-64 shadow-md sm:shadow-lg
-                transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer
-                ${person.isDeceased
-                        ? 'bg-stone-100/80 border-gray-300 grayscale-[50%]'
-                        : isAncestor
-                            ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 shadow-amber-100'
-                            : 'bg-white border-gray-100 hover:border-emerald-200'
-                    }
-            `}>
-                {/* Badge type */}
-                {person.isDeceased && (
-                    <div className="absolute -top-3 -right-2 sm:-right-3 z-10">
-                        {person.isVictim2010 ? (
-                            <span className="flex items-center gap-1 bg-red-800 text-white text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold shadow animate-pulse">
-                                Mémorial 2010
-                            </span>
-                        ) : (
-                            <span className="bg-gray-600 text-white text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold shadow">
-                                Défunt
-                            </span>
-                        )}
-                    </div>
-                )}
-                {isAncestor && !person.isDeceased && (
-                    <div className="absolute -top-3 -left-1 sm:-left-2 z-10">
-                        <span className="flex items-center gap-0.5 bg-amber-500 text-white text-[8px] sm:text-[9px] px-1.5 sm:px-2 py-0.5 rounded-full font-bold shadow">
-                            <Crown className="w-2.5 h-2.5" /> Fondateur
-                        </span>
-                    </div>
+                    relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 shadow-sm
+                    transition-all duration-300 hover:shadow-lg hover:scale-110 cursor-pointer outline-none focus:ring-4 focus:ring-opacity-50
+                    ${person.isDeceased ? 'bg-gray-100 border-gray-300 grayscale' : s.badge.replace('text-white', '')}
+                    ${isAncestor && !person.isDeceased ? 'ring-4 ring-amber-200 border-amber-500 bg-amber-500 text-white' : ''}
+                    ${person.status === 'pending' ? 'border-gray-300 bg-white text-gray-400' : 'text-white'}
+                `}
+            >
+                {/* Icône à l'intérieur du point */}
+                {isAncestor
+                    ? <Crown className={`w-5 h-5 ${person.isDeceased ? 'text-gray-400' : 'text-white'}`} />
+                    : <User className={`w-5 h-5 ${person.isDeceased ? 'text-gray-400' : person.status === 'pending' ? 'text-gray-400' : 'text-white'}`} />
+                }
+
+                {/* Badge Mémorial 2010 (Petit point rouge) */}
+                {person.isDeceased && person.isVictim2010 && (
+                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-600 border-2 border-white rounded-full animate-pulse shadow-sm" title="Victime Mémorial 2010" />
                 )}
 
-                {/* Avatar */}
-                <div className={`relative w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner
-                    ${person.isDeceased ? 'bg-gray-200' : isAncestor ? 'bg-amber-100' : 'bg-[#FF6600]/10'}`}>
-                    {isAncestor
-                        ? <Crown className={`w-4 h-4 sm:w-6 sm:h-6 ${person.isDeceased ? 'text-gray-400' : 'text-amber-600'}`} />
-                        : <User className={`w-4 h-4 sm:w-6 sm:h-6 ${person.isDeceased ? 'text-gray-400' : 'text-[#FF6600]'}`} />
-                    }
-                    {/* Pastille statut */}
-                    <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${s.badge}`}>
-                        {statusIcons[person.status] || <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${s.dot}`} />}
-                    </div>
-                </div>
+                {/* Pastille statut */}
+                {person.status !== 'pending' && !isAncestor && !person.isDeceased && (
+                    <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${s.dot}`} />
+                )}
+            </button>
 
-                {/* Infos */}
-                <div className="flex flex-col flex-1 min-w-0">
-                    <h3 className={`font-bold text-xs sm:text-sm leading-tight truncate ${person.isDeceased ? 'text-gray-600' : 'text-gray-900'}`}>
-                        {person.name}
-                    </h3>
-                    <span className={`text-[9px] sm:text-xs font-medium truncate ${isAncestor ? 'text-amber-600' : 'text-[#FF6600]'}`}>
-                        {person.role}
-                    </span>
-                    {person.quartier && (
-                        <span className="text-[8px] sm:text-[10px] text-gray-400 truncate">{person.quartier}</span>
-                    )}
-                    {person.birthYear && person.birthYear !== 'Inconnue' && (
-                        <span className="text-[8px] sm:text-[10px] text-gray-400 font-mono">~{person.birthYear}</span>
-                    )}
-                </div>
+            {/* Infos sous le point (toujours visibles mais petites) ou au hover (Tooltips) */}
+            <div className="mt-2 flex flex-col items-center opacity-70 group-hover:opacity-100 transition-opacity max-w-[80px] sm:max-w-[100px] text-center">
+                <span className={`font-bold text-[10px] sm:text-[11px] leading-tight break-words line-clamp-2 ${person.isDeceased ? 'text-gray-500' : 'text-gray-800'}`}>
+                    {person.name}
+                </span>
+                {isAncestor && (
+                    <span className="text-[9px] font-bold text-amber-600 mt-0.5">Fondateur</span>
+                )}
+            </div>
+
+            {/* Popover/Tooltip flottant au hover pour écrans larges */}
+            <div className="absolute top-14 sm:top-16 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50 pointer-events-none bg-black/80 backdrop-blur-sm text-white text-xs rounded-lg px-3 py-2 shadow-xl border border-white/10 whitespace-nowrap">
+                <p className="font-bold">{person.name}</p>
+                <p className="text-white/70 text-[10px]">{person.role} {person.quartier ? `• ${person.quartier}` : ''}</p>
+                {person.isDeceased && <p className="text-red-300 text-[10px] font-bold mt-1 uppercase">{person.isVictim2010 ? 'Mémorial 2010' : 'Défunt'}</p>}
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-black/80 rotate-45 border-l border-t border-white/10" />
             </div>
 
             {/* Connecteur vers parents (ascendants) */}
