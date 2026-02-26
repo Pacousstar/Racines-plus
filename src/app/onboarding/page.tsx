@@ -206,9 +206,11 @@ export default function Onboarding() {
         fatherFirstName: '',
         fatherLastName: '',
         fatherStatus: 'Vivant',
+        fatherBirthDate: '',
         motherFirstName: '',
         motherLastName: '',
         motherStatus: 'Vivante',
+        motherBirthDate: '',
         residenceCountryCustom: ''
     });
 
@@ -273,9 +275,11 @@ export default function Onboarding() {
             fd.append('fatherFirstName', formData.fatherFirstName);
             fd.append('fatherLastName', formData.fatherLastName);
             fd.append('fatherStatus', formData.fatherStatus);
+            fd.append('fatherBirthDate', formData.fatherBirthDate);
             fd.append('motherFirstName', formData.motherFirstName);
             fd.append('motherLastName', formData.motherLastName);
             fd.append('motherStatus', formData.motherStatus);
+            fd.append('motherBirthDate', formData.motherBirthDate);
 
             // Ajouter la photo si présente
             if (photoBlob) {
@@ -599,14 +603,21 @@ export default function Onboarding() {
                                                 className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-sm outline-none focus:border-white" placeholder="Nom" />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut du père</label>
-                                        <select value={formData.fatherStatus} onChange={(e) => updateFormData('fatherStatus', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
-                                            <option value="Vivant">Vivant</option>
-                                            <option value="Décédé naturel">Décédé naturellement</option>
-                                            <option value="Victime crise 2010">Décédé : Victime crise 2010</option>
-                                        </select>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut du père</label>
+                                            <select value={formData.fatherStatus} onChange={(e) => updateFormData('fatherStatus', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
+                                                <option value="Vivant">Vivant</option>
+                                                <option value="Décédé naturel">Décédé naturellement</option>
+                                                <option value="Victime crise 2010">Décédé : Victime crise 2010</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Date de naissance</label>
+                                            <input type="date" value={formData.fatherBirthDate} onChange={(e) => updateFormData('fatherBirthDate', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white" />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -625,14 +636,21 @@ export default function Onboarding() {
                                                 className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-sm outline-none focus:border-white" placeholder="Nom" />
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut de la mère</label>
-                                        <select value={formData.motherStatus} onChange={(e) => updateFormData('motherStatus', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
-                                            <option value="Vivante">Vivante</option>
-                                            <option value="Décédée naturele">Décédée naturellement</option>
-                                            <option value="Victime crise 2010">Décédée : Victime crise 2010</option>
-                                        </select>
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Statut de la mère</label>
+                                            <select value={formData.motherStatus} onChange={(e) => updateFormData('motherStatus', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
+                                                <option value="Vivante">Vivante</option>
+                                                <option value="Décédée naturele">Décédée naturellement</option>
+                                                <option value="Victime crise 2010">Décédée : Victime crise 2010</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Date de naissance</label>
+                                            <input type="date" value={formData.motherBirthDate} onChange={(e) => updateFormData('motherBirthDate', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

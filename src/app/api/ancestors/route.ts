@@ -40,23 +40,41 @@ export async function POST(request: Request) {
             // 2. Créer le Noeud Ancêtre 
             const ancestorId = crypto.randomUUID();
 
-            // Construition de la relation (Père -> FATHER_OF -> Enfant, Mère -> MOTHER_OF -> Enfant)
-            const relType = relation === 'Père' ? 'FATHER_OF' : 'MOTHER_OF';
+            // Construction de la relation
+            let relType = '';
+            if (relation === 'Père') relType = 'FATHER_OF';
+            else if (relation === 'Mère') relType = 'MOTHER_OF';
+            else if (relation === 'Enfant') relType = 'PARENT_OF';
 
-            const cypherQuery = `
-        MATCH (u:Person {id: $userId})
-        CREATE (a:Person {
-          id: $ancestorId,
-          firstName: $firstName,
-          lastName: $lastName,
-          birthYear: $birthYear,
-          status: $status,
-          isVictim: $isVictim,
-          addedBy: $userId
-        })
-        CREATE (a)-[:${relType}]->(u)
-        RETURN a
-      `;
+            const cypherQuery = relation === 'Enfant'
+                ? `
+                MATCH (u:Person {id: $userId})
+                CREATE (a:Person {
+                  id: $ancestorId,
+                  firstName: $firstName,
+                  lastName: $lastName,
+                  birthYear: $birthYear,
+                  status: $status,
+                  isVictim: $isVictim,
+                  addedBy: $userId
+                })
+                CREATE (u)-[:PARENT_OF]->(a)
+                RETURN a
+              `
+                : `
+                MATCH (u:Person {id: $userId})
+                CREATE (a:Person {
+                  id: $ancestorId,
+                  firstName: $firstName,
+                  lastName: $lastName,
+                  birthYear: $birthYear,
+                  status: $status,
+                  isVictim: $isVictim,
+                  addedBy: $userId
+                })
+                CREATE (a)-[:${relType}]->(u)
+                RETURN a
+              `;
 
             const result = await session.run(cypherQuery, {
                 userId: user.id,

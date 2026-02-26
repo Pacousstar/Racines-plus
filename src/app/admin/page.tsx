@@ -59,6 +59,7 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<StatsData>({ totalUsers: 0, confirmedUsers: 0, pendingUsers: 0, rejectedUsers: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [adminName, setAdminName] = useState('Admin');
+    const [adminAvatar, setAdminAvatar] = useState<string | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const [newVillageName, setNewVillageName] = useState('');
@@ -105,9 +106,10 @@ export default function AdminDashboard() {
             if (!user) { router.push('/login'); return; }
             setCurrentUserId(user.id);
 
-            const { data: adminProfile } = await supabase.from('profiles').select('first_name, role').eq('id', user.id).single();
+            const { data: adminProfile } = await supabase.from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single();
             if (adminProfile?.role !== 'admin') { router.push('/dashboard'); return; }
-            setAdminName(adminProfile?.first_name || 'Admin');
+            setAdminName(`${adminProfile?.first_name || 'Admin'} ${adminProfile?.last_name || ''}`);
+            setAdminAvatar(adminProfile?.avatar_url || null);
 
             const { data: allProfiles } = await supabase
                 .from('profiles')
@@ -263,8 +265,12 @@ export default function AdminDashboard() {
                 </nav>
 
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FF6600] text-white flex items-center justify-center text-xs font-bold">
-                        {adminName[0]?.toUpperCase()}
+                    <div className="w-8 h-8 rounded-full bg-[#FF6600] text-white flex items-center justify-center text-xs font-bold overflow-hidden border border-gray-200">
+                        {adminAvatar ? (
+                            <img src={adminAvatar} alt={adminName} className="w-full h-full object-cover" />
+                        ) : (
+                            adminName[0]?.toUpperCase()
+                        )}
                     </div>
                     <span className="text-sm font-semibold hidden md:block">{adminName}</span>
                     <button

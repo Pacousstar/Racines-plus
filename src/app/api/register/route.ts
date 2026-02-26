@@ -180,7 +180,8 @@ export async function POST(request: NextRequest) {
             if (fFirst || fLast) {
                 const fStatus = formData.get('fatherStatus') as string;
                 const isVictim = fStatus === 'Victime crise 2010';
-                const statusStr = fStatus?.startsWith('Décédé') ? 'Décédée' : 'Vivante'; // fallback to standard Person status format 'Décédée'/'Vivante' in graph for simplicity or keep 'Décédé'
+                const statusStr = fStatus?.startsWith('Décédé') ? 'Décédée' : 'Vivante';
+                const fBirth = formData.get('fatherBirthDate') as string;
                 const fId = crypto.randomUUID();
 
                 await session.run(
@@ -189,12 +190,13 @@ export async function POST(request: NextRequest) {
                         id: $fId,
                         firstName: $first,
                         lastName: $last,
+                        birthYear: $birth,
                         status: $status,
                         isVictim: $victim,
                         addedBy: $userId
                      })
                      CREATE (f)-[:FATHER_OF]->(u)`,
-                    { userId, fId, first: fFirst, last: fLast, status: statusStr === 'Décédée' ? 'Décédée' : 'Vivante', victim: isVictim }
+                    { userId, fId, first: fFirst, last: fLast, birth: fBirth || null, status: statusStr === 'Décédée' ? 'Décédée' : 'Vivante', victim: isVictim }
                 );
             }
 
@@ -205,6 +207,7 @@ export async function POST(request: NextRequest) {
                 const mStatus = formData.get('motherStatus') as string;
                 const isVictim = mStatus === 'Victime crise 2010';
                 const statusStr = mStatus?.startsWith('Décédée') ? 'Décédée' : 'Vivante';
+                const mBirth = formData.get('motherBirthDate') as string;
                 const mId = crypto.randomUUID();
 
                 await session.run(
@@ -213,12 +216,13 @@ export async function POST(request: NextRequest) {
                         id: $mId,
                         firstName: $first,
                         lastName: $last,
+                        birthYear: $birth,
                         status: $status,
                         isVictim: $victim,
                         addedBy: $userId
                      })
                      CREATE (m)-[:MOTHER_OF]->(u)`,
-                    { userId, mId, first: mFirst, last: mLast, status: statusStr, victim: isVictim }
+                    { userId, mId, first: mFirst, last: mLast, birth: mBirth || null, status: statusStr, victim: isVictim }
                 );
             }
             await session.close();

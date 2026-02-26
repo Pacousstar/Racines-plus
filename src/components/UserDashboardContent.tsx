@@ -10,6 +10,7 @@ import {
     AlertTriangle, Camera, Clock, XCircle, TreePine, Users
 } from 'lucide-react';
 import AddAncestorModal from '@/components/AddAncestorModal';
+import AddChildModal from '@/components/AddChildModal';
 import ChooseAncetreModal from '@/components/ChooseAncetreModal';
 import InviteModal from '@/components/InviteModal';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
@@ -34,6 +35,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
     const supabase = createClient();
     const [activeTab, setActiveTab] = useState<'arbre' | 'notifications'>('arbre');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isAddChildModalOpen, setIsAddChildModalOpen] = useState(false);
     const [isChooseAncetreOpen, setIsChooseAncetreOpen] = useState(false);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [selectedAncetre, setSelectedAncetre] = useState<string | null>(null);
@@ -261,8 +263,8 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                             <PersonalLineageTree userId={userId} villageNom={profileData?.village || 'Toa-Zéo'} />
                             {!selectedAncetre && !isLoading && (
                                 <div className="border-t border-gray-50 px-6 py-5 flex flex-col md:flex-row justify-center items-center gap-3 bg-gray-50/50">
-                                    <button onClick={() => setIsAddModalOpen(true)} className="bg-white border-2 border-gray-200 text-gray-700 px-6 py-2.5 rounded-full font-bold text-sm shadow-sm hover:border-[#FF6600]/30 hover:text-[#FF6600] transition-all active:scale-95">
-                                        ➕ Ajouter un parent direct
+                                    <button onClick={() => setIsAddChildModalOpen(true)} className="bg-white border-2 border-gray-200 text-gray-700 px-6 py-2.5 rounded-full font-bold text-sm shadow-sm hover:border-blue-300 hover:text-blue-600 transition-all active:scale-95 flex items-center gap-2">
+                                        ➕ Ajouter un enfant
                                     </button>
                                     <button onClick={() => setIsChooseAncetreOpen(true)} className="bg-[#FF6600] hover:bg-[#e55c00] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-[#FF6600]/30 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
                                         <TreePine className="w-4 h-4" /> {selectedAncetre ? `Ancêtre : ${selectedAncetre} ✅` : 'Relier à mon Ancêtre Fondateur'}
@@ -319,6 +321,12 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 onSuccess={() => { setIsAddModalOpen(false); fetchProfile(); }}
+                villageNom={profileData?.village || 'Toa-Zéo'}
+            />
+            <AddChildModal
+                isOpen={isAddChildModalOpen}
+                onClose={() => setIsAddChildModalOpen(false)}
+                onSuccess={() => { setIsAddChildModalOpen(false); fetchProfile(); }}
                 villageNom={profileData?.village || 'Toa-Zéo'}
             />
             <ChooseAncetreModal isOpen={isChooseAncetreOpen} onClose={() => setIsChooseAncetreOpen(false)} onSelect={(id: string, nom: string) => { setSelectedAncetre(nom); setIsChooseAncetreOpen(false); }} villageNom={profileData?.village || 'Toa-Zéo'} />
