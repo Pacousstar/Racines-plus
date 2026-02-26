@@ -1,4 +1,8 @@
 "use client";
+/**
+ * REVISION: 2026-02-26-T16-30-FIX-PROPS
+ * Dashboard Utilisateur - Composant central de gestion de l'arbre et du profil.
+ */
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -311,7 +315,12 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                 )}
             </div>
 
-            <AddAncestorModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSuccess={() => { setIsAddModalOpen(false); fetchProfile(); }} villageNom={profileData?.village || 'Toa-Zéo'} />
+            <AddAncestorModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSuccess={() => { setIsAddModalOpen(false); fetchProfile(); }}
+                villageNom={profileData?.village || 'Toa-Zéo'}
+            />
             <ChooseAncetreModal isOpen={isChooseAncetreOpen} onClose={() => setIsChooseAncetreOpen(false)} onSuccess={(id, nom) => { setSelectedAncetre(nom); setIsChooseAncetreOpen(false); }} villageNom={profileData?.village || 'Toa-Zéo'} />
             <EditProfileModal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} onSuccess={() => { setIsEditProfileOpen(false); fetchProfile(); }} initialData={profileData?.extendedData} userId={userId} />
             <InviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} inviterName={`${profileData?.firstName || ''} ${profileData?.lastName || ''}`.trim()} villageNom={profileData?.village || 'Toa-Zéo'} />
