@@ -144,7 +144,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                 </div>
 
                 {/* Formulaire scrollable */}
-                <div className="p-6 overflow-y-auto">
+                <div className="p-6 overflow-y-auto flex-1">
                     <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Identité de base */}
