@@ -26,9 +26,9 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
         try {
             // Envoi via EmailJS en tâche de fond
             // Pour que cela marche en production, il faut créer ces clés sur EmailJS
-            const serviceID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_racines';
-            const templateID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'template_contact';
-            const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'public_key';
+            const serviceID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || 'service_hvhoqqh';
+            const templateID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || 'template_cygh84s';
+            const publicKey = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || 'IaqNx4HbdhEGv_qj7';
 
             // Paramètres envoyés au template EmailJS
             const templateParams = {
@@ -41,7 +41,8 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
             await emailjs.send(serviceID, templateID, templateParams, publicKey);
             setIsSent(true);
             setForm({ nom: '', email: '', message: '' });
-        } catch {
+        } catch (err) {
+            console.error("Erreur EmailJS :", err);
             setError("Une erreur est survenue. Contactez-nous directement par téléphone.");
         } finally {
             setIsLoading(false);

@@ -177,7 +177,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                             </div>
                             <button
                                 onClick={() => setIsEditProfileOpen(true)}
-                                className="mt-4 text-xs font-semibold text-[#FF6600] border border-[#FF6600]/30 bg-[#FF6600]/5 px-3 py-1.5 rounded-lg hover:bg-[#FF6600]/10 transition-colors"
+                                className="mt-4 text-xs font-semibold text-[#FF6600] border border-[#FF6600]/30 bg-[#FF6600]/5 px-3 py-1.5 rounded-lg hover:bg-[#FF6600]/10 transition-colors relative z-50 cursor-pointer"
                             >
                                 Fiche détaillée complète 📝
                             </button>

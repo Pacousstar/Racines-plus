@@ -13,6 +13,7 @@ import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import InvitationsList from '@/components/InvitationsList';
+import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 
 interface PendingProfile {
     id: string;
@@ -55,6 +56,33 @@ export default function ChoBoard() {
     const [ancestreSource, setAncetreSource] = useState('');
     const [isSavingAncetre, setIsSavingAncetre] = useState(false);
     const [ancestreSaved, setAncretreSaved] = useState(false);
+
+    const [viewingProfile, setViewingProfile] = useState<ExtendedProfileData | null>(null);
+    const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+    const handleViewProfile = async (id: string) => {
+        const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
+        if (data) {
+            setViewingProfile({
+                firstName: data.first_name || '',
+                lastName: data.last_name || '',
+                gender: data.gender || '',
+                birthDate: data.birth_date || '',
+                niveauEtudes: data.niveau_etudes || '',
+                diplomes: data.diplomes || '',
+                emploi: data.emploi || '',
+                fonction: data.fonction || '',
+                retraite: data.retraite || false,
+                nombreEnfants: data.nombre_enfants || 0,
+                enfantsDetail: data.enfants_detail || [],
+                consentementEnfants: data.consentement_enfants || false,
+                adresseResidence: data.adresse_residence || ''
+            });
+            setViewingUserId(id);
+            setIsViewModalOpen(true);
+        }
+    };
 
     useEffect(() => {
         const load = async () => {
@@ -173,27 +201,29 @@ export default function ChoBoard() {
                 <StatusBadge status={profile.status || 'pending'} />
             </div>
 
-            {showActions && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button onClick={() => alert(`Voir le profil de ${profile.first_name} ${profile.last_name} — Détail complet à venir.`)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 text-gray-600 transition-colors">
-                        <Eye className="w-3.5 h-3.5" /> Voir
-                    </button>
-                    <button
-                        onClick={() => handleStatusChange(profile.id, 'probable')}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 transition-colors font-bold"
-                        title="Pré-valider et envoyer au CHO"
-                    >
-                        🟠 Probable
-                    </button>
+            <div className="mt-4 flex flex-wrap gap-2">
+                <button onClick={() => handleViewProfile(profile.id)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 text-gray-600 transition-colors">
+                    <Eye className="w-3.5 h-3.5" /> Fiche Détaillée
+                </button>
+                {showActions && (
+                    <>
+                        <button
+                            onClick={() => handleStatusChange(profile.id, 'probable')}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 transition-colors font-bold"
+                            title="Pré-valider et envoyer au CHO"
+                        >
+                            🟠 Probable
+                        </button>
 
-                    <button
-                        onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors font-bold"
-                    >
-                        ❌ Rejeter
-                    </button>
-                </div>
-            )}
+                        <button
+                            onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors font-bold"
+                        >
+                            ❌ Rejeter
+                        </button>
+                    </>
+                )}
+            </div>
         </div>
     );
 
@@ -376,6 +406,16 @@ export default function ChoBoard() {
                 inviterName={`${myProfile?.first_name || ''} ${myProfile?.last_name || ''}`}
                 villageNom={myProfile?.village_origin || 'Toa-Zéo'}
             />
+
+            {isViewModalOpen && viewingUserId && viewingProfile && (
+                <EditProfileModal
+                    isOpen={isViewModalOpen}
+                    onClose={() => setIsViewModalOpen(false)}
+                    initialData={viewingProfile}
+                    userId={viewingUserId}
+                    onSuccess={() => setIsViewModalOpen(false)}
+                />
+            )}
         </div>
     );
 }

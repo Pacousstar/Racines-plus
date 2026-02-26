@@ -14,6 +14,7 @@ import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import InvitationsList from '@/components/InvitationsList';
+import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import { TreePine } from 'lucide-react';
 
 interface Profile {
@@ -69,6 +70,33 @@ export default function AdminDashboard() {
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterVillage, setFilterVillage] = useState('all');
+
+    const [viewingProfile, setViewingProfile] = useState<ExtendedProfileData | null>(null);
+    const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+    const handleViewProfile = async (id: string) => {
+        const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
+        if (data) {
+            setViewingProfile({
+                firstName: data.first_name || '',
+                lastName: data.last_name || '',
+                gender: data.gender || '',
+                birthDate: data.birth_date || '',
+                niveauEtudes: data.niveau_etudes || '',
+                diplomes: data.diplomes || '',
+                emploi: data.emploi || '',
+                fonction: data.fonction || '',
+                retraite: data.retraite || false,
+                nombreEnfants: data.nombre_enfants || 0,
+                enfantsDetail: data.enfants_detail || [],
+                consentementEnfants: data.consentement_enfants || false,
+                adresseResidence: data.adresse_residence || ''
+            });
+            setViewingUserId(id);
+            setIsViewModalOpen(true);
+        }
+    };
 
     useEffect(() => {
         const loadData = async () => {
@@ -430,7 +458,7 @@ export default function AdminDashboard() {
                                                         >
                                                             <Star className={`w-3.5 h-3.5 ${p.is_ambassadeur ? 'fill-amber-500' : ''}`} />
                                                         </button>
-                                                        <button className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir les détails (Bientôt disponible)"><Eye className="w-3.5 h-3.5" /></button>
+                                                        <button onClick={() => handleViewProfile(p.id)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir la fiche détaillée"><Eye className="w-3.5 h-3.5" /></button>
                                                         <button className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer (Bientôt disponible)"><Trash2 className="w-3.5 h-3.5" /></button>
                                                     </div>
                                                 </td>
@@ -627,6 +655,16 @@ export default function AdminDashboard() {
                 inviterName={adminName}
                 villageNom="Toa-Zéo"
             />
+
+            {isViewModalOpen && viewingUserId && viewingProfile && (
+                <EditProfileModal
+                    isOpen={isViewModalOpen}
+                    onClose={() => setIsViewModalOpen(false)}
+                    initialData={viewingProfile}
+                    userId={viewingUserId}
+                    onSuccess={() => setIsViewModalOpen(false)}
+                />
+            )}
 
             {/* Bottom Nav Mobile pour les administrateurs */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex overflow-x-auto hide-scrollbar lg:hidden shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50">
