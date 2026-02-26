@@ -101,41 +101,47 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         const loadData = async () => {
-            setIsLoading(true);
+            // Ne pas mettre isLoading à true si on a déjà des données pour éviter le clignotement
+            if (profiles.length === 0) setIsLoading(true);
+
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { router.push('/login'); return; }
             setCurrentUserId(user.id);
 
-            const { data: adminProfile } = await supabase.from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single();
-            if (adminProfile?.role !== 'admin') { router.push('/dashboard'); return; }
-            setAdminName(`${adminProfile?.first_name || 'Admin'} ${adminProfile?.last_name || ''}`);
-            setAdminAvatar(adminProfile?.avatar_url || null);
+            // Charger le profil admin séparément et rapidement
+            supabase.from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single()
+                .then(({ data: adminProfile }) => {
+                    if (adminProfile) {
+                        if (adminProfile.role !== 'admin') { router.push('/dashboard'); return; }
+                        setAdminName(`${adminProfile.first_name || 'Admin'} ${adminProfile.last_name || ''}`);
+                        setAdminAvatar(adminProfile.avatar_url || null);
+                    }
+                });
 
-            const { data: allProfiles } = await supabase
-                .from('profiles')
-                .select('id, first_name, last_name, role, status, village_origin, created_at, is_ambassadeur')
-                .order('created_at', { ascending: false });
+            // Charger le reste des données en parallèle
+            const [profilesRes, victimsRes] = await Promise.all([
+                supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name, role, status, village_origin, created_at, is_ambassadeur')
+                    .order('created_at', { ascending: false }),
+                fetch('/api/admin/victims')
+            ]);
 
-            if (allProfiles) {
-                setProfiles(allProfiles);
+            if (profilesRes.data) {
+                setProfiles(profilesRes.data);
                 setStats({
-                    totalUsers: allProfiles.length,
-                    confirmedUsers: allProfiles.filter(p => p.status === 'confirmed').length,
-                    pendingUsers: allProfiles.filter(p => p.status === 'pending' || !p.status).length,
-                    rejectedUsers: allProfiles.filter(p => p.status === 'rejected').length,
+                    totalUsers: profilesRes.data.length,
+                    confirmedUsers: profilesRes.data.filter(p => p.status === 'confirmed').length,
+                    pendingUsers: profilesRes.data.filter(p => p.status === 'pending' || !p.status).length,
+                    rejectedUsers: profilesRes.data.filter(p => p.status === 'rejected').length,
                 });
             }
 
-            try {
-                const victimsRes = await fetch('/api/admin/victims');
-                if (victimsRes.ok) {
-                    const victimsData = await victimsRes.json();
-                    if (victimsData.success) {
-                        setVictims(victimsData.victims);
-                    }
+            if (victimsRes.ok) {
+                const victimsData = await victimsRes.json();
+                if (victimsData.success) {
+                    setVictims(victimsData.victims);
                 }
-            } catch (err) {
-                console.error("Erreur récupération victimes:", err);
             }
 
             setIsLoading(false);

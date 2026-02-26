@@ -20,28 +20,62 @@ export async function GET() {
 
     try {
         const session = await getSession();
+        let victims: any[] = [];
 
         try {
+            // 1. Victimes depuis Neo4j (Ancêtres/Parents)
             const cypherQuery = `
                 MATCH (v:Person {isVictim: true})
                 RETURN v
                 ORDER BY v.lastName, v.firstName
             `;
-
             const result = await session.run(cypherQuery);
+            victims = result.records.map(r => r.get('v').properties);
 
-            const victims = result.records.map(r => r.get('v').properties);
+            // 2. Victimes depuis Supabase (Enfants dans profiles)
+            const { data: profilesWithChildren } = await supabase
+                .from('profiles')
+                .select('id, first_name, last_name, village_origin, details_enfants')
+                .not('details_enfants', 'is', null);
 
-            if (victims.length > 0) {
-                const addedByIds = [...new Set(victims.map(v => v.addedBy).filter(Boolean))];
-                if (addedByIds.length > 0) {
-                    const { data: addedByProfiles } = await supabase
-                        .from('profiles')
-                        .select('id, first_name, last_name, village_origin')
-                        .in('id', addedByIds);
+            if (profilesWithChildren) {
+                profilesWithChildren.forEach(profile => {
+                    const children = profile.details_enfants as any[];
+                    if (Array.isArray(children)) {
+                        children.forEach(child => {
+                            if (child.isVictime2010) {
+                                victims.push({
+                                    id: child.id || `child-${Math.random()}`,
+                                    firstName: child.firstName,
+                                    lastName: child.lastName,
+                                    birthYear: child.birthDate?.split('-')[0] || '',
+                                    status: 'Décédée (Enfant)',
+                                    isVictim: true,
+                                    addedBy: profile.id,
+                                    addedByDetails: {
+                                        firstName: profile.first_name,
+                                        lastName: profile.last_name,
+                                        village: profile.village_origin
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
 
-                    if (addedByProfiles) {
-                        victims.forEach(v => {
+            // 3. Récupérer les détails des auteurs pour les victimes Neo4j (si pas déjà fait)
+            const victimsToHydrate = victims.filter(v => v.addedBy && !v.addedByDetails);
+            if (victimsToHydrate.length > 0) {
+                const addedByIds = [...new Set(victimsToHydrate.map(v => v.addedBy))];
+                const { data: addedByProfiles } = await supabase
+                    .from('profiles')
+                    .select('id, first_name, last_name, village_origin')
+                    .in('id', addedByIds);
+
+                if (addedByProfiles) {
+                    victims.forEach(v => {
+                        if (v.addedBy && !v.addedByDetails) {
                             const adder = addedByProfiles.find(p => p.id === v.addedBy);
                             if (adder) {
                                 v.addedByDetails = {
@@ -50,8 +84,8 @@ export async function GET() {
                                     village: adder.village_origin
                                 };
                             }
-                        });
-                    }
+                        }
+                    });
                 }
             }
 

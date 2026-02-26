@@ -23,6 +23,7 @@ export interface ExtendedProfileData {
         birthDate: string;
         gender: string;
         isDeceased?: boolean;
+        isVictime2010?: boolean;
     }>;
     consentementEnfants?: boolean;
 }
@@ -293,7 +294,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                         <option value="Fille">Fille</option>
                                                     </select>
                                                 </div>
-                                                <div className="md:col-span-2">
+                                                <div className="md:col-span-2 flex flex-wrap gap-4 mt-1">
                                                     <label className="flex items-center gap-2 cursor-pointer py-1 px-1">
                                                         <input
                                                             type="checkbox"
@@ -301,12 +302,29 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                             onChange={e => {
                                                                 const children = [...(formData.detailsEnfants || [])];
                                                                 children[index].isDeceased = e.target.checked;
+                                                                if (!e.target.checked) children[index].isVictime2010 = false;
                                                                 setFormData({ ...formData, detailsEnfants: children });
                                                             }}
                                                             className="w-4 h-4 accent-[#FF6600] rounded"
                                                         />
                                                         <span className="text-xs font-bold text-gray-500 uppercase">Mention "décédé(e)"</span>
                                                     </label>
+
+                                                    {child.isDeceased && (
+                                                        <label className="flex items-center gap-2 cursor-pointer py-1 px-1 animate-in fade-in zoom-in duration-200">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={child.isVictime2010}
+                                                                onChange={e => {
+                                                                    const children = [...(formData.detailsEnfants || [])];
+                                                                    children[index].isVictime2010 = e.target.checked;
+                                                                    setFormData({ ...formData, detailsEnfants: children });
+                                                                }}
+                                                                className="w-4 h-4 accent-red-600 rounded"
+                                                            />
+                                                            <span className="text-xs font-bold text-red-600 uppercase">Victime crise 2010</span>
+                                                        </label>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
