@@ -158,7 +158,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                             </a>
                             <span className="text-gray-300">·</span>
                             <a href="tel:+2250544814924" className="hover:text-[#FF6600] transition-colors font-medium">
-                                05 44 81 49 24
+                                +225 05 44 81 49 24
                             </a>
                         </div>
                     </div>

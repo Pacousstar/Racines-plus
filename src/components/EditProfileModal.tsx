@@ -24,6 +24,7 @@ export interface ExtendedProfileData {
         gender: string;
         isDeceased?: boolean;
     }>;
+    consentementEnfants?: boolean;
 }
 
 interface EditProfileModalProps {

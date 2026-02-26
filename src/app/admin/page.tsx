@@ -89,7 +89,7 @@ export default function AdminDashboard() {
                 fonction: data.fonction || '',
                 retraite: data.retraite || false,
                 nombreEnfants: data.nombre_enfants || 0,
-                enfantsDetail: data.enfants_detail || [],
+                detailsEnfants: data.details_enfants || [],
                 consentementEnfants: data.consentement_enfants || false,
                 adresseResidence: data.adresse_residence || ''
             });
