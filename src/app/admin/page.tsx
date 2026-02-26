@@ -110,11 +110,15 @@ export default function AdminDashboard() {
 
             // Charger le profil admin séparément et rapidement
             supabase.from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single()
-                .then(({ data: adminProfile }) => {
+                .then(({ data: adminProfile, error: profileErr }) => {
+                    if (profileErr) console.error('[admin] Error fetching admin profile:', profileErr);
                     if (adminProfile) {
+                        console.log('[admin] Admin profile found:', adminProfile);
                         if (adminProfile.role !== 'admin') { router.push('/dashboard'); return; }
                         setAdminName(`${adminProfile.first_name || 'Admin'} ${adminProfile.last_name || ''}`);
                         setAdminAvatar(adminProfile.avatar_url || null);
+                    } else {
+                        console.warn('[admin] No admin profile found for id:', user.id);
                     }
                 });
 

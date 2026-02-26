@@ -20,6 +20,7 @@ interface PendingProfile {
     village_origin: string;
     quartier_nom: string;
     status: string;
+    avatar_url?: string | null;
     created_at: string;
 }
 
@@ -61,16 +62,24 @@ export default function ChoBoard() {
             if (!user) { router.push('/login'); return; }
             setCurrentUserId(user.id);
 
-            const { data: profile } = await supabase.from('profiles').select('first_name, last_name, role, village_origin, quartier_nom').eq('id', user.id).single();
-            if (!profile || profile.role !== 'choa') { router.push('/dashboard'); return; }
+            const { data: profile, error: profileErr } = await supabase.from('profiles').select('first_name, last_name, role, village_origin, quartier_nom').eq('id', user.id).single();
+            if (profileErr) console.error('[choa] Error fetching CHOa profile:', profileErr);
+            if (!profile || profile.role !== 'choa') {
+                console.warn('[choa] Access denied or profile missing for id:', user.id);
+                router.push('/dashboard');
+                return;
+            }
+            console.log('[choa] CHOa profile loaded:', profile);
             setMyProfile(profile);
 
             // Charger tous les profils utilisateurs
-            const { data: allUsers } = await supabase
+            const { data: allUsers, error: usersErr } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, village_origin, quartier_nom, status, created_at')
+                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at')
                 .eq('role', 'user')
                 .order('created_at', { ascending: false });
+
+            if (usersErr) console.error('[choa] Error fetching users:', usersErr);
 
             if (allUsers) {
                 // Le CHOa ne voit QUE les profils de son village ET de son quartier
@@ -152,8 +161,12 @@ export default function ChoBoard() {
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                        {(profile.first_name?.[0] || '?').toUpperCase()}
+                    <div className="w-11 h-11 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden border border-gray-100">
+                        {profile.avatar_url ? (
+                            <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                            (profile.first_name?.[0] || '?').toUpperCase()
+                        )}
                     </div>
                     <div>
                         <h3 className="font-bold text-sm">{profile.first_name} {profile.last_name}</h3>

@@ -47,13 +47,18 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
     const fetchProfile = async () => {
         // Ne pas mettre isLoading à true si on a déjà des données pour éviter le clignotement
         if (!profileData) setIsLoading(true);
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('profiles')
             .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, village_origin, quartier_nom, status, avatar_url')
             .eq('id', userId)
             .single();
 
+        if (error) {
+            console.error('[UserDashboardContent] Error fetching profile:', error);
+        }
+
         if (data) {
+            console.log('[UserDashboardContent] Profile data found:', data);
             setProfileData({
                 firstName: data.first_name || '',
                 lastName: data.last_name || '',
@@ -78,11 +83,15 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                 }
             });
 
-            const { count } = await supabase
+            const { count, error: countError } = await supabase
                 .from('invitations')
                 .select('*', { count: 'exact', head: true })
                 .eq('inviter_id', userId);
+
+            if (countError) console.error('[UserDashboardContent] Error counting invites:', countError);
             setInvitesCount(count || 0);
+        } else {
+            console.warn('[UserDashboardContent] No profile data for userId:', userId);
         }
         setIsLoading(false);
     };

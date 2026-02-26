@@ -22,13 +22,18 @@ export default function Dashboard() {
         if (!user) { router.push('/login'); return; }
         setCurrentUserId(user.id);
 
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('profiles')
             .select('first_name, last_name, avatar_url, role')
             .eq('id', user.id)
             .single();
 
+        if (error) {
+            console.error('[dashboard] Error fetching profile:', error);
+        }
+
         if (data) {
+            console.log('[dashboard] Profile data found:', data);
             if (data.role === 'admin') {
                 router.push('/admin');
                 return;
@@ -40,8 +45,11 @@ export default function Dashboard() {
                 return;
             }
 
-            setProfileName((data.first_name || data.last_name) ? `${data.first_name || ''} ${data.last_name || ''}`.trim() : 'Mon Profil');
+            const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+            setProfileName(fullName || 'Mon Profil');
             setAvatarUrl(data.avatar_url || null);
+        } else {
+            console.warn('[dashboard] No profile data returned for user:', user.id);
         }
         setIsLoading(false);
     };

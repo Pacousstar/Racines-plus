@@ -180,7 +180,8 @@ export async function POST(request: NextRequest) {
             if (fFirst || fLast) {
                 const fStatus = formData.get('fatherStatus') as string;
                 const isVictim = fStatus === 'Victime crise 2010';
-                const statusStr = fStatus?.startsWith('Décédé') ? 'Décédée' : 'Vivante';
+                // Déterminer le statut textuel propre au genre masculin
+                const statusStr = (fStatus === 'Décédé' || fStatus === 'Victime crise 2010') ? 'Décédé' : 'Vivant';
                 const fBirth = formData.get('fatherBirthDate') as string;
                 const fId = crypto.randomUUID();
 
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
                         addedBy: $userId
                      })
                      CREATE (f)-[:FATHER_OF]->(u)`,
-                    { userId, fId, first: fFirst, last: fLast, birth: fBirth || null, status: statusStr === 'Décédée' ? 'Décédée' : 'Vivante', victim: isVictim }
+                    { userId, fId, first: fFirst, last: fLast, birth: fBirth || null, status: statusStr, victim: isVictim }
                 );
             }
 
@@ -206,7 +207,8 @@ export async function POST(request: NextRequest) {
             if (mFirst || mLast) {
                 const mStatus = formData.get('motherStatus') as string;
                 const isVictim = mStatus === 'Victime crise 2010';
-                const statusStr = mStatus?.startsWith('Décédée') ? 'Décédée' : 'Vivante';
+                // Déterminer le statut textuel propre au genre féminin
+                const statusStr = (mStatus === 'Décédée' || mStatus === 'Victime crise 2010') ? 'Décédée' : 'Vivante';
                 const mBirth = formData.get('motherBirthDate') as string;
                 const mId = crypto.randomUUID();
 
