@@ -144,7 +144,7 @@ function PhotoCropper({ src, onConfirm, onCancel }: PhotoCropperProps) {
                         onTouchEnd={() => setIsDragging(false)}
                     />
                 </div>
-                <p className="text-xs text-gray-400 text-center mb-4">Glissez pour repositionner</p>
+                <p className="text-xs text-text-dim text-center mb-4">Glissez pour repositionner</p>
 
                 {/* Contrôles zoom */}
                 <div className="flex items-center gap-3 mb-5">
@@ -380,10 +380,10 @@ export default function Onboarding() {
                         {steps.map((s, i) => (
                             <React.Fragment key={s.num}>
                                 <div className="flex flex-col items-center gap-1">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2 ${step > s.num ? 'bg-[#FF6600]/10 text-[#FF6600] border-[#FF6600]' : step === s.num ? 'bg-[#FF6600] text-white border-[#FF6600] shadow-lg shadow-[#FF6600]/30 scale-110' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2 ${step > s.num ? 'bg-[#FF6600]/10 text-[#FF6600] border-[#FF6600]' : step === s.num ? 'bg-[#FF6600] text-white border-[#FF6600] shadow-lg shadow-[#FF6600]/30 scale-110' : 'bg-gray-100 text-text-dim border-gray-200'}`}>
                                         {step > s.num ? <Check className="w-5 h-5" /> : s.num}
                                     </div>
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${step >= s.num ? 'text-foreground' : 'text-gray-400'}`}>{s.label}</span>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${step >= s.num ? 'text-foreground' : 'text-text-muted'}`}>{s.label}</span>
                                 </div>
                                 {i < steps.length - 1 && (
                                     <div className="flex-1 h-0.5 mx-2 mb-5 rounded-full overflow-hidden bg-gray-200">
@@ -490,7 +490,7 @@ export default function Onboarding() {
                                     <div className="grid grid-cols-2 gap-3">
                                         {['Homme', 'Femme'].map(g => (
                                             <button key={g} type="button" onClick={() => updateFormData('gender', g)}
-                                                className={`py-3 rounded-2xl border-2 text-sm font-bold transition-all ${formData.gender === g ? 'border-[#FF6600] bg-[#FF6600]/5 text-[#FF6600]' : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-[#FF6600]/40'}`}>
+                                                className={`py-3 rounded-2xl border-2 text-sm font-bold transition-all ${formData.gender === g ? 'border-[#FF6600] bg-[#FF6600]/5 text-[#FF6600]' : 'border-gray-100 bg-gray-50 text-text-muted hover:border-[#FF6600]/40'}`}>
                                                 {g}
                                             </button>
                                         ))}
@@ -698,7 +698,7 @@ export default function Onboarding() {
                                         className="w-full px-4 py-3 pr-12 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] focus:ring-4 focus:ring-[#FF6600]/10 outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 font-medium"
                                         placeholder="••••••••" />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-8 p-2 text-gray-400 hover:text-[#FF6600] transition-colors rounded-xl hover:bg-orange-50">
+                                        className="absolute right-3 top-8 p-2 text-text-muted hover:text-[#FF6600] transition-colors rounded-xl hover:bg-orange-50">
                                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
                                     <p className="text-xs text-white/70 mt-1.5 flex items-center gap-1">

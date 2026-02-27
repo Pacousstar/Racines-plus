@@ -67,7 +67,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                         </div>
                         <h2 className="text-xl font-bold text-foreground">Ajouter un parent</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 text-text-muted hover:text-black hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -100,7 +100,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                                     required
                                     value={formData.firstName}
                                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-text-muted"
                                     placeholder="Ex: Jean-Claude"
                                 />
                             </div>
@@ -111,7 +111,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                                     required
                                     value={formData.lastName}
                                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-text-muted"
                                     placeholder="Ex: Kalou"
                                 />
                             </div>
@@ -125,7 +125,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                                     type="number"
                                     value={formData.birthYear}
                                     onChange={(e) => setFormData({ ...formData, birthYear: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-gray-400"
+                                    className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-racines-green focus:ring-2 focus:ring-racines-green/20 outline-none transition-all placeholder:text-text-muted"
                                     placeholder="Ex: 1950"
                                 />
                             </div>

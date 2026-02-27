@@ -316,7 +316,7 @@ export default function AdminDashboard() {
                     <div className="space-y-8">
                         <div>
                             <h1 className="text-2xl font-bold mt-4">Tableau de Bord Admin</h1>
-                            <p className="text-gray-500 text-sm">Pilote de Toa-Zéo • Données en temps réel</p>
+                            <p className="text-text-muted text-sm">Pilote de Toa-Zéo • Données en temps réel</p>
                         </div>
 
                         {/* KPIs */}
@@ -329,7 +329,7 @@ export default function AdminDashboard() {
                                     <div className={`text-3xl font-extrabold ${isLoading ? 'animate-pulse bg-gray-200 rounded w-12 h-8' : kpi.color}`}>
                                         {!isLoading && kpi.value}
                                     </div>
-                                    <p className="text-xs text-gray-500 font-medium mt-1">{kpi.label}</p>
+                                    <p className="text-xs text-text-muted font-medium mt-1">{kpi.label}</p>
                                 </div>
                             ))}
                         </div>
@@ -368,7 +368,7 @@ export default function AdminDashboard() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold">{p.first_name} {p.last_name}</p>
-                                                <p className="text-xs text-gray-400">{p.village_origin || 'Village non renseigné'}</p>
+                                                <p className="text-xs text-text-dim">{p.village_origin || 'Village non renseigné'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
@@ -391,7 +391,7 @@ export default function AdminDashboard() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h1 className="text-2xl font-bold">Gestion des Comptes</h1>
-                                <p className="text-sm text-gray-500">Créez et gérez les accès CHO (Chef) et CHOa (Adjoint)</p>
+                                <p className="text-sm text-text-muted">Créez et gérez les accès CHO (Chef) et CHOa (Adjoint)</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-3">
                                 <div className="relative">

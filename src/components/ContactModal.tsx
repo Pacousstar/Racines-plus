@@ -80,7 +80,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                                 <CheckCircle className="w-8 h-8 text-green-500" />
                             </div>
                             <h3 className="font-bold text-lg text-gray-900 mb-2">Message envoyé !</h3>
-                            <p className="text-sm text-gray-500 mb-6">Votre client email s&apos;est ouvert avec votre message pré-rempli. Cliquez &quot;Envoyer&quot; dans votre messagerie.</p>
+                            <p className="text-sm text-text-muted mb-6">Vorte client email s&apos;est ouvert avec votre message pré-rempli. Cliquez &quot;Envoyer&quot; dans votre messagerie.</p>
                             <button
                                 onClick={() => { setIsSent(false); onClose(); }}
                                 className="bg-[#FF6600] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#e55c00] transition-colors"
@@ -91,7 +91,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
                                     Votre nom *
                                 </label>
                                 <input
@@ -104,7 +104,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
                                     Votre email *
                                 </label>
                                 <input
@@ -150,7 +150,7 @@ export default function ContactModal({ isOpen, onClose }: ContactModalProps) {
 
                     {/* Coordonnées */}
                     <div className="mt-5 pt-4 border-t border-gray-100">
-                        <p className="text-xs text-gray-400 text-center mb-2 font-semibold uppercase tracking-wider">Contact direct</p>
+                        <p className="text-xs text-text-dim text-center mb-2 font-semibold uppercase tracking-wider">Contact direct</p>
                         <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
                             <Phone className="w-3.5 h-3.5 text-[#FF6600] flex-shrink-0" />
                             <a href="tel:+2250707801817" className="hover:text-[#FF6600] transition-colors font-medium">

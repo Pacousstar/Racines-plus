@@ -9,6 +9,11 @@
   --foreground: #1c2b23;
   /* Vert très très foncé (presque noir) */
 
+  --text-muted: #4a5d52;
+  /* Vert-gris foncé pour le texte secondaire (meilleure lisibilité) */
+  --text-dim: #6b7c72;
+  /* Version légèrement plus claire pour les petits détails */
+
   --color-primary: #124e35;
   /* Vert profond (Racines/Vie) */
   --color-primary-light: #1f6b4a;
@@ -30,6 +35,10 @@
   --color-racines-light: var(--color-primary-light);
   --color-racines-earth: var(--color-secondary);
   --color-racines-gold: var(--color-accent);
+
+  /* Textes lisibles */
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -38,6 +47,9 @@
     /* Plus foncé : Vert ultra sombre / nuit profonde */
     --foreground: #f0eadd;
     /* Beige très clair (meilleur contraste) */
+
+    --text-muted: #a3b3a9;
+    --text-dim: #8a998f;
 
     --color-primary: #1b6345;
     /* Légèrement plus clair sur fond sombre */

@@ -92,7 +92,7 @@ export default function InvitationsList({ userId }: { userId: string }) {
                 <div className="bg-white border text-center border-gray-100 rounded-3xl p-8 mt-4">
                     <Share2 className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                     <h3 className="font-bold text-gray-700">Aucune invitation envoyée</h3>
-                    <p className="text-sm text-gray-400 mt-1">Invitez des membres de votre famille pour agrandir l'arbre.</p>
+                    <p className="text-sm text-text-muted mt-1">Invitez des membres de votre famille pour agrandir l'arbre.</p>
                 </div>
             ) : (
                 invitations.map(inv => (
@@ -103,7 +103,7 @@ export default function InvitationsList({ userId }: { userId: string }) {
                             </div>
                             <div>
                                 <p className="font-semibold text-sm text-gray-800">{inv.email_invite}</p>
-                                <p className="text-xs text-gray-400">Envoyé le {inv.created_at}</p>
+                                <p className="text-xs text-text-dim">Envoyé le {inv.created_at}</p>
                             </div>
                         </div>
                         <div>
@@ -112,7 +112,7 @@ export default function InvitationsList({ userId }: { userId: string }) {
                                     <CheckCircle className="w-3.5 h-3.5" /> Inscrit(e)
                                 </span>
                             ) : (
-                                <span className="inline-flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200">
+                                <span className="inline-flex items-center gap-1 text-xs font-bold text-text-muted bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200">
                                     <Clock className="w-3.5 h-3.5" /> En attente
                                 </span>
                             )}

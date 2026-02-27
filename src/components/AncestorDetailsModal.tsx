@@ -98,9 +98,9 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
                             ) : avatarUrl ? (
                                 <img src={avatarUrl} alt={person.nom} className="w-full h-full object-cover" />
                             ) : isAncestor ? (
-                                <Crown className={`w-12 h-12 ${person.isDeceased ? 'text-gray-400' : 'text-amber-500'}`} />
+                                <Crown className={`w-12 h-12 ${person.isDeceased ? 'text-text-muted' : 'text-amber-500'}`} />
                             ) : (
-                                <User className={`w-12 h-12 ${person.isDeceased ? 'text-gray-400' : 'text-[#FF6600]'}`} />
+                                <User className={`w-12 h-12 ${person.isDeceased ? 'text-text-muted' : 'text-[#FF6600]'}`} />
                             )}
                         </div>
                     </div>
@@ -108,7 +108,7 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
                     {/* Informations Principales */}
                     <div className="text-center mb-6">
                         <h2 className="text-2xl font-black mb-1">{person.nom}</h2>
-                        <p className={`text-sm font-semibold ${isAncestor ? 'text-amber-600' : 'text-gray-500'}`}>
+                        <p className={`text-sm font-semibold ${isAncestor ? 'text-amber-600' : 'text-text-muted'}`}>
                             {person.roleOuLien}
                         </p>
                     </div>
@@ -159,7 +159,7 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
 
                     {/* Statut de Validation */}
                     <div className="mt-4">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">Statut d'intégration au graphe</p>
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2 px-1">Statut d'intégration au graphe</p>
                         <div className={`p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-3 border transition-colors ${s.bg} border-white/0 shadow-sm`}>
                             <div className={`w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center flex-shrink-0 ${s.text}`}>
                                 {s.icon}

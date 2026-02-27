@@ -170,8 +170,8 @@ export default function ChoBoard() {
                     </div>
                     <div>
                         <h3 className="font-bold text-sm">{profile.first_name} {profile.last_name}</h3>
-                        <p className="text-xs text-gray-500">{profile.village_origin || 'Village ?'} • {profile.quartier_nom || 'Quartier ?'}</p>
-                        <p className="text-xs text-gray-400">Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}</p>
+                        <p className="text-xs text-text-muted">{profile.village_origin || 'Village ?'} • {profile.quartier_nom || 'Quartier ?'}</p>
+                        <p className="text-xs text-text-dim">Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}</p>
                     </div>
                 </div>
                 <StatusBadge status={profile.status || 'pending'} />
@@ -231,7 +231,7 @@ export default function ChoBoard() {
                 <div className="mt-6 mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
                         <h1 className="text-xl font-bold text-gray-900">Tableau de Validation (Adjoint)</h1>
-                        <p className="text-gray-500 text-sm">Zone : {myProfile?.village_origin} • Quartier : <span className="font-bold text-[#FF6600]">{myProfile?.quartier_nom || 'Non assigné'}</span></p>
+                        <p className="text-text-muted text-sm">Zone : {myProfile?.village_origin} • Quartier : <span className="font-bold text-[#FF6600]">{myProfile?.quartier_nom || 'Non assigné'}</span></p>
                     </div>
                     <div className="bg-white px-4 py-2 rounded-2xl border border-blue-100 flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">

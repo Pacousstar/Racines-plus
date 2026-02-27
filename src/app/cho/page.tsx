@@ -195,8 +195,8 @@ export default function ChoBoard() {
                     </div>
                     <div>
                         <h3 className="font-bold text-sm">{profile.first_name} {profile.last_name}</h3>
-                        <p className="text-xs text-gray-500">{profile.village_origin || 'Village ?'} • {profile.quartier_nom || 'Quartier ?'}</p>
-                        <p className="text-xs text-gray-400">Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}</p>
+                        <p className="text-xs text-text-muted">{profile.village_origin || 'Village ?'} • {profile.quartier_nom || 'Quartier ?'}</p>
+                        <p className="text-xs text-text-dim">Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}</p>
                         {profile.status === 'probable' && profile.pre_validated_by && (
                             <p className="text-[11px] font-semibold text-orange-600 mt-1 flex items-center gap-1 bg-orange-50 inline-flex px-2 py-0.5 rounded">
                                 🛡️ Pré-validé par {profile.pre_validated_by} (CHOa)
@@ -265,7 +265,7 @@ export default function ChoBoard() {
             <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto pb-12">
                 <div className="mt-6 mb-6">
                     <h1 className="text-xl font-bold">Tableau de Validation</h1>
-                    <p className="text-gray-500 text-sm">Village : {myProfile?.village_origin || 'Toa-Zéo'} • Rôle : {myProfile?.role?.toUpperCase()}</p>
+                    <p className="text-text-muted text-sm">Village : {myProfile?.village_origin || 'Toa-Zéo'} • Rôle : {myProfile?.role?.toUpperCase()}</p>
                 </div>
 
                 {/* Tabs */}

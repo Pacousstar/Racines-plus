@@ -111,10 +111,10 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-foreground">Éditer mon profil complet</h2>
-                            <p className="text-xs text-gray-500">Mettez à jour vos informations pour l'arbre généalogique</p>
+                            <p className="text-xs text-text-muted">Mettez à jour vos informations pour l'arbre généalogique</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 text-text-muted hover:text-black hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -222,7 +222,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <div className="space-y-4">
                                 {(formData.detailsEnfants || []).length === 0 ? (
                                     <div className="text-center py-6 bg-gray-50 border border-dashed border-gray-200 rounded-3xl">
-                                        <p className="text-xs text-gray-400">Aucun détail d&apos;enfant enregistré.</p>
+                                        <p className="text-xs text-text-dim">Aucun détail d&apos;enfant enregistré.</p>
                                     </div>
                                 ) : (
                                     formData.detailsEnfants?.map((child, index) => (

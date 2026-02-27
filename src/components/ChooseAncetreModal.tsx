@@ -142,7 +142,7 @@ export default function ChooseAncetreModal({
                                 <Clock className="w-7 h-7 text-[#FF6600]" />
                             </div>
                             <h3 className="font-bold text-gray-800 mb-2">Ancêtre non encore inscrit</h3>
-                            <p className="text-sm text-gray-500 leading-relaxed">
+                            <p className="text-sm text-text-muted leading-relaxed">
                                 Le Chief Heritage Officer (CHO) de {villageNom} n&apos;a pas encore enregistré l&apos;ancêtre fondateur.
                                 Vous serez notifié dès que ce sera fait.
                             </p>
@@ -169,8 +169,8 @@ export default function ChooseAncetreModal({
                                             </div>
                                             <div>
                                                 <h4 className="font-bold text-sm text-gray-900">{a.nom_complet}</h4>
-                                                {a.periode && <p className="text-xs text-gray-500 mt-0.5">⏳ {a.periode}</p>}
-                                                {a.source && <p className="text-xs text-gray-400 mt-0.5">📖 {a.source}</p>}
+                                                {a.periode && <p className="text-xs text-text-muted mt-0.5">⏳ {a.periode}</p>}
+                                                {a.source && <p className="text-xs text-text-dim mt-0.5">📖 {a.source}</p>}
                                             </div>
                                         </div>
                                         {a.is_certified && (
@@ -192,7 +192,7 @@ export default function ChooseAncetreModal({
                             <CheckCircle className="w-8 h-8 text-green-500" />
                         </div>
                         <h3 className="font-bold text-gray-900 text-lg mb-1">Ancêtre confirmé !</h3>
-                        <p className="text-sm text-gray-500 mb-4">{positionResult.resume}</p>
+                        <p className="text-sm text-text-muted mb-4">{positionResult.resume}</p>
                         <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-left space-y-2">
                             <div className="flex items-center gap-2 text-xs">
                                 <span className="text-amber-600 font-bold">🤖 IA Racines+</span>
@@ -205,7 +205,7 @@ export default function ChooseAncetreModal({
                                 </div>
                                 <span className="text-xs font-bold text-amber-600">{positionResult.confidence}%</span>
                             </div>
-                            <p className="text-[10px] text-gray-400">Ce positionnement est une estimation — le CHO pourra l&apos;affiner lors de votre validation.</p>
+                            <p className="text-[10px] text-text-dim">Ce positionnement est une estimation — le CHO pourra l&apos;affiner lors de votre validation.</p>
                         </div>
                         <button onClick={onClose} className="mt-5 w-full bg-[#FF6600] text-white py-3 rounded-2xl font-bold text-sm hover:bg-[#e55c00] transition-colors">
                             Fermer
@@ -234,7 +234,7 @@ export default function ChooseAncetreModal({
                             <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                 <span className="text-base">🤖</span>
                             </div>
-                            <p className="text-xs text-gray-500 leading-relaxed">
+                            <p className="text-xs text-text-muted leading-relaxed">
                                 <strong className="text-gray-700">IA Racines+</strong> — Une fois votre ancêtre sélectionné, l&apos;algorithme analysera vos données pour vous positionner dans la lignée du village.
                             </p>
                         </div>
