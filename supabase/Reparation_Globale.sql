@@ -1,44 +1,62 @@
 -- ============================================================
--- RACINES+ — SCRIPT DE RÉPARATION GLOBALE (500/400)
+-- RACINES+ — SCRIPT DE RÉPARATION FINALE (ANTI-RÉCURSION)
 -- ⚠️ Copiez et exécutez TOUT ce script dans le SQL Editor de Supabase
 -- ============================================================
 
--- ══════════════════════════════════════════════════════════
--- 1. FIX DES ERREURS 500 (BOUCLE RLS RÉCURSIVE)
--- ══════════════════════════════════════════════════════════
+-- 1. Désactiver temporairement pour nettoyer sans erreur
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 
--- Supprimer les anciennes polices qui causent la boucle infinie
-DROP POLICY IF EXISTS "Management can view all profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Les utilisateurs peuvent voir leur propre profil" ON public.profiles;
-DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
-
--- Créer une fonction "Security Definer" pour vérifier le rôle SANS déclencher le RLS à nouveau
-CREATE OR REPLACE FUNCTION public.is_management()
-RETURNS boolean AS $$
+-- 2. Supprimer TOUTES les polices existantes (nettoyage total)
+DO $$ 
+DECLARE 
+    pol record;
 BEGIN
-  RETURN (
-    SELECT EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role IN ('admin', 'cho', 'choa')
-    )
-  );
+    FOR pol IN SELECT policyname FROM pg_policies WHERE tablename = 'profiles' AND schemaname = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS %I ON public.profiles', pol.policyname);
+    END LOOP;
+END $$;
+
+-- 3. Fonction SECURITY DEFINER Robuste
+-- Cette fonction s'exécute avec les privilèges du créateur (postgres)
+-- Elle BYPASSE le RLS, évitant ainsi la récursion infinie.
+CREATE OR REPLACE FUNCTION public.is_admin_or_management(user_id UUID)
+RETURNS boolean AS $$
+DECLARE
+    user_role TEXT;
+BEGIN
+    SELECT role INTO user_role FROM public.profiles WHERE id = user_id;
+    RETURN user_role IN ('admin', 'cho', 'choa');
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- Appliquer les nouvelles polices SÉCURISÉES et NON RÉCURSIVES
-DROP POLICY IF EXISTS "Voir son propre profil" ON public.profiles;
-CREATE POLICY "Voir son propre profil" ON public.profiles
-  FOR SELECT USING (auth.uid() = id);
+-- 4. Ré-activer et appliquer les polices SAFES
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Management peut voir tous les profils" ON public.profiles;
-CREATE POLICY "Management peut voir tous les profils" ON public.profiles
-  FOR SELECT USING (public.is_management());
+-- Police pour soi-même (Simple et Directe)
+CREATE POLICY "profil_acces_soi_meme" 
+ON public.profiles FOR ALL 
+USING (auth.uid() = id);
 
--- ══════════════════════════════════════════════════════════
--- 2. CRÉATION DES TABLES MANQUANTES (Évite les 404/500 PostgREST)
--- ══════════════════════════════════════════════════════════
+-- Police pour le management (Utilise la fonction Security Definer qui ne boucle pas)
+CREATE POLICY "profil_acces_management" 
+ON public.profiles FOR SELECT 
+USING (public.is_admin_or_management(auth.uid()));
 
--- Table des Villages
+-- 5. Fix Storage (Public)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "Accès public avatars" ON storage.objects;
+CREATE POLICY "Accès public avatars" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Upload authentifié" ON storage.objects;
+CREATE POLICY "Upload authentifié" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
+
+-- 6. Garanties pour les tables de base
 CREATE TABLE IF NOT EXISTS public.villages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nom TEXT NOT NULL UNIQUE,
@@ -46,39 +64,17 @@ CREATE TABLE IF NOT EXISTS public.villages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Table des Ancêtres Fondateurs
 CREATE TABLE IF NOT EXISTS public.ancestres (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nom_complet TEXT NOT NULL,
-    periode TEXT, -- ex: "1850"
+    periode TEXT,
     village_id UUID REFERENCES public.villages(id),
     is_certified BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Insertion du village pilote si inexistant
 INSERT INTO public.villages (nom, region) 
 VALUES ('Toa-Zéo', 'Guémon') 
 ON CONFLICT (nom) DO NOTHING;
 
--- ══════════════════════════════════════════════════════════
--- 3. FIX DES ERREURS 400 (STORAGE AVATARS)
--- ══════════════════════════════════════════════════════════
-
--- S'assurer que le bucket 'avatars' est PUBLIC
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('avatars', 'avatars', true)
-ON CONFLICT (id) DO UPDATE SET public = true;
-
--- Polices d'accès au stockage (Bucket avatars)
-DROP POLICY IF EXISTS "Avatars publics" ON storage.objects;
-CREATE POLICY "Avatars publics" ON storage.objects
-  FOR SELECT USING (bucket_id = 'avatars');
-
-DROP POLICY IF EXISTS "Upload avatars" ON storage.objects;
-CREATE POLICY "Upload avatars" ON storage.objects
-  FOR INSERT WITH CHECK (bucket_id = 'avatars' AND auth.role() = 'authenticated');
-
-DROP POLICY IF EXISTS "Update own avatar" ON storage.objects;
-CREATE POLICY "Update own avatar" ON storage.objects
-  FOR UPDATE USING (bucket_id = 'avatars' AND auth.uid()::text = name);
+SELECT '✅ Réparation terminée ! La récursion RLS est brisée. Votre dashboard devrait fonctionner.' as statut;
