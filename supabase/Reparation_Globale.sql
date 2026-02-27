@@ -26,9 +26,11 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Appliquer les nouvelles polices SÉCURISÉES et NON RÉCURSIVES
+DROP POLICY IF EXISTS "Voir son propre profil" ON public.profiles;
 CREATE POLICY "Voir son propre profil" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Management peut voir tous les profils" ON public.profiles;
 CREATE POLICY "Management peut voir tous les profils" ON public.profiles
   FOR SELECT USING (public.is_management());
 
