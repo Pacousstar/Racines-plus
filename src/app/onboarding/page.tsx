@@ -609,8 +609,8 @@ export default function Onboarding() {
                                             <select value={formData.fatherStatus} onChange={(e) => updateFormData('fatherStatus', e.target.value)}
                                                 className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
                                                 <option value="Vivant">Vivant</option>
-                                                <option value="Décédé">Décédé naturellement</option>
-                                                <option value="Victime crise 2010">Décédé : Victime crise 2010</option>
+                                                <option value="Décédé">Décédé</option>
+                                                <option value="Victime crise 2010">Victime crise 2010</option>
                                             </select>
                                         </div>
                                         <div>
@@ -642,8 +642,8 @@ export default function Onboarding() {
                                             <select value={formData.motherStatus} onChange={(e) => updateFormData('motherStatus', e.target.value)}
                                                 className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white text-sm outline-none focus:border-white [&>option]:text-black">
                                                 <option value="Vivante">Vivante</option>
-                                                <option value="Décédée">Décédée naturellement</option>
-                                                <option value="Victime crise 2010">Décédée : Victime crise 2010</option>
+                                                <option value="Décédée">Décédée</option>
+                                                <option value="Victime crise 2010">Victime crise 2010</option>
                                             </select>
                                         </div>
                                         <div>
