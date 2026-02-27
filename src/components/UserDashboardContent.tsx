@@ -59,16 +59,21 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
 
         if (data) {
             console.log('[UserDashboardContent] Profile data found:', data);
+
+            // Si le prénom et le nom sont vides dans la table profiles, on peut tenter de récupérer du user session ou mettre des valeurs par défaut
+            const fName = data.first_name || '';
+            const lName = data.last_name || '';
+
             setProfileData({
-                firstName: data.first_name || '',
-                lastName: data.last_name || '',
+                firstName: fName,
+                lastName: lName,
                 village: data.village_origin || 'Toa-Zéo',
                 quartier: data.quartier_nom || '',
                 status: data.status || 'pending',
                 avatarUrl: data.avatar_url || null,
                 extendedData: {
-                    firstName: data.first_name || '',
-                    lastName: data.last_name || '',
+                    firstName: fName,
+                    lastName: lName,
                     gender: data.gender || '',
                     birthDate: data.birth_date || '',
                     niveauEtudes: data.niveau_etudes || '',

@@ -241,9 +241,9 @@ export default function Home() {
           </p>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5 text-left">
             {[
-              { image: 'https://flagcdn.com/w160/ci.png', title: "Depuis la Côte d'Ivoire", desc: "Saisissez vos ancêtres locaux, validés par votre CHO de village.", cta: 'Commencer', href: '/onboarding' },
-              { image: 'https://flagcdn.com/w160/fr.png', title: 'Depuis la Diaspora', desc: "Rejoignez l'arbre familial existant, enrichissez-le avec vos documents.", cta: 'Rejoindre', href: '/onboarding' },
-              { image: 'https://flagcdn.com/w160/un.png', title: "Depuis n'importe où", desc: "L'accès est global, la souveraineté des données reste Africaine.", cta: 'Explorer', href: '#pyramide' },
+              { image: 'https://flagcdn.com/w160/ci.png', title: "Depuis la Côte d'Ivoire", desc: "Suivez vos origines locales, validez vos liens familiaux et préservez l'héritage de votre village.", cta: 'Commencer', href: '/onboarding' },
+              { image: 'https://flagcdn.com/w160/fr.png', title: 'Depuis la Diaspora', desc: "Restez connecté à vos racines, retrouvez les vôtres et contribuez à l'histoire familiale depuis l'étranger.", cta: 'Rejoindre', href: '/onboarding' },
+              { image: 'https://flagcdn.com/w160/us.png', title: 'Partout dans le Monde', desc: "Où que vous soyez, la souveraineté de vos données reste Africaine et votre arbre est accessible 24/7.", cta: 'Explorer', href: '#concept' },
             ].map(card => (
               <div key={card.title} className="bg-white dark:bg-black border border-gray-100 dark:border-white/10 rounded-3xl p-6 sm:p-7 hover:shadow-xl hover:shadow-[#FF6600]/5 hover:border-[#FF6600]/20 transition-all group hover:-translate-y-1">
                 <div className="w-16 h-10 mb-5 relative overflow-hidden rounded-lg shadow-sm border border-gray-100 flex items-center justify-center bg-gray-50">

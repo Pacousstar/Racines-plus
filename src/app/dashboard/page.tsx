@@ -46,10 +46,15 @@ export default function Dashboard() {
             }
 
             const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
-            setProfileName(fullName || 'Mon Profil');
-            setAvatarUrl(data.avatar_url || null);
+            // Fallback sur metadata ou email
+            const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
+            setProfileName(fullName || fallbackName);
+            setAvatarUrl(data.avatar_url || user.user_metadata?.avatar_url || null);
         } else {
             console.warn('[dashboard] No profile data returned for user:', user.id);
+            // On affiche quand même quelque chose
+            setProfileName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur');
+            setAvatarUrl(user.user_metadata?.avatar_url || null);
         }
         setIsLoading(false);
     };

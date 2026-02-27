@@ -24,6 +24,7 @@ interface Profile {
     role: string;
     status: string;
     village_origin: string;
+    avatar_url?: string | null;
     created_at: string;
     is_ambassadeur?: boolean;
 }
@@ -115,10 +116,15 @@ export default function AdminDashboard() {
                     if (adminProfile) {
                         console.log('[admin] Admin profile found:', adminProfile);
                         if (adminProfile.role !== 'admin') { router.push('/dashboard'); return; }
-                        setAdminName(`${adminProfile.first_name || 'Admin'} ${adminProfile.last_name || ''}`);
-                        setAdminAvatar(adminProfile.avatar_url || null);
+                        const fullName = `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim();
+                        // Fallback sur metadata
+                        const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin';
+                        setAdminName(fullName || fallbackName);
+                        setAdminAvatar(adminProfile.avatar_url || user.user_metadata?.avatar_url || null);
                     } else {
                         console.warn('[admin] No admin profile found for id:', user.id);
+                        setAdminName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin');
+                        setAdminAvatar(user.user_metadata?.avatar_url || null);
                     }
                 });
 
@@ -126,7 +132,7 @@ export default function AdminDashboard() {
             const [profilesRes, victimsRes] = await Promise.all([
                 supabase
                     .from('profiles')
-                    .select('id, first_name, last_name, role, status, village_origin, created_at, is_ambassadeur')
+                    .select('id, first_name, last_name, role, status, village_origin, avatar_url, created_at, is_ambassadeur')
                     .order('created_at', { ascending: false }),
                 fetch('/api/admin/victims')
             ]);
@@ -353,8 +359,12 @@ export default function AdminDashboard() {
                                 {profiles.slice(0, 5).map(p => (
                                     <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold">
-                                                {(p.first_name?.[0] || '?').toUpperCase()}
+                                            <div className="w-9 h-9 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold overflow-hidden border border-gray-100">
+                                                {p.avatar_url ? (
+                                                    <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    (p.first_name?.[0] || '?').toUpperCase()
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold">{p.first_name} {p.last_name}</p>
@@ -436,8 +446,12 @@ export default function AdminDashboard() {
                                             <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="py-3 px-5">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold relative">
-                                                            {(p.first_name?.[0] || '?').toUpperCase()}
+                                                        <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold relative overflow-hidden border border-gray-100">
+                                                            {p.avatar_url ? (
+                                                                <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (p.first_name?.[0] || '?').toUpperCase()
+                                                            )}
                                                             {p.is_ambassadeur && (
                                                                 <div className="absolute -bottom-1 -right-1 bg-amber-100 rounded-full border border-white">
                                                                     <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
