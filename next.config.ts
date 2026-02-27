@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com', // Avatars Google si OAuth plus tard
+      },
+      {
+        protocol: 'https',
+        hostname: 'flagcdn.com',
       }
     ],
   },
