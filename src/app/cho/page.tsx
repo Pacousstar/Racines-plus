@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
     ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
-    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock
+    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
