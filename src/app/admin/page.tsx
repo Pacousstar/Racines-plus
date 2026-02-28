@@ -37,6 +37,7 @@ interface Profile {
     certificate_requested?: boolean;
     certificate_issued?: boolean;
     certificate_issued_at?: string;
+    email?: string;
 }
 
 interface Village {
@@ -220,7 +221,7 @@ export default function AdminDashboard() {
             const [profilesRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
                 supabase
                     .from('profiles')
-                    .select('id, first_name, last_name, role, status, village_origin, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at')
+                    .select('id, first_name, last_name, role, status, village_origin, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('villages')
@@ -757,8 +758,8 @@ export default function AdminDashboard() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.role === 'admin' ? 'bg-purple-100 text-purple-600' : p.role === 'cho' ? 'bg-blue-100 text-blue-600' : p.role === 'choa' ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-600'}`}>
-                                                {p.role?.toUpperCase()}
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.role === 'admin' ? (p.email?.toLowerCase() === 'pacous2000@gmail.com' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600') : p.role === 'cho' ? 'bg-blue-100 text-blue-600' : p.role === 'choa' ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                {p.email?.toLowerCase() === 'pacous2000@gmail.com' ? 'ADMIN PRINCIPAL' : p.role?.toUpperCase()}
                                             </span>
                                             <ChevronRight className="w-4 h-4 text-gray-400" />
                                         </div>
@@ -854,8 +855,8 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td className="py-3 px-4 text-sm text-gray-600">{p.village_origin || '—'}</td>
                                                 <td className="py-3 px-4">
-                                                    {p.id === currentUserId ? (
-                                                        <span className="text-xs font-black text-[#FF6600] bg-orange-50 px-2 py-1 rounded-lg border border-orange-100 uppercase tracking-tighter">
+                                                    {p.email?.toLowerCase() === 'pacous2000@gmail.com' ? (
+                                                        <span className="text-xs font-black text-purple-700 bg-purple-50 px-2 py-1 rounded-lg border border-purple-100 uppercase tracking-tighter">
                                                             👑 Admin Principal
                                                         </span>
                                                     ) : (

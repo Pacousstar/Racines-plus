@@ -319,89 +319,109 @@ export default function ChoBoard() {
     ];
 
     const StatusBadge = ({ status }: { status: string }) => {
-        const map: Record<string, { color: string; label: string }> = {
-            confirmed: { color: 'bg-green-100 text-green-700 border border-green-200', label: '🟢 Confirmé' },
-            pending: { color: 'bg-gray-100 text-gray-600 border border-gray-200', label: '⚫ En attente' },
-            rejected: { color: 'bg-red-100 text-red-600 border border-red-200', label: '🔴 Rejeté' },
-            probable: { color: 'bg-orange-100 text-orange-600 border border-orange-200', label: '🟠 Probable' },
+        const map: Record<string, { color: string; bg: string; label: string }> = {
+            confirmed: { color: 'text-green-700', bg: 'bg-green-50 border-green-200', label: 'CERTIFIÉ ✅' },
+            pending: { color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'EN ATTENTE ⚫' },
+            rejected: { color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: 'REJETÉ 🔴' },
+            probable: { color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', label: 'PROBABLE 🟠' },
         };
         const s = map[status] || map['pending'];
-        return <span className={`text-xs px-2 py-1 rounded-full font-bold ${s.color}`}>{s.label}</span>;
+        return (
+            <span className={`text-[10px] px-3 py-1 rounded-full font-black tracking-widest border shadow-sm ${s.bg} ${s.color}`}>
+                {s.label}
+            </span>
+        );
     };
 
     const ProfileCard = ({ profile, showActions = true }: { profile: PendingProfile; showActions?: boolean }) => (
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden border border-gray-100">
-                        {profile.avatar_url ? (
-                            <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                        ) : (
-                            (profile.first_name?.[0] || '?').toUpperCase()
+        <div className="group bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-[#FF6600]/5 hover:border-[#FF6600]/20 transition-all duration-300 relative overflow-hidden">
+            {profile.status === 'confirmed' && <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[4rem] -mr-8 -mt-8 pointer-events-none" />}
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                    <div className="relative">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6600]/10 to-amber-50 text-[#FF6600] flex items-center justify-center text-xl font-black flex-shrink-0 overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
+                            {profile.avatar_url ? (
+                                <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                            ) : (
+                                (profile.first_name?.[0] || '?').toUpperCase()
+                            )}
+                        </div>
+                        {profile.status === 'confirmed' && (
+                            <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
+                                <CheckCircle className="w-3.5 h-3.5" />
+                            </div>
                         )}
                     </div>
                     <div>
-                        <h3 className="font-bold text-sm">{profile.first_name} {profile.last_name}</h3>
-                        <p className="text-xs text-gray-600">{profile.village_origin || 'Village ?'} • {profile.quartier_nom || 'Quartier ?'}</p>
-                        <p className="text-xs text-gray-500">Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}</p>
-                        {profile.status === 'probable' && profile.pre_validated_by && (
-                            <p className="text-[11px] font-semibold text-orange-600 mt-1 flex items-center gap-1 bg-orange-50 inline-flex px-2 py-0.5 rounded">
-                                🛡️ Pré-validé par {profile.pre_validated_by} (CHOa)
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-black text-lg text-gray-900 leading-tight">{profile.first_name} {profile.last_name}</h3>
+                            <StatusBadge status={profile.status || 'pending'} />
+                        </div>
+                        <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                            {profile.village_origin || 'Village ?'} • <span className="text-gray-400 italic font-normal">{profile.quartier_nom || 'Quartier ?'}</span>
+                        </p>
+                        <div className="flex items-center gap-4 mt-2">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                <Clock className="w-3 h-3" /> {new Date(profile.created_at).toLocaleDateString('fr-FR')}
                             </p>
-                        )}
+                            {profile.status === 'probable' && profile.pre_validated_by && (
+                                <div className="text-[10px] font-black text-orange-600 uppercase tracking-tighter bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100 flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" /> Pré-validé par {profile.pre_validated_by}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <StatusBadge status={profile.status || 'pending'} />
+
+                {showActions && (
+                    <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                        <button
+                            onClick={() => handleStatusChange(profile.id, 'confirmed', true)}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs px-5 py-3 rounded-2xl bg-green-600 text-white hover:bg-green-700 transition-all font-black shadow-lg shadow-green-200 active:scale-95 group/btn"
+                        >
+                            <Stamp className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" /> BASCULE ✅
+                        </button>
+
+                        <div className="flex gap-2 w-full md:w-auto">
+                            <button
+                                onClick={() => handleStatusChange(profile.id, 'probable')}
+                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100 transition-all uppercase"
+                            >
+                                Probable
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setViewingCommentsProfile(profile);
+                                    loadComments(profile.id);
+                                }}
+                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
+                            >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
+                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
+                            >
+                                <XCircle className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {showActions && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <button onClick={() => alert(`Voir le profil de ${profile.first_name} ${profile.last_name} — Détail complet à venir.`)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 text-gray-600 transition-colors">
-                        <Eye className="w-3.5 h-3.5" /> Voir
-                    </button>
-                    <button
-                        onClick={() => handleStatusChange(profile.id, 'probable')}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 hover:bg-orange-100 transition-colors font-bold"
-                    >
-                        🟠 Probable
-                    </button>
-                    <button
-                        onClick={() => handleStatusChange(profile.id, 'confirmed', true)}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-green-600 border border-green-700 text-white hover:bg-green-700 transition-colors font-bold shadow-sm"
-                    >
-                        <Stamp className="w-3.5 h-3.5" /> Bascule Patrimoniale ✅
-                    </button>
-
-                    <button
-                        onClick={() => {
-                            setViewingCommentsProfile(profile);
-                            loadComments(profile.id);
-                        }}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors font-bold"
-                    >
-                        <MessageSquare className="w-3.5 h-3.5" /> Commentaires
-                    </button>
-
-                    <button
-                        onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 transition-colors font-bold"
-                    >
-                        ❌ Rejeter
-                    </button>
-                </div>
-            )}
         </div>
     );
 
     return (
         <div className="min-h-screen bg-gray-50 text-foreground">
             {/* Header */}
-            <header className="fixed top-0 w-full bg-white border-b border-gray-100 px-6 py-3 flex justify-between items-center z-50 shadow-sm">
-                <div className="flex items-center gap-4">
-                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={90} height={32} className="object-contain" /></Link>
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border bg-purple-50 border-purple-200 text-purple-600">
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                        CHO — Directeur du Patrimoine
+            <header className="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4 flex justify-between items-center z-50 shadow-sm">
+                <div className="flex items-center gap-5">
+                    <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={100} height={35} className="object-contain hover:opacity-80 transition-opacity" /></Link>
+                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest border bg-gray-900 text-white shadow-lg shadow-gray-200 uppercase">
+                        <ShieldCheck className="w-3.5 h-3.5 text-[#FF6600]" />
+                        CHO — DIRECTEUR DU PATRIMOINE
                     </div>
                 </div>
 
@@ -428,22 +448,34 @@ export default function ChoBoard() {
             </header>
 
             <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto pb-12">
-                <div className="mt-6 mb-6">
-                    <h1 className="text-xl font-bold">Tableau de Validation</h1>
-                    <p className="text-gray-600 text-sm">Village : {myProfile?.village_origin || 'Toa-Zéo'} • Rôle : {myProfile?.role?.toUpperCase()}</p>
+                <div className="mt-8 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Tableau de Validation</h1>
+                        <p className="text-gray-500 font-medium mt-1 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-[#FF6600] rounded-full animate-pulse" />
+                            Village : <span className="text-gray-900 font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>
+                        </p>
+                    </div>
+                    <div className="text-right hidden md:block">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Session Active</p>
+                        <p className="text-sm font-bold text-gray-900 italic">Antigravity Control Panel v2.0</p>
+                    </div>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <div className="flex gap-3 mb-10 overflow-x-auto pb-4 px-1 scrollbar-hide">
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${activeTab === tab.key ? 'bg-[#FF6600] text-white shadow-md shadow-[#FF6600]/25' : 'bg-white border border-gray-200 text-gray-600 hover:border-[#FF6600]/30'}`}
+                            className={`flex items-center gap-3 px-6 py-4 rounded-[1.5rem] text-sm font-black whitespace-nowrap transition-all duration-300 ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-xl shadow-gray-200 -translate-y-1' : 'bg-white border border-gray-100 text-gray-500 hover:border-[#FF6600]/30 hover:bg-orange-50/30'}`}
                         >
-                            <tab.icon className="w-4 h-4" />
+                            <tab.icon className={`w-4 h-4 ${activeTab === tab.key ? 'text-[#FF6600]' : 'text-gray-400'}`} />
                             {tab.label}
-                            {tab.count > 0 && <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold`}>{tab.count}</span>}
+                            {tab.count > 0 && (
+                                <span className={`${tab.countColor} text-white text-[10px] px-2 py-0.5 rounded-full flex items-center justify-center font-black shadow-sm`}>
+                                    {tab.count}
+                                </span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -519,38 +551,61 @@ export default function ChoBoard() {
                     </div>
                 )}
 
-                {/* Ancêtre */}
                 {activeTab === 'ancestor' && (
-                    <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center">
-                                <TreePine className="w-6 h-6 text-purple-600" />
-                            </div>
-                            <div>
-                                <h2 className="font-bold text-lg">Inscrire l&apos;Ancêtre du Village</h2>
-                                <p className="text-sm text-gray-500">Action réservée exclusivement au CHO</p>
-                            </div>
+                    <div className="max-w-2xl mx-auto bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-2xl shadow-purple-100 flex flex-col items-center text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500" />
+
+                        <div className="w-24 h-24 bg-purple-50 rounded-[2rem] flex items-center justify-center mb-6 rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                            <TreePine className="w-12 h-12 text-purple-600" />
                         </div>
+
+                        <h2 className="font-black text-3xl text-gray-900 mb-2">Inscrire l'Ancêtre Fondateur</h2>
+                        <p className="text-gray-500 font-medium mb-10 max-w-sm">Cette action certifie immuablement l'origine du village dans le Grand Registre Patrimonial.</p>
+
                         {ancestreSaved ? (
-                            <div className="text-center py-8">
-                                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                                <h3 className="font-bold text-lg mb-1">Ancêtre certifié !</h3>
-                                <p className="text-sm text-gray-500">L&apos;ancêtre <strong>{ancestreNom}</strong> a été inscrit dans le registre patrimonial.</p>
+                            <div className="animate-in zoom-in duration-500 flex flex-col items-center">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                                    <CheckCircle className="w-10 h-10 text-green-600" />
+                                </div>
+                                <h3 className="font-black text-2xl text-gray-900 mb-2">Ancêtre Certifié !</h3>
+                                <p className="text-gray-500 font-medium">L'ancêtre <strong>{ancestreNom}</strong> est désormais le socle de ce village.</p>
+                                <button onClick={() => setAncretreSaved(false)} className="mt-8 text-sm font-black text-purple-600 hover:underline">Inscrire un autre ancêtre</button>
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">Nom de l&apos;Ancêtre *</label>
-                                    <input type="text" value={ancestreNom} onChange={e => setAncetreNom(e.target.value)} placeholder="Ex: Fondateur Koffi" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 outline-none text-sm" />
+                            <div className="w-full space-y-5 text-left">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identité Nominale</label>
+                                    <input
+                                        type="text"
+                                        value={ancestreNom}
+                                        onChange={e => setAncetreNom(e.target.value)}
+                                        placeholder="Ex: Fondateur TAESSOO..."
+                                        className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-base font-bold transition-all"
+                                    />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">Siècle / Période approximative</label>
-                                    <input type="text" value={ancestrePeriode} onChange={e => setAncretrePeriode(e.target.value)} placeholder="Ex: XIXe siècle, ~1850" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 outline-none text-sm" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Époque / Siècle</label>
+                                        <input
+                                            type="text"
+                                            value={ancestrePeriode}
+                                            onChange={e => setAncretrePeriode(e.target.value)}
+                                            placeholder="Ex: ~1850"
+                                            className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-sm font-bold transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Source du Savoir</label>
+                                        <input
+                                            type="text"
+                                            value={ancestreSource}
+                                            onChange={e => setAncetreSource(e.target.value)}
+                                            placeholder="Tradition Orale..."
+                                            className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-sm font-bold transition-all"
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1">Source historique / Témoignage</label>
-                                    <input type="text" value={ancestreSource} onChange={e => setAncetreSource(e.target.value)} placeholder="Nom du témoin ou source orale" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 outline-none text-sm" />
-                                </div>
+
                                 <button
                                     disabled={!ancestreNom.trim() || isSavingAncetre}
                                     onClick={async () => {
@@ -571,14 +626,14 @@ export default function ChoBoard() {
                                         setIsSavingAncetre(false);
                                         setAncretreSaved(true);
                                     }}
-                                    className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-200 mt-2"
+                                    className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-100 disabled:text-gray-400 text-white py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl shadow-gray-200 active:scale-[0.98] mt-4"
                                 >
                                     {isSavingAncetre
-                                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        : <><Stamp className="w-5 h-5" /> Inscrire l&apos;Ancêtre du Village</>
+                                        ? <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                                        : <><Stamp className="w-6 h-6 text-[#FF6600]" /> SCELLER L'HISTOIRE</>
                                     }
                                 </button>
-                                <p className="text-xs text-gray-600 text-center">Cette action est réservée au CHO et Admin et sera enregistrée de manière immuable.</p>
+                                <p className="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase mt-4">Action irréversible • Protocole CHO de Grade S</p>
                             </div>
                         )}
                     </div>
@@ -594,34 +649,40 @@ export default function ChoBoard() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {team.map(member => (
-                                <div key={member.id} className="bg-white rounded-3xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-lg font-bold overflow-hidden border border-white shadow-sm">
+                                <div key={member.id} className="group bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden">
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform">
                                             {member.avatar_url ? (
                                                 <img src={member.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                                             ) : (
-                                                member.first_name[0].toUpperCase()
+                                                (member.first_name?.[0] || '?').toUpperCase()
                                             )}
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-sm">{member.first_name} {member.last_name}</h3>
-                                            <p className="text-xs text-gray-600">Quartier : <span className="text-blue-600 font-semibold">{member.quartier_nom || 'Non spécifié'}</span></p>
+                                            <h3 className="font-black text-gray-900 leading-tight">{member.first_name} {member.last_name}</h3>
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-0.5">{member.quartier_nom || 'Secteur Libre'}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                                        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Membre depuis {new Date(member.created_at).toLocaleDateString('fr-FR')}</span>
-                                        <div className={`w-2 h-2 rounded-full ${member.status === 'confirmed' ? 'bg-green-500' : 'bg-orange-400'}`}></div>
+                                    <div className="flex items-center justify-between pt-5 border-t border-gray-50">
+                                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Certifié le {new Date(member.created_at).toLocaleDateString('fr-FR')}</span>
+                                        <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                            <span className="text-[8px] font-black text-green-600 uppercase">Actif</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
 
                             {team.length === 0 && (
-                                <div className="col-span-full py-12 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-                                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-500 text-sm italic">Vous n&apos;avez pas encore d&apos;adjoints enregistrés.</p>
-                                    <p className="text-[10px] text-gray-600 mt-2 uppercase font-bold">Contactez l&apos;Admin pour certifier des CHOa</p>
+                                <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+                                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Users className="w-10 h-10 text-gray-300" />
+                                    </div>
+                                    <p className="text-gray-900 font-black text-xl">Aucun Adjoint Détecté</p>
+                                    <p className="text-gray-500 font-medium max-w-xs mx-auto mt-2 text-sm italic">Les CHOa certifiés apparaîtront ici pour coordonner la validation.</p>
+                                    <button className="mt-8 text-[10px] font-black text-[#FF6600] px-6 py-3 bg-orange-50 rounded-full border border-orange-100 uppercase tracking-widest">Contacter l'Administration</button>
                                 </div>
                             )}
                         </div>

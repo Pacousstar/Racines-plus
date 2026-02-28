@@ -249,13 +249,13 @@ export default function PyramidTree() {
 
         // 2. Fallback Supabase : charger les profils + ancêtres du village pilote
         try {
-            // Charger les ancêtres certifiés
+            // Charger les ancêtres certifiés (priorité aux fondateurs)
             const { data: ancestres } = await supabase
                 .from('ancestres')
                 .select('id, nom_complet, periode, is_certified')
                 .eq('is_certified', true)
-                .order('created_at', { ascending: true })
-                .limit(3);
+                .ilike('nom_complet', '%TAESSOO%') // Ciblage spécifique de TAESSOO comme demandé
+                .limit(1);
 
             // Charger les membres du village (confirmés en priorité)
             const { data: profiles } = await supabase
