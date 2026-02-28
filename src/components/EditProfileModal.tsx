@@ -16,6 +16,11 @@ export interface ExtendedProfileData {
     retraite: boolean;
     nombreEnfants: number;
     adresseResidence: string;
+    residenceCity: string;
+    phone1?: string;
+    phone2?: string;
+    whatsapp1?: string;
+    whatsapp2?: string;
     detailsEnfants?: Array<{
         id: string;
         firstName: string;
@@ -53,6 +58,11 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
         retraite: false,
         nombreEnfants: 0,
         adresseResidence: '',
+        residenceCity: '',
+        phone1: '',
+        phone2: '',
+        whatsapp1: '',
+        whatsapp2: '',
         detailsEnfants: []
     });
 
@@ -83,6 +93,11 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     retraite: formData.retraite,
                     nombre_enfants: formData.nombreEnfants,
                     adresse_residence: formData.adresseResidence,
+                    residence_city: formData.residenceCity,
+                    phone_1: formData.phone1,
+                    phone_2: formData.phone2,
+                    whatsapp_1: formData.whatsapp1,
+                    whatsapp_2: formData.whatsapp2,
                     details_enfants: formData.detailsEnfants
                 })
                 .eq('id', userId);
@@ -136,15 +151,16 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     <input type="text" value={formData.lastName} onChange={e => setFormData({ ...formData, lastName: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" required />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Sexe</label>
-                                    <select value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Sexe <span className="text-red-500">*</span></label>
+                                    <select value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white" required>
+                                        <option value="">Sélectionner</option>
                                         <option value="Homme">Homme</option>
                                         <option value="Femme">Femme</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Date de naissance</label>
-                                    <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all text-gray-700" />
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Date de naissance <span className="text-red-500">*</span></label>
+                                    <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all text-gray-700" required />
                                 </div>
                             </div>
                         </div>
@@ -154,8 +170,8 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Éducation & Situation Professionnelle</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Niveau d'études</label>
-                                    <select value={formData.niveauEtudes} onChange={e => setFormData({ ...formData, niveauEtudes: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Niveau d'études <span className="text-red-500">*</span></label>
+                                    <select value={formData.niveauEtudes} onChange={e => setFormData({ ...formData, niveauEtudes: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white" required>
                                         <option value="">Sélectionner</option>
                                         <option value="Aucun">Aucun</option>
                                         <option value="Primaire">Primaire</option>
@@ -196,8 +212,30 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     <input type="number" min="0" value={formData.nombreEnfants} onChange={e => setFormData({ ...formData, nombreEnfants: parseInt(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Adresse de Résidence actuelle</label>
-                                    <textarea value={formData.adresseResidence} onChange={e => setFormData({ ...formData, adresseResidence: e.target.value })} rows={2} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all resize-none" placeholder="Pays, Ville, Quartier, Précisions..."></textarea>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Ville de résidence (pour la carte)</label>
+                                    <input type="text" value={formData.residenceCity} onChange={e => setFormData({ ...formData, residenceCity: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" placeholder="Ex: Abidjan, Paris, Lyon..." />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Complément d&apos;adresse</label>
+                                    <textarea value={formData.adresseResidence} onChange={e => setFormData({ ...formData, adresseResidence: e.target.value })} rows={2} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all resize-none" placeholder="Quartier, Précisions..."></textarea>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Numéro de téléphone 1</label>
+                                        <input type="text" value={formData.phone1} onChange={e => setFormData({ ...formData, phone1: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="+225..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Numéro de téléphone 2 (optionnel)</label>
+                                        <input type="text" value={formData.phone2} onChange={e => setFormData({ ...formData, phone2: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="+225..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Numéro WhatsApp 1</label>
+                                        <input type="text" value={formData.whatsapp1} onChange={e => setFormData({ ...formData, whatsapp1: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="+225..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Numéro WhatsApp 2 (optionnel)</label>
+                                        <input type="text" value={formData.whatsapp2} onChange={e => setFormData({ ...formData, whatsapp2: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="+225..." />
+                                    </div>
                                 </div>
                             </div>
                         </div>

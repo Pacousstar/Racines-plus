@@ -19,10 +19,14 @@ interface PhotoCropperProps {
 function PhotoCropper({ src, onConfirm, onCancel }: PhotoCropperProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const previewRef = useRef<HTMLCanvasElement>(null);
-    const imgRef = useRef<HTMLImageElement | null>(null);
+    const imgRef = useRef<HTMLImageElement | null>(imgRef);
     const [scale, setScale] = useState(1);
-    const [offset, setOffset] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
+    const [residenceCity, setResidenceCity] = useState('');
+    const [phone1, setPhone1] = useState('');
+    const [phone2, setPhone2] = useState('');
+    const [whatsapp1, setWhatsapp1] = useState('');
+    const [whatsapp2, setWhatsapp2] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
 
     const CROP_SIZE = 240;
@@ -211,7 +215,12 @@ export default function Onboarding() {
         motherLastName: '',
         motherStatus: 'Vivante',
         motherBirthDate: '',
-        residenceCountryCustom: ''
+        phone1: '',
+        phone2: '',
+        whatsapp1: '',
+        whatsapp2: '',
+        residenceCountryCustom: '',
+        residenceCity: ''
     });
 
     const [quartiers, setQuartiers] = useState<{ id: string; nom: string }[]>([]);
@@ -271,6 +280,11 @@ export default function Onboarding() {
             fd.append('villageOrigin', formData.villageOrigin);
             fd.append('quartierNom', formData.quartierNom || '');
             fd.append('residenceCountry', formData.residenceCountry === 'OTHER' ? formData.residenceCountryCustom : formData.residenceCountry);
+            fd.append('residenceCity', formData.residenceCity);
+            fd.append('phone1', formData.phone1);
+            fd.append('phone2', formData.phone2);
+            fd.append('whatsapp1', formData.whatsapp1);
+            fd.append('whatsapp2', formData.whatsapp2);
 
             fd.append('fatherFirstName', formData.fatherFirstName);
             fd.append('fatherLastName', formData.fatherLastName);
@@ -555,6 +569,12 @@ export default function Onboarding() {
                                         <option value="OTHER">🌍 Autre pays</option>
                                     </select>
                                 </div>
+                                <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Ville de résidence</label>
+                                    <input type="text" value={formData.residenceCity} onChange={(e) => updateFormData('residenceCity', e.target.value)}
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-white/20 focus:border-white outline-none transition-all bg-black/20 text-white placeholder:text-white/40 font-medium"
+                                        placeholder="Ex: Abidjan, Paris, New York..." required />
+                                </div>
                                 {formData.residenceCountry === 'OTHER' && (
                                     <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
                                         <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Précisez le pays</label>
@@ -563,6 +583,36 @@ export default function Onboarding() {
                                             placeholder="Ex: Canada, Belgique..." />
                                     </div>
                                 )}
+
+                                <div className="pt-4 border-t border-white/10 mt-4 space-y-4">
+                                    <h3 className="text-white font-bold text-sm">Contacts (Optionnel)</h3>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Téléphone 1</label>
+                                                <input type="text" value={formData.phone1} onChange={(e) => updateFormData('phone1', e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-xs outline-none focus:border-white" placeholder="+225..." />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">Téléphone 2</label>
+                                                <input type="text" value={formData.phone2} onChange={(e) => updateFormData('phone2', e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-xs outline-none focus:border-white" placeholder="+225..." />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">WhatsApp 1</label>
+                                                <input type="text" value={formData.whatsapp1} onChange={(e) => updateFormData('whatsapp1', e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-xs outline-none focus:border-white" placeholder="+225..." />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-white/90 uppercase tracking-wide mb-1">WhatsApp 2</label>
+                                                <input type="text" value={formData.whatsapp2} onChange={(e) => updateFormData('whatsapp2', e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-xl border border-white/20 bg-black/20 text-white placeholder:text-white/30 text-xs outline-none focus:border-white" placeholder="+225..." />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin || (formData.residenceCountry === 'OTHER' && !formData.residenceCountryCustom)}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">

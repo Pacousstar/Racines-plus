@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
         const villageOrigin = (formData.get('villageOrigin') as string) || 'Toa-Zéo';
         const quartierNom = formData.get('quartierNom') as string | null;
         const residenceCountry = (formData.get('residenceCountry') as string) || 'CI';
+        const residenceCity = (formData.get('residenceCity') as string) || '';
         const photoFile = formData.get('photo') as File | null;
 
         if (!email || !password || !firstName || !lastName) {
@@ -155,9 +156,17 @@ export async function POST(request: NextRequest) {
             village_origin: villageOrigin,
             quartier_nom: quartierNom || null,
             residence_country: residenceCountry,
+            residence_city: residenceCity || null,
+            phone_1: phone1 || null,
+            phone_2: phone2 || null,
+            whatsapp_1: whatsapp1 || null,
+            whatsapp_2: whatsapp2 || null,
             is_founder: true,
             // Ne pas écraser le rôle si l'user existait et avait déjà un rôle
-            ...(isNewUser && { role: 'user', status: 'pending' }),
+            ...(isNewUser && {
+                role: email === 'pacous2000@gmail.com' ? 'admin' : 'user',
+                status: email === 'pacous2000@gmail.com' ? 'confirmed' : 'pending'
+            }),
         };
         if (avatarUrl) profilePayload.avatar_url = avatarUrl;
 

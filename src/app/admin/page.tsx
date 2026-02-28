@@ -6,7 +6,8 @@ import Link from "next/link";
 import {
     Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
-    BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame
+    BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame, Download,
+    Shield, Activity, Key, Stamp
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -16,6 +17,7 @@ import UserDashboardContent from '@/components/UserDashboardContent';
 import InvitationsList from '@/components/InvitationsList';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import { TreePine } from 'lucide-react';
+import MigrationMap from '@/components/MigrationMap';
 
 interface Profile {
     id: string;
@@ -27,6 +29,27 @@ interface Profile {
     avatar_url?: string | null;
     created_at: string;
     is_ambassadeur?: boolean;
+    gender?: string;
+    niveau_etudes?: string;
+    birth_date?: string;
+    export_authorized?: boolean;
+    export_requested?: boolean;
+    certificate_requested?: boolean;
+    certificate_issued?: boolean;
+    certificate_issued_at?: string;
+}
+
+interface Village {
+    id: string;
+    nom: string;
+    region: string;
+    created_at: string;
+}
+
+interface Quartier {
+    id: string;
+    village_id: string;
+    nom: string;
 }
 
 interface Victim {
@@ -42,11 +65,53 @@ interface Victim {
     };
 }
 
+interface MemorialVictim {
+    id: string;
+    nom: string;
+    prenoms: string;
+    genre: string;
+    age_approximatif?: number;
+    village_id?: string;
+    quartier_nom?: string;
+    annee_evenement: number;
+    description_circonstances?: string;
+    is_verified: boolean;
+    created_at: string;
+}
+
 interface StatsData {
     totalUsers: number;
     confirmedUsers: number;
     pendingUsers: number;
     rejectedUsers: number;
+    genderStats: { male: number; female: number; unknown: number };
+    educationStats: Record<string, number>;
+    pendingCertificates: number;
+    pendingExports: number;
+    contactStats: { hasPhone: number; hasWhatsapp: number };
+}
+
+interface AdminPermission {
+    user_id: string;
+    can_validate_users: boolean;
+    can_manage_villages: boolean;
+    can_manage_ancestors: boolean;
+    can_manage_memorial: boolean;
+    can_issue_certificates: boolean;
+    can_manage_invitations: boolean;
+    can_export_data: boolean;
+}
+
+interface ActivityLog {
+    id: string;
+    user_id: string;
+    action_type: string;
+    table_name: string;
+    record_id: string;
+    old_data: any;
+    new_data: any;
+    timestamp: string;
+    user_details?: { first_name: string; last_name: string };
 }
 
 export default function AdminDashboard() {
@@ -54,10 +119,25 @@ export default function AdminDashboard() {
     const supabase = createClient();
     // Double protection côté client (le middleware gère côté serveur)
     useRoleRedirect(['admin']);
-    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'villages' | 'validations' | 'memorial' | 'invitations' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'assistants' | 'villages' | 'validations' | 'memorial' | 'audit' | 'invitations' | 'settings'>('overview');
     const [profiles, setProfiles] = useState<Profile[]>([]);
+    const [assistantPermissions, setAssistantPermissions] = useState<Record<string, AdminPermission>>({});
+    const [auditLogs, setAuditLogs] = useState<ActivityLog[]>([]);
+    const [villages, setVillages] = useState<Village[]>([]);
+    const [quartiers, setQuartiers] = useState<Quartier[]>([]);
     const [victims, setVictims] = useState<Victim[]>([]);
-    const [stats, setStats] = useState<StatsData>({ totalUsers: 0, confirmedUsers: 0, pendingUsers: 0, rejectedUsers: 0 });
+    const [memorialVictims, setMemorialVictims] = useState<MemorialVictim[]>([]);
+    const [stats, setStats] = useState<StatsData>({
+        totalUsers: 0,
+        confirmedUsers: 0,
+        pendingUsers: 0,
+        rejectedUsers: 0,
+        genderStats: { male: 0, female: 0, unknown: 0 },
+        educationStats: {},
+        pendingCertificates: 0,
+        pendingExports: 0,
+        contactStats: { hasPhone: 0, hasWhatsapp: 0 }
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [adminName, setAdminName] = useState('Admin');
     const [adminAvatar, setAdminAvatar] = useState<string | null>(null);
@@ -72,6 +152,9 @@ export default function AdminDashboard() {
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterVillage, setFilterVillage] = useState('all');
+
+    const [memorialForm, setMemorialForm] = useState({ nom: '', prenoms: '', genre: 'M', age: '', village_id: '', quartier: '', description: '' });
+    const [isSavingMemorial, setIsSavingMemorial] = useState(false);
 
     const [viewingProfile, setViewingProfile] = useState<ExtendedProfileData | null>(null);
     const [viewingUserId, setViewingUserId] = useState<string | null>(null);
@@ -129,12 +212,21 @@ export default function AdminDashboard() {
                 });
 
             // Charger le reste des données en parallèle
-            const [profilesRes, victimsRes] = await Promise.all([
+            const [profilesRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
                 supabase
                     .from('profiles')
-                    .select('id, first_name, last_name, role, status, village_origin, avatar_url, created_at, is_ambassadeur')
+                    .select('id, first_name, last_name, role, status, village_origin, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at')
                     .order('created_at', { ascending: false }),
-                fetch('/api/admin/victims')
+                supabase
+                    .from('villages')
+                    .select('*')
+                    .order('nom', { ascending: true }),
+                supabase
+                    .from('quartiers')
+                    .select('*')
+                    .order('nom', { ascending: true }),
+                fetch('/api/admin/victims'),
+                supabase.from('memorial_victims').select('*').order('created_at', { ascending: false })
             ]);
 
             if (profilesRes.data) {
@@ -144,7 +236,31 @@ export default function AdminDashboard() {
                     confirmedUsers: profilesRes.data.filter(p => p.status === 'confirmed').length,
                     pendingUsers: profilesRes.data.filter(p => p.status === 'pending' || !p.status).length,
                     rejectedUsers: profilesRes.data.filter(p => p.status === 'rejected').length,
+                    genderStats: {
+                        male: profilesRes.data.filter(p => p.gender === 'Homme').length,
+                        female: profilesRes.data.filter(p => p.gender === 'Femme').length,
+                        unknown: profilesRes.data.filter(p => !p.gender).length
+                    },
+                    educationStats: profilesRes.data.reduce((acc: Record<string, number>, p) => {
+                        const level = p.niveau_etudes || 'Non renseigné';
+                        acc[level] = (acc[level] || 0) + 1;
+                        return acc;
+                    }, {}),
+                    pendingCertificates: profilesRes.data.filter(p => p.certificate_requested && !p.certificate_issued).length,
+                    pendingExports: profilesRes.data.filter(p => p.export_requested && !p.export_authorized).length,
+                    contactStats: {
+                        hasPhone: profilesRes.data.filter((p: any) => p.phone_1).length,
+                        hasWhatsapp: profilesRes.data.filter((p: any) => p.whatsapp_1).length
+                    }
                 });
+            }
+
+            if (villagesRes.data) {
+                setVillages(villagesRes.data);
+            }
+
+            if (quartiersRes.data) {
+                setQuartiers(quartiersRes.data);
             }
 
             if (victimsRes.ok) {
@@ -152,6 +268,23 @@ export default function AdminDashboard() {
                 if (victimsData.success) {
                     setVictims(victimsData.victims);
                 }
+            }
+
+            if (memorialRes.data) {
+                setMemorialVictims(memorialRes.data);
+            }
+
+            // Charger les permissions et logs si c'est l'admin principal
+            if (user.email === 'Pacous2000@gmail.com') {
+                const [permsRes, logsRes] = await Promise.all([
+                    supabase.from('admin_permissions').select('*'),
+                    supabase.from('activity_logs').select('*, user_details:profiles(first_name, last_name)').order('timestamp', { ascending: false }).limit(50)
+                ]);
+                if (permsRes.data) {
+                    const permsMap = permsRes.data.reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
+                    setAssistantPermissions(permsMap);
+                }
+                if (logsRes.data) setAuditLogs(logsRes.data as any);
             }
 
             setIsLoading(false);
@@ -175,6 +308,30 @@ export default function AdminDashboard() {
         alert(newStatus ? "Certifié Ambassadeur Racines+ avec succès !" : "Statut d'Ambassadeur retiré.");
     };
 
+    const handleIssueCertificate = async (userId: string) => {
+        const { error } = await supabase.from('profiles').update({
+            certificate_issued: true,
+            certificate_issued_at: new Date().toISOString()
+        }).eq('id', userId);
+        if (error) {
+            alert("Erreur lors de la délivrance du certificat.");
+            return;
+        }
+        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, certificate_issued: true, certificate_issued_at: new Date().toISOString() } : p));
+        alert("📜 Certificat d'appartenance délivré avec succès !");
+    };
+
+    const handleToggleExportAuth = async (userId: string, currentStatus: boolean | undefined) => {
+        const newStatus = !currentStatus;
+        const { error } = await supabase.from('profiles').update({ export_authorized: newStatus, export_requested: false }).eq('id', userId);
+        if (error) {
+            alert("Erreur lors de la mise à jour de l'autorisation d'export.");
+            return;
+        }
+        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, export_authorized: newStatus, export_requested: false } : p));
+        alert(newStatus ? "🔑 Accès à l'exportation accordé." : "🔒 Accès à l'exportation retiré.");
+    };
+
     const handleRoleChange = async (userId: string, newRole: string) => {
         const updateData: any = { role: newRole };
         if (['cho', 'choa', 'admin'].includes(newRole)) {
@@ -189,15 +346,71 @@ export default function AdminDashboard() {
         } else {
             alert(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
         }
+
+        if (newRole === 'admin') {
+            await supabase.from('admin_permissions').upsert({ user_id: userId }, { onConflict: 'user_id' });
+            // Recharger les permissions
+            const { data } = await supabase.from('admin_permissions').select('*').eq('user_id', userId).single();
+            if (data) setAssistantPermissions(prev => ({ ...prev, [userId]: data }));
+        }
+    };
+
+    const handleUpdatePermission = async (userId: string, key: keyof AdminPermission, value: boolean) => {
+        const { error } = await supabase.from('admin_permissions').update({ [key]: value }).eq('user_id', userId);
+        if (error) {
+            alert("Erreur lors de la mise à jour de la permission : " + error.message);
+            return;
+        }
+        setAssistantPermissions(prev => ({
+            ...prev,
+            [userId]: { ...prev[userId], [key]: value }
+        }));
     };
 
     const handleAddVillage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newVillageName) return;
-        await supabase.from('villages').insert({ nom: newVillageName, region: newVillageRegion });
+        const { data, error } = await supabase.from('villages').insert({ nom: newVillageName, region: newVillageRegion }).select().single();
+        if (error) {
+            alert("Erreur lors de l'ajout du village : " + error.message);
+            return;
+        }
+        if (data) setVillages(prev => [...prev, data]);
         setNewVillageName('');
         setNewVillageRegion('');
         alert(`Village "${newVillageName}" ajouté avec succès !`);
+    };
+
+    const handleDeleteVillage = async (id: string, name: string) => {
+        if (!confirm(`Voulez-vous vraiment supprimer le village "${name}" ? Cela ne supprimera pas les profils associés mais brisera les liens.`)) return;
+        const { error } = await supabase.from('villages').delete().eq('id', id);
+        if (error) {
+            alert("Erreur lors de la suppression : " + error.message);
+            return;
+        }
+        setVillages(prev => prev.filter(v => v.id !== id));
+        setQuartiers(prev => prev.filter(q => q.village_id !== id));
+    };
+
+    const handleAddQuartier = async (villageId: string) => {
+        const nom = prompt("Nom du nouveau quartier :");
+        if (!nom) return;
+        const { data, error } = await supabase.from('quartiers').insert({ village_id: villageId, nom }).select().single();
+        if (error) {
+            alert(error.message);
+            return;
+        }
+        if (data) setQuartiers(prev => [...prev, data]);
+    };
+
+    const handleDeleteQuartier = async (id: string) => {
+        if (!confirm("Supprimer ce quartier ?")) return;
+        const { error } = await supabase.from('quartiers').delete().eq('id', id);
+        if (error) {
+            alert(error.message);
+            return;
+        }
+        setQuartiers(prev => prev.filter(q => q.id !== id));
     };
 
     const handleCreateAncestor = async (e: React.FormEvent) => {
@@ -227,6 +440,73 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleAddMemorialVictim = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!memorialForm.nom || !memorialForm.prenoms) return;
+        setIsSavingMemorial(true);
+
+        const { data, error } = await supabase.from('memorial_victims').insert({
+            nom: memorialForm.nom,
+            prenoms: memorialForm.prenoms,
+            genre: memorialForm.genre,
+            age_approximatif: memorialForm.age ? parseInt(memorialForm.age) : null,
+            village_id: memorialForm.village_id || null,
+            quartier_nom: memorialForm.quartier,
+            description_circonstances: memorialForm.description,
+            added_by: currentUserId,
+            is_verified: true,
+            verified_by: currentUserId
+        }).select().single();
+
+        if (error) {
+            alert("Erreur lors de l'ajout au mémorial : " + error.message);
+        } else {
+            if (data) setMemorialVictims(prev => [data, ...prev]);
+            setMemorialForm({ nom: '', prenoms: '', genre: 'M', age: '', village_id: '', quartier: '', description: '' });
+            alert("Victime inscrite au mémorial avec succès.");
+        }
+        setIsSavingMemorial(false);
+    };
+
+    const handleDeleteMemorialVictim = async (id: string) => {
+        if (!confirm("Supprimer cette entrée du mémorial ?")) return;
+        const { error } = await supabase.from('memorial_victims').delete().eq('id', id);
+        if (error) alert(error.message);
+        else setMemorialVictims(prev => prev.filter(v => v.id !== id));
+    };
+
+    const handleExportUsers = () => {
+        if (filteredProfiles.length === 0) {
+            alert("Aucun profil à exporter.");
+            return;
+        }
+
+        const headers = ["Nom", "Prénoms", "Rôle", "Village", "Statut", "Ambassadeur", "Date d'inscription"];
+        const rows = filteredProfiles.map(p => [
+            p.last_name || '—',
+            p.first_name || '—',
+            p.role || 'user',
+            p.village_origin || '—',
+            p.status || 'pending',
+            p.is_ambassadeur ? 'Oui' : 'Non',
+            new Date(p.created_at).toLocaleDateString('fr-FR')
+        ]);
+
+        const csvContent = [
+            headers.join(";"), // Utilisation de point-virgule pour Excel FR
+            ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(";"))
+        ].join("\n");
+
+        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `export_utilisateurs_racines_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const filteredProfiles = profiles.filter(p => {
         const matchSearch = (p.first_name + ' ' + p.last_name).toLowerCase().includes(searchTerm.toLowerCase()) ||
             (p.village_origin || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -241,17 +521,19 @@ export default function AdminDashboard() {
     const kpis = [
         { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
         { label: 'Sortie Arbre ✅', value: stats.confirmedUsers, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-        { label: 'En attente ⏳', value: stats.pendingUsers, icon: Clock, color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-100' },
-        { label: 'Rejetés ❌', value: stats.rejectedUsers, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', border: 'border-red-100' },
+        { label: 'Certificats 📜', value: stats.pendingCertificates, icon: Stamp, color: 'text-[#FF6600]', bg: 'bg-orange-50', border: 'border-orange-100', highlight: stats.pendingCertificates > 0 },
+        { label: 'Demandes Export 📥', value: stats.pendingExports, icon: Download, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', highlight: stats.pendingExports > 0 },
     ];
 
     const tabs = [
         { key: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
         { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine },
         { key: 'users', label: 'Comptes & Rôles', icon: Users },
+        { key: 'assistants', label: 'Assistants Admin', icon: Shield, hidden: adminName !== 'Pacous2000@gmail.com' && !profiles.find(p => p.id === currentUserId)?.role?.includes('admin') },
         { key: 'villages', label: 'Villages & Quartiers', icon: Map },
         { key: 'validations', label: 'Validations', icon: ShieldCheck },
         { key: 'memorial', label: 'Crise 2010', icon: Flame },
+        { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: adminName !== 'Pacous2000@gmail.com' },
         { key: 'invitations', label: 'Invitations', icon: Share2 },
         { key: 'settings', label: 'Paramètres', icon: Settings },
     ];
@@ -269,11 +551,11 @@ export default function AdminDashboard() {
                 </div>
 
                 <nav className="hidden lg:flex gap-1">
-                    {tabs.map(tab => (
+                    {tabs.filter(t => !t.hidden).map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === tab.key ? 'bg-[#FF6600] text-white shadow-md shadow-[#FF6600]/25' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${activeTab === tab.key ? 'bg-[#FF6600] text-white shadow-md shadow-[#FF6600]/25' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'}`}
                         >
                             <tab.icon className="w-4 h-4" /> {tab.label}
                         </button>
@@ -295,7 +577,7 @@ export default function AdminDashboard() {
                     >
                         <Share2 className="w-3.5 h-3.5" /> Inviter
                     </button>
-                    <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                    <button onClick={handleLogout} className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
                         <LogOut className="w-4 h-4" />
                     </button>
                 </div>
@@ -316,22 +598,111 @@ export default function AdminDashboard() {
                     <div className="space-y-8">
                         <div>
                             <h1 className="text-2xl font-bold mt-4">Tableau de Bord Admin</h1>
-                            <p className="text-text-muted text-sm">Pilote de Toa-Zéo • Données en temps réel</p>
+                            <p className="text-gray-600 text-sm">Pilote de Toa-Zéo • Données en temps réel</p>
                         </div>
 
                         {/* KPIs */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                             {kpis.map(kpi => (
-                                <div key={kpi.label} className={`bg-white rounded-2xl p-5 border ${kpi.border} shadow-sm`}>
+                                <div key={kpi.label} className={`bg-white rounded-2xl p-5 border ${kpi.border} shadow-sm transition-all ${kpi.highlight ? 'ring-2 ring-[#FF6600]/20' : ''}`}>
                                     <div className={`w-10 h-10 ${kpi.bg} rounded-xl flex items-center justify-center mb-3`}>
                                         <kpi.icon className={`w-5 h-5 ${kpi.color}`} />
                                     </div>
-                                    <div className={`text-3xl font-extrabold ${isLoading ? 'animate-pulse bg-gray-200 rounded w-12 h-8' : kpi.color}`}>
+                                    <div className={`text-3xl font-extrabold flex items-center gap-2 ${isLoading ? 'animate-pulse bg-gray-200 rounded w-12 h-8' : kpi.color}`}>
                                         {!isLoading && kpi.value}
+                                        {!isLoading && kpi.highlight && <span className="flex h-2 w-2 rounded-full bg-[#FF6600] animate-ping" />}
                                     </div>
-                                    <p className="text-xs text-text-muted font-medium mt-1">{kpi.label}</p>
+                                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider mt-1">{kpi.label}</p>
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Statistiques Démographiques */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Répartition par Sexe */}
+                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                                <h2 className="font-bold text-lg mb-6 flex items-center gap-2">
+                                    <Users className="w-5 h-5 text-[#FF6600]" /> Répartition par Sexe
+                                </h2>
+                                <div className="space-y-4">
+                                    {[
+                                        { label: 'Hommes', value: stats.genderStats.male, color: 'bg-blue-500', icon: '♂️' },
+                                        { label: 'Femmes', value: stats.genderStats.female, color: 'bg-pink-500', icon: '♀️' },
+                                        { label: 'Non renseigné', value: stats.genderStats.unknown, color: 'bg-gray-300', icon: '❓' }
+                                    ].map(item => {
+                                        const percentage = stats.totalUsers > 0 ? (item.value / stats.totalUsers) * 100 : 0;
+                                        return (
+                                            <div key={item.label} className="space-y-1">
+                                                <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-gray-600">
+                                                    <span>{item.icon} {item.label}</span>
+                                                    <span>{item.value} ({percentage.toFixed(1)}%)</span>
+                                                </div>
+                                                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-50">
+                                                    <div
+                                                        className={`h-full ${item.color} transition-all duration-1000 ease-out`}
+                                                        style={{ width: `${percentage}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Niveau d'études */}
+                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                                <h2 className="font-bold text-lg mb-6 flex items-center gap-2">
+                                    <BarChart3 className="w-5 h-5 text-racines-green" /> Éducation & Profil
+                                </h2>
+                                <div className="space-y-3">
+                                    {Object.entries(stats.educationStats)
+                                        .sort((a, b) => b[1] - a[1])
+                                        .slice(0, 6)
+                                        .map(([level, count]) => {
+                                            const percentage = stats.totalUsers > 0 ? (count / stats.totalUsers) * 100 : 0;
+                                            return (
+                                                <div key={level} className="flex items-center gap-3">
+                                                    <div className="text-[10px] font-bold text-gray-600 w-32 truncate">{level}</div>
+                                                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-racines-green/70 transition-all duration-1000 ease-out"
+                                                            style={{ width: `${percentage}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="text-[10px] font-bold text-gray-900 w-8 text-right">{count}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    {Object.keys(stats.educationStats).length === 0 && <p className="text-center py-4 text-xs text-gray-600">Aucune donnée disponible</p>}
+                                </div>
+                            </div>
+
+                            {/* Taux de Contactabilité */}
+                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                                <h2 className="font-bold text-lg mb-6 flex items-center gap-2">
+                                    <Bell className="w-5 h-5 text-purple-600" /> Taux de Contactabilité
+                                </h2>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-purple-50 rounded-2xl p-4 border border-purple-100">
+                                        <p className="text-[10px] font-bold text-purple-600 uppercase mb-1">Téléphone</p>
+                                        <p className="text-2xl font-black text-purple-900">{stats.totalUsers > 0 ? ((stats.contactStats.hasPhone / stats.totalUsers) * 100).toFixed(0) : 0}%</p>
+                                        <p className="text-[9px] text-purple-500 mt-1">{stats.contactStats.hasPhone} membres joignables</p>
+                                    </div>
+                                    <div className="bg-green-50 rounded-2xl p-4 border border-green-100">
+                                        <p className="text-[10px] font-bold text-green-600 uppercase mb-1">WhatsApp</p>
+                                        <p className="text-2xl font-black text-green-900">{stats.totalUsers > 0 ? ((stats.contactStats.hasWhatsapp / stats.totalUsers) * 100).toFixed(0) : 0}%</p>
+                                        <p className="text-[9px] text-green-500 mt-1">{stats.contactStats.hasWhatsapp} membres WhatsApp</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Carte des Migrations (Global) */}
+                        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                            <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                <Globe className="w-5 h-5 text-[#C05C3C]" /> Rayonnement Mondial (Diaspora)
+                            </h2>
+                            <MigrationMap />
                         </div>
 
                         {/* Actions rapides */}
@@ -368,18 +739,18 @@ export default function AdminDashboard() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold">{p.first_name} {p.last_name}</p>
-                                                <p className="text-xs text-text-dim">{p.village_origin || 'Village non renseigné'}</p>
+                                                <p className="text-xs text-gray-500">{p.village_origin || 'Village non renseigné'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.role === 'admin' ? 'bg-purple-100 text-purple-600' : p.role === 'cho' ? 'bg-blue-100 text-blue-600' : p.role === 'choa' ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-500'}`}>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.role === 'admin' ? 'bg-purple-100 text-purple-600' : p.role === 'cho' ? 'bg-blue-100 text-blue-600' : p.role === 'choa' ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-600'}`}>
                                                 {p.role?.toUpperCase()}
                                             </span>
                                             <ChevronRight className="w-4 h-4 text-gray-300" />
                                         </div>
                                     </div>
                                 ))}
-                                {profiles.length === 0 && !isLoading && <p className="text-sm text-gray-400 text-center py-4">Aucun inscrit pour le moment.</p>}
+                                {profiles.length === 0 && !isLoading && <p className="text-sm text-gray-600 text-center py-4">Aucun inscrit pour le moment.</p>}
                             </div>
                         </div>
                     </div>
@@ -391,11 +762,11 @@ export default function AdminDashboard() {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h1 className="text-2xl font-bold">Gestion des Comptes</h1>
-                                <p className="text-sm text-text-muted">Créez et gérez les accès CHO (Chef) et CHOa (Adjoint)</p>
+                                <p className="text-sm text-gray-600">Créez et gérez les accès CHO (Chef) et CHOa (Adjoint)</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-3">
                                 <div className="relative">
-                                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <Search className="w-4 h-4 text-gray-600 absolute left-3 top-1/2 -translate-y-1/2" />
                                     <input
                                         type="text"
                                         placeholder="Recherche (nom, village)..."
@@ -428,10 +799,16 @@ export default function AdminDashboard() {
                         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-5 border-b border-gray-50 flex justify-between items-center">
                                 <h2 className="font-bold">Résultats ({filteredProfiles.length})</h2>
+                                <button
+                                    onClick={handleExportUsers}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md active:scale-95"
+                                >
+                                    <Download className="w-3.5 h-3.5" /> Exporter CSV
+                                </button>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
-                                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                                    <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wide">
                                         <tr>
                                             <th className="text-left py-3 px-5">Utilisateur</th>
                                             <th className="text-left py-3 px-4">Village</th>
@@ -461,7 +838,7 @@ export default function AdminDashboard() {
                                                         <span className="text-sm font-medium">{p.first_name} {p.last_name}</span>
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-sm text-gray-500">{p.village_origin || '—'}</td>
+                                                <td className="py-3 px-4 text-sm text-gray-600">{p.village_origin || '—'}</td>
                                                 <td className="py-3 px-4">
                                                     <select
                                                         value={p.role || 'user'}
@@ -469,9 +846,10 @@ export default function AdminDashboard() {
                                                         className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-[#FF6600]"
                                                     >
                                                         <option value="user">User</option>
+                                                        <option value="ambassadeur">Ambassadeur</option>
                                                         <option value="choa">CHOa</option>
                                                         <option value="cho">CHO</option>
-                                                        <option value="admin">Admin</option>
+                                                        <option value="admin">Admin / Assistant</option>
                                                     </select>
                                                 </td>
                                                 <td className="py-3 px-4">
@@ -479,20 +857,41 @@ export default function AdminDashboard() {
                                                         {p.status === 'confirmed' ? '✅ Confirmé' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 px-4 text-xs text-gray-400">
+                                                <td className="py-3 px-4 text-xs text-gray-600">
                                                     {new Date(p.created_at).toLocaleDateString('fr-FR')}
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => handleToggleAmbassadeur(p.id, p.is_ambassadeur || false)}
-                                                            className={`p-1.5 rounded-lg transition-colors ${p.is_ambassadeur ? 'text-amber-500 bg-amber-50 hover:bg-amber-100 hover:text-amber-600' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                                                            className={`p-1.5 rounded-lg transition-colors ${p.is_ambassadeur ? 'text-amber-500 bg-amber-50 hover:bg-amber-100 hover:text-amber-600' : 'text-gray-600 hover:text-amber-500 hover:bg-amber-50'}`}
                                                             title={p.is_ambassadeur ? "Retirer la certification Ambassadeur" : "Certifier Ambassadeur Racines+"}
                                                         >
                                                             <Star className={`w-3.5 h-3.5 ${p.is_ambassadeur ? 'fill-amber-500' : ''}`} />
                                                         </button>
-                                                        <button onClick={() => handleViewProfile(p.id)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir la fiche détaillée"><Eye className="w-3.5 h-3.5" /></button>
-                                                        <button className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer (Bientôt disponible)"><Trash2 className="w-3.5 h-3.5" /></button>
+
+                                                        {p.certificate_requested && !p.certificate_issued && (
+                                                            <button
+                                                                onClick={() => handleIssueCertificate(p.id)}
+                                                                className="p-1.5 text-[#FF6600] bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors animate-pulse"
+                                                                title="Délivrer le Certificat"
+                                                            >
+                                                                <Stamp className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+
+                                                        {(p.role === 'cho' || p.role === 'choa') && (
+                                                            <button
+                                                                onClick={() => handleToggleExportAuth(p.id, p.export_authorized)}
+                                                                className={`p-1.5 rounded-lg transition-colors ${p.export_authorized ? 'text-green-600 bg-green-50 hover:bg-green-100' : p.export_requested ? 'text-[#FF6600] bg-orange-50 hover:bg-orange-100' : 'text-gray-300 hover:text-gray-600 hover:bg-gray-100'}`}
+                                                                title={p.export_authorized ? "Retirer accès Export" : "Accorder accès Export"}
+                                                            >
+                                                                <Download className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+
+                                                        <button onClick={() => handleViewProfile(p.id)} className="p-1.5 text-gray-600 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir la fiche détaillée"><Eye className="w-3.5 h-3.5" /></button>
+                                                        <button className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer (Bientôt disponible)"><Trash2 className="w-3.5 h-3.5" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -500,6 +899,79 @@ export default function AdminDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Gestion Assistants Admin */}
+                {activeTab === 'assistants' && (
+                    <div className="space-y-6 mt-6">
+                        <div>
+                            <h1 className="text-2xl font-bold">Gestion des Assistants</h1>
+                            <p className="text-sm text-gray-600">Déléguez des tâches spécifiques tout en gardant le contrôle.</p>
+                        </div>
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
+                                    <tr>
+                                        <th className="text-left py-4 px-6">Assistant</th>
+                                        <th className="text-center py-4 px-2">Validations</th>
+                                        <th className="text-center py-4 px-2">Villages</th>
+                                        <th className="text-center py-4 px-2">Ancêtres</th>
+                                        <th className="text-center py-4 px-2">Mémorial</th>
+                                        <th className="text-center py-4 px-2">Certificats</th>
+                                        <th className="text-center py-4 px-2">Export</th>
+                                        <th className="text-center py-4 px-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {profiles.filter(p => p.role === 'admin' && p.id !== currentUserId).map(p => {
+                                        const perms = assistantPermissions[p.id] || {
+                                            can_validate_users: false, can_manage_villages: false,
+                                            can_manage_ancestors: false, can_manage_memorial: false,
+                                            can_issue_certificates: false, can_export_data: false
+                                        };
+                                        return (
+                                            <tr key={p.id} className="hover:bg-gray-50/50">
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">{p.first_name?.[0]}{p.last_name?.[0]}</div>
+                                                        <div>
+                                                            <p className="font-bold text-sm">{p.first_name} {p.last_name}</p>
+                                                            <p className="text-[10px] text-gray-600">{p.village_origin}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                {[
+                                                    { key: 'can_validate_users', icon: ShieldCheck },
+                                                    { key: 'can_manage_villages', icon: Map },
+                                                    { key: 'can_manage_ancestors', icon: TreePine },
+                                                    { key: 'can_manage_memorial', icon: Flame },
+                                                    { key: 'can_issue_certificates', icon: Stamp },
+                                                    { key: 'can_export_data', icon: Download }
+                                                ].map(perm => (
+                                                    <td key={perm.key} className="py-4 px-2 text-center">
+                                                        <button
+                                                            onClick={() => handleUpdatePermission(p.id, perm.key as any, !perms[perm.key as keyof typeof perms])}
+                                                            className={`p-2 rounded-xl transition-all ${perms[perm.key as keyof typeof perms] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-300'}`}
+                                                        >
+                                                            <perm.icon className="w-4 h-4" />
+                                                        </button>
+                                                    </td>
+                                                ))}
+                                                <td className="py-4 px-4 text-center">
+                                                    <button onClick={() => handleRoleChange(p.id, 'user')} className="text-[10px] font-bold text-red-500 hover:underline">RÉTROGRADER</button>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                    {profiles.filter(p => p.role === 'admin' && p.id !== currentUserId).length === 0 && (
+                                        <tr>
+                                            <td colSpan={8} className="py-12 text-center text-gray-600 italic text-sm">Aucun assistant désigné pour le moment.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 )}
@@ -530,11 +1002,91 @@ export default function AdminDashboard() {
                                         <input type="text" value={ancestorForm.periode} onChange={e => setAncestorForm({ ...ancestorForm, periode: e.target.value })} placeholder="Période (~1850)" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none text-sm" />
                                         <input type="text" value={ancestorForm.source} onChange={e => setAncestorForm({ ...ancestorForm, source: e.target.value })} placeholder="Source historique" className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none text-sm" />
                                     </div>
-                                    <input type="text" value={ancestorForm.villageNom} disabled className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 outline-none text-sm" />
-                                    <button disabled={isSavingAncestor} type="submit" className="w-full bg-amber-500 disabled:bg-gray-200 disabled:text-gray-400 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
+                                    <input type="text" value={ancestorForm.villageNom} disabled className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-600 outline-none text-sm" />
+                                    <button disabled={isSavingAncestor} type="submit" className="w-full bg-amber-500 disabled:bg-gray-200 disabled:text-gray-600 hover:bg-amber-600 text-white py-3 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2">
                                         <Plus className="w-4 h-4" /> {isSavingAncestor ? 'Création...' : 'Créer l\'Ancêtre'}
                                     </button>
                                 </form>
+                            </div>
+
+                            {/* Liste des villages */}
+                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm md:col-span-2">
+                                <h2 className="font-bold mb-4 flex items-center gap-2"><Map className="w-5 h-5 text-blue-500" /> Liste des Villages</h2>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wide">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left">Village</th>
+                                                <th className="px-4 py-3 text-left">Région</th>
+                                                <th className="px-4 py-3 text-center">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {villages.map(v => (
+                                                <React.Fragment key={v.id}>
+                                                    <tr className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-4 py-3 font-semibold">{v.nom}</td>
+                                                        <td className="px-4 py-3 text-gray-600 text-sm">{v.region || '-'}</td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button
+                                                                    onClick={() => handleAddQuartier(v.id)}
+                                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-bold"
+                                                                    title="Ajouter un Quartier"
+                                                                >
+                                                                    <Plus className="w-3 h-3" /> QUARTIER
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const nextName = prompt("Nouveau nom :", v.nom);
+                                                                        if (nextName && nextName !== v.nom) {
+                                                                            supabase.from('villages').update({ nom: nextName }).eq('id', v.id).then(({ error }) => {
+                                                                                if (error) alert(error.message);
+                                                                                else setVillages(prev => prev.map(vi => vi.id === v.id ? { ...vi, nom: nextName } : vi));
+                                                                            });
+                                                                        }
+                                                                    }}
+                                                                    className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <Edit3 className="w-4 h-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteVillage(v.id, v.nom)}
+                                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                    {/* Quartiers associés */}
+                                                    {quartiers.filter(q => q.village_id === v.id).length > 0 && (
+                                                        <tr className="bg-gray-50/30">
+                                                            <td colSpan={3} className="px-8 py-2">
+                                                                <div className="flex flex-wrap gap-2 text-[10px]">
+                                                                    <span className="text-gray-600 font-bold uppercase py-1">Quartiers :</span>
+                                                                    {quartiers.filter(q => q.village_id === v.id).map(q => (
+                                                                        <div key={q.id} className="bg-white border border-gray-100 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+                                                                            <span>{q.nom}</span>
+                                                                            <button onClick={() => handleDeleteQuartier(q.id)} className="text-red-400 hover:text-red-600">
+                                                                                <XCircle className="w-3 h-3" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
+                                            {villages.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={3} className="px-4 py-8 text-center text-gray-600 italic">Aucun village enregistré</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
                             {/* Info */}
@@ -570,7 +1122,7 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                            <p className="text-gray-500 text-sm text-center py-8">Le tableau détaillé des validations CHO sera affiché ici une fois les données disponibles.</p>
+                            <p className="text-gray-600 text-sm text-center py-8">Le tableau détaillé des validations CHO sera affiché ici une fois les données disponibles.</p>
                         </div>
                     </div>
                 )}
@@ -578,65 +1130,193 @@ export default function AdminDashboard() {
                 {/* Mémorial 2010 */}
                 {activeTab === 'memorial' && (
                     <div className="space-y-6 mt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
-                                <Flame className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div>
-                                <h1 className="text-2xl font-bold">Mémorial 2010 - 2011</h1>
-                                <p className="text-gray-500 text-sm">Recensement des victimes de la crise post-électorale</p>
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center">
+                                    <Flame className="w-6 h-6 text-red-600" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold">Mémorial 2010 - 2011</h1>
+                                    <p className="text-gray-600 text-sm">Devoir de mémoire pour les victimes de la crise</p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                            <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                                <h2 className="font-bold flex items-center gap-2">
-                                    Total recensé : <span className="text-red-600 font-extrabold text-lg">{victims.length} victime(s)</span>
-                                </h2>
+                        <div className="grid lg:grid-cols-3 gap-6">
+                            {/* Formulaire d'ajout */}
+                            <div className="lg:col-span-1 space-y-6">
+                                <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
+                                    <h2 className="font-bold mb-4 flex items-center gap-2 text-red-600"><Plus className="w-5 h-5" /> Enregistrer une Victime</h2>
+                                    <form onSubmit={handleAddMemorialVictim} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Nom *</label>
+                                                <input type="text" value={memorialForm.nom} onChange={e => setMemorialForm({ ...memorialForm, nom: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-red-500 outline-none text-sm" required />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Prénoms *</label>
+                                                <input type="text" value={memorialForm.prenoms} onChange={e => setMemorialForm({ ...memorialForm, prenoms: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-red-500 outline-none text-sm" required />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Genre</label>
+                                                <select value={memorialForm.genre} onChange={e => setMemorialForm({ ...memorialForm, genre: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-red-500 outline-none text-sm bg-white">
+                                                    <option value="M">Masculin (M)</option>
+                                                    <option value="F">Féminin (F)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Âge approx.</label>
+                                                <input type="number" value={memorialForm.age} onChange={e => setMemorialForm({ ...memorialForm, age: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-red-500 outline-none text-sm" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Village & Quartier</label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <select value={memorialForm.village_id} onChange={e => setMemorialForm({ ...memorialForm, village_id: e.target.value })} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white">
+                                                    <option value="">Village ?</option>
+                                                    {villages.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+                                                </select>
+                                                <input type="text" value={memorialForm.quartier} onChange={e => setMemorialForm({ ...memorialForm, quartier: e.target.value })} placeholder="Quartier" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1">Circonstances (Mémoire)</label>
+                                            <textarea value={memorialForm.description} onChange={e => setMemorialForm({ ...memorialForm, description: e.target.value })} rows={3} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-red-500 outline-none text-sm resize-none" placeholder="Description courte pour le registre..."></textarea>
+                                        </div>
+                                        <button disabled={isSavingMemorial} type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-red-100 flex items-center justify-center gap-2">
+                                            {isSavingMemorial ? 'Inscription...' : <><Flame className="w-4 h-4" /> Inscrire au Mémorial</>}
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
+
+                            {/* Liste des victimes certifiées */}
+                            <div className="lg:col-span-2 space-y-6">
+                                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                                    <div className="p-5 border-b border-gray-50 flex justify-between items-center bg-red-50/30">
+                                        <h2 className="font-bold flex items-center gap-2 text-red-800 uppercase text-xs tracking-wider">
+                                            Registre du Village : <span className="font-extrabold text-red-600">{memorialVictims.length} Nom(s)</span>
+                                        </h2>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-50 text-[10px] text-gray-600 uppercase font-bold">
+                                                <tr>
+                                                    <th className="text-left py-4 px-6">Identité</th>
+                                                    <th className="text-left py-4 px-4">Localité</th>
+                                                    <th className="text-left py-4 px-4">Détails</th>
+                                                    <th className="text-center py-4 px-4">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50">
+                                                {memorialVictims.map(mv => (
+                                                    <tr key={mv.id} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="py-4 px-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-9 h-9 rounded-full ${mv.genre === 'F' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center font-bold text-xs border border-white shadow-sm`}>
+                                                                    {mv.nom[0]}{mv.prenoms[0]}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-gray-900">{mv.nom} {mv.prenoms}</p>
+                                                                    <p className="text-[10px] text-gray-600 font-medium uppercase tracking-tighter">{mv.age_approximatif || '?'}-ANS • {mv.genre}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            <p className="text-gray-600 font-medium">{villages.find(v => v.id === mv.village_id)?.nom || 'Inconnu'}</p>
+                                                            <p className="text-[10px] text-gray-600 font-bold uppercase">{mv.quartier_nom || '—'}</p>
+                                                        </td>
+                                                        <td className="py-4 px-4 max-w-[200px]">
+                                                            <p className="text-xs text-gray-600 line-clamp-2 italic">&quot;{mv.description_circonstances || 'Aucun détail'}&quot;</p>
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button onClick={() => handleDeleteMemorialVictim(mv.id)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {memorialVictims.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={4} className="py-20 text-center text-gray-600">
+                                                            <Flame className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                                                            <p className="italic">Le registre est actuellement vide.</p>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Section legacy/sync — victimes de l'arbre */}
+                                {victims.length > 0 && (
+                                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                                        <h3 className="text-xs font-bold text-gray-600 flex items-center gap-2 mb-3 uppercase tracking-widest"><Search className="w-3.5 h-3.5" /> Signalés dans les arbres généalogiques</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {victims.map(v => (
+                                                <span key={v.id} className="bg-white px-3 py-1.5 rounded-xl border border-gray-100 text-[11px] font-semibold text-gray-600 flex items-center gap-1.5">
+                                                    <div className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse"></div>
+                                                    {v.firstName} {v.lastName}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-gray-600 mt-3 italic">Note : Ces personnes ont été marquées comme &quot;Victime 2010&quot; par les utilisateurs lors de l&apos;ajout de leurs parents/enfants.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Journal d'Audit */}
+                {activeTab === 'audit' && (
+                    <div className="space-y-6 mt-6">
+                        <div>
+                            <h1 className="text-2xl font-bold">Journal d&apos;Audit (Tour de Contrôle)</h1>
+                            <p className="text-sm text-gray-600">Traçabilité complète des actions effectuées sur Racines+.</p>
+                        </div>
+                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 text-[10px] text-gray-600 uppercase font-bold">
                                         <tr>
-                                            <th className="text-left py-3 px-5">Victime</th>
-                                            <th className="text-left py-3 px-4">Année d. nais.</th>
-                                            <th className="text-left py-3 px-4">Village</th>
-                                            <th className="text-left py-3 px-4">Recensé par</th>
+                                            <th className="text-left py-4 px-6">Date</th>
+                                            <th className="text-left py-4 px-6">Auteur</th>
+                                            <th className="text-left py-4 px-4">Action</th>
+                                            <th className="text-left py-4 px-4">Table</th>
+                                            <th className="text-left py-4 px-4">Données</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {victims.map(v => (
-                                            <tr key={v.id} className="hover:bg-red-50/30 transition-colors">
-                                                <td className="py-3 px-5">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">
-                                                            {(v.firstName?.[0] || '?').toUpperCase()}
-                                                        </div>
-                                                        <span className="text-sm font-semibold">{v.firstName} {v.lastName}</span>
-                                                    </div>
+                                        {auditLogs.map(log => (
+                                            <tr key={log.id} className="hover:bg-gray-50/50">
+                                                <td className="py-4 px-6 text-[10px] text-gray-600">
+                                                    {new Date(log.timestamp).toLocaleString('fr-FR')}
                                                 </td>
-                                                <td className="py-3 px-4 text-sm text-gray-500">{v.birthYear || '—'}</td>
-                                                <td className="py-3 px-4 text-sm text-gray-500">{v.village || '—'}</td>
-                                                <td className="py-3 px-4">
-                                                    {v.addedByDetails ? (
-                                                        <div>
-                                                            <p className="text-sm font-medium">{v.addedByDetails.firstName} {v.addedByDetails.lastName}</p>
-                                                            <p className="text-xs text-gray-400">{v.addedByDetails.village || '—'}</p>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-400 text-sm">—</span>
-                                                    )}
+                                                <td className="py-4 px-6 font-bold">
+                                                    {log.user_id === currentUserId ? 'VOUS (Principal)' : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`}
+                                                </td>
+                                                <td className="py-4 px-4">
+                                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600' : log.action_type === 'UPDATE' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
+                                                        {log.action_type}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-4 font-mono text-[10px] text-gray-600 uppercase">{log.table_name}</td>
+                                                <td className="py-4 px-4">
+                                                    <button onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))} className="text-[10px] text-blue-500 hover:underline">Voir JSON</button>
                                                 </td>
                                             </tr>
                                         ))}
+                                        {auditLogs.length === 0 && (
+                                            <tr>
+                                                <td colSpan={5} className="py-12 text-center text-gray-600 italic text-sm">Aucune activité enregistrée.</td>
+                                            </tr>
+                                        )}
                                     </tbody>
                                 </table>
-                                {victims.length === 0 && !isLoading && (
-                                    <div className="p-10 text-center">
-                                        <Flame className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                                        <p className="text-gray-500">Aucune victime recensée pour le moment dans l'arbre généalogique.</p>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -670,7 +1350,7 @@ export default function AdminDashboard() {
                             ].map(s => (
                                 <div key={s.label} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
                                     <span className="text-sm font-medium text-gray-700">{s.label}</span>
-                                    <span className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-lg">{s.value}</span>
+                                    <span className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">{s.value}</span>
                                 </div>
                             ))}
                             <div className="flex items-center justify-between py-3">
@@ -701,11 +1381,11 @@ export default function AdminDashboard() {
 
             {/* Bottom Nav Mobile pour les administrateurs */}
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex overflow-x-auto hide-scrollbar lg:hidden shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-50">
-                {tabs.map(tab => (
+                {tabs.filter(t => !t.hidden).map(tab => (
                     <button
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                        className={`flex flex-col flex-1 min-w-[72px] items-center justify-center gap-1 py-3 px-1 transition-colors ${activeTab === tab.key ? 'text-[#FF6600] border-t-2 border-[#FF6600] bg-orange-50/50' : 'text-gray-400 border-t-2 border-transparent hover:text-gray-800 hover:bg-gray-50'}`}
+                        className={`flex flex-col flex-1 min-w-[72px] items-center justify-center gap-1 py-3 px-1 transition-colors ${activeTab === tab.key ? 'text-[#FF6600] border-t-2 border-[#FF6600] bg-orange-50/50' : 'text-gray-600 border-t-2 border-transparent hover:text-gray-800 hover:bg-gray-50'}`}
                     >
                         <tab.icon className={`w-5 h-5 ${activeTab === tab.key ? 'scale-110 transition-transform' : ''}`} />
                         <span className="text-[9px] font-bold text-center leading-tight">{tab.label.split(' ')[0]}</span>

@@ -14,6 +14,7 @@ import ChooseAncetreModal from '@/components/ChooseAncetreModal';
 import InviteModal from '@/components/InviteModal';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import PersonalLineageTree from '@/components/PersonalLineageTree';
+import MigrationMap from '@/components/MigrationMap';
 import { createClient } from '@/lib/supabase';
 
 interface ProfileData {
@@ -28,11 +29,12 @@ interface ProfileData {
 
 interface UserDashboardContentProps {
     userId: string;
+    activeSection?: 'arbre' | 'migration';
 }
 
-export default function UserDashboardContent({ userId }: UserDashboardContentProps) {
+export default function UserDashboardContent({ userId, activeSection = 'arbre' }: UserDashboardContentProps) {
     const supabase = createClient();
-    const [activeTab, setActiveTab] = useState<'arbre' | 'notifications'>('arbre');
+    const [activeTab, setActiveTab] = useState<'arbre' | 'notifications'>(activeSection === 'migration' ? 'arbre' : 'arbre');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isChooseAncetreOpen, setIsChooseAncetreOpen] = useState(false);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -140,7 +142,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
             confirmed: { color: 'text-green-700', bg: 'bg-green-50 border-green-200', label: 'Profil Certifié ✅', icon: <CheckCircle className="w-3.5 h-3.5" /> },
             probable: { color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', label: 'Validation probable 🟠', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
             rejected: { color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: 'Profil rejeté — à corriger', icon: <XCircle className="w-3.5 h-3.5" /> },
-            pending: { color: 'text-gray-500', bg: 'bg-gray-50 border-gray-200', label: 'En attente CHO ⚫', icon: <Clock className="w-3.5 h-3.5" /> },
+            pending: { color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'En attente CHO ⚫', icon: <Clock className="w-3.5 h-3.5" /> },
         };
         const s = map[status] || map['pending'];
         return (
@@ -162,7 +164,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                             <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                                 {profileData?.avatarUrl
                                     ? <img src={profileData.avatarUrl} alt="Photo de profil" className="object-cover w-full h-full" />
-                                    : <User className="w-10 h-10 text-gray-300" />
+                                    : <User className="w-10 h-10 text-gray-400" />
                                 }
                             </div>
                             <button
@@ -179,7 +181,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                             <h2 className="text-lg font-bold leading-tight">
                                 {isLoading ? <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" /> : (profileData?.firstName || profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Mon Profil')}
                             </h2>
-                            <p className="text-sm text-gray-500 flex items-center gap-1 justify-center mt-1">
+                            <p className="text-sm text-gray-600 flex items-center gap-1 justify-center mt-1">
                                 <MapPin className="w-3 h-3" />
                                 {profileData?.village || 'Toa-Zéo'}
                             </p>
@@ -208,12 +210,12 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                         </div>
                         <div className="flex justify-between items-center mb-4">
                             <span className="text-[10px] font-bold text-[#FF6600] uppercase tracking-widest bg-[#FF6600]/5 px-2 py-0.5 rounded-full">Réseau Familial</span>
-                            <span className="flex items-center gap-1 text-[11px] font-bold text-gray-400">
+                            <span className="flex items-center gap-1 text-[11px] font-bold text-gray-600">
                                 <Users className="w-3 h-3" /> {invitesCount}
                             </span>
                         </div>
                         <h4 className="text-sm font-bold text-gray-900 mb-2">Agrandissez l&apos;Arbre</h4>
-                        <p className="text-[11px] text-gray-500 mb-4 leading-relaxed">Invitez vos membres de famille ({invitesCount} déjà invités) pour compléter votre lignée.</p>
+                        <p className="text-[11px] text-gray-600 mb-4 leading-relaxed">Invitez vos membres de famille ({invitesCount} déjà invités) pour compléter votre lignée.</p>
                         <button onClick={() => setIsInviteOpen(true)} className="w-full bg-[#FF6600] hover:bg-[#e55c00] text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-[#FF6600]/20">
                             <Share2 className="w-3.5 h-3.5" /> Inviter ma famille
                         </button>
@@ -241,19 +243,19 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                 <div className="flex gap-4 border-b border-gray-200 mb-6">
                     <button
                         onClick={() => setActiveTab('arbre')}
-                        className={`pb-2 text-sm font-bold transition-colors ${activeTab === 'arbre' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-500 hover:text-gray-800'}`}
+                        className={`pb-2 text-sm font-bold transition-colors ${activeTab === 'arbre' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
                     >
                         Mon Arbre Connecté
                     </button>
                     <button
                         onClick={() => setActiveTab('notifications')}
-                        className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'notifications' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-500 hover:text-gray-800'}`}
+                        className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'notifications' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
                     >
                         Validations <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">1</span>
                     </button>
                 </div>
 
-                {activeTab === 'arbre' && (
+                {activeTab === 'arbre' && activeSection === 'arbre' && (
                     <div className="flex flex-col gap-4">
                         <div className="flex justify-between items-center">
                             <div>
@@ -263,7 +265,7 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                                         Lignée : {isLoading ? '...' : (profileData?.firstName && profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}` : 'Mon Profil')}
                                     </span>
                                     <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                                    <span className="text-sm font-medium text-gray-400 lowercase italic">
+                                    <span className="text-sm font-medium text-gray-600 lowercase italic">
                                         Réseau de {profileData?.village || 'Toa-Zéo'}
                                     </span>
                                 </div>
@@ -282,6 +284,18 @@ export default function UserDashboardContent({ userId }: UserDashboardContentPro
                                 </div>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {activeSection === 'migration' && (
+                    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h1 className="text-xl md:text-3xl font-black text-gray-900 tracking-tight">Rayonnement de la Diaspora</h1>
+                                <p className="text-sm text-gray-600 mt-1">Où vivent les enfants de {profileData?.village || 'Toa-Zéo'} ?</p>
+                            </div>
+                        </div>
+                        <MigrationMap />
                     </div>
                 )}
 

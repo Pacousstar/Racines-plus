@@ -138,9 +138,9 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
     }
 
     const getStatusColor = (status?: string) => {
-        if (status === 'confirmed') return 'border-green-400 bg-green-50';
-        if (status === 'probable') return 'border-orange-400 bg-orange-50';
-        if (status === 'rejected') return 'border-red-400 bg-red-50';
+        if (status === 'confirmed') return 'border-[#124E35] bg-green-50/50';
+        if (status === 'probable') return 'border-[#C05C3C] bg-orange-50/50';
+        if (status === 'rejected') return 'border-red-400 bg-red-50/50';
         return 'border-gray-300 bg-white';
     };
 
@@ -149,7 +149,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
             {/* En-tête */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                    <GitBranch className="w-4 h-4 text-[#FF6600]" />
+                    <GitBranch className="w-4 h-4 text-[#124E35]" />
                     <h3 className="font-bold text-sm text-gray-700">Votre Lignée Ancestrale</h3>
                 </div>
                 {aiPosition && (
@@ -160,24 +160,9 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
             </div>
 
             {/* Arbre vertical - de l'ancêtre (haut) vers l'utilisateur (bas) */}
-            <div className="flex flex-col items-center space-y-0">
+            <div className="flex flex-col items-center space-y-0 text-left">
                 {lineage.map((node, idx) => (
                     <div key={node.id} className="flex flex-col items-center w-full max-w-xs">
-                        {/* Connecteur vertical */}
-                        {idx > 0 && (
-                            <div className="flex flex-col items-center my-1">
-                                {aiPosition && idx === lineage.length - 1 && (
-                                    <div className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 rounded-full px-2 py-0.5 mb-1">
-                                        <Hash className="w-2.5 h-2.5" />
-                                        {aiPosition.generation}e génération
-                                    </div>
-                                )}
-                                <div className="w-px h-6 bg-gradient-to-b from-gray-300 to-gray-200" />
-                                <ChevronUp className="w-3.5 h-3.5 text-gray-300 -mt-1" />
-                                <div className="w-px h-2 bg-gray-200" />
-                            </div>
-                        )}
-
                         {/* Nœud */}
                         <div
                             onClick={() => setSelectedNode({
@@ -189,14 +174,14 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                 isCertified: node.is_certified,
                                 type: node.type
                             })}
-                            className={`w-full border-2 rounded-2xl p-4 shadow-sm transition-all hover:shadow-md cursor-pointer ${node.type === 'ancetre' ? 'border-amber-300 bg-amber-50' : getStatusColor(node.status)}`}
+                            className={`w-full border-2 rounded-2xl p-4 shadow-sm transition-all hover:shadow-md cursor-pointer relative z-10 ${node.type === 'ancetre' ? 'border-amber-300 bg-amber-50' : getStatusColor(node.status)}`}
                         >
                             <div className="flex items-start gap-3">
                                 {/* Icône */}
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${node.type === 'ancetre' ? 'bg-amber-100' : 'bg-[#FF6600]/10'}`}>
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${node.type === 'ancetre' ? 'bg-amber-100' : 'bg-[#124E35]/10'}`}>
                                     {node.type === 'ancetre'
                                         ? <Crown className="w-5 h-5 text-amber-600" />
-                                        : <User className="w-5 h-5 text-[#FF6600]" />
+                                        : <User className="w-5 h-5 text-[#124E35]" />
                                     }
                                 </div>
 
@@ -205,29 +190,52 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                     <div className="flex items-start justify-between gap-2">
                                         <h4 className="font-bold text-sm text-gray-900 truncate">{node.nom}</h4>
                                         {node.type === 'ancetre' && node.is_certified && (
-                                            <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">✅ Certifié</span>
+                                            <span className="text-[10px] bg-[#124E35] text-white px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">Certifié</span>
                                         )}
                                         {node.type === 'self' && node.status === 'confirmed' && (
-                                            <span className="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">✅ Confirmé</span>
+                                            <span className="text-[10px] bg-[#124E35] text-white px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">Confirmé</span>
                                         )}
                                         {node.type === 'self' && node.status === 'pending' && (
                                             <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> En attente</span>
                                         )}
                                     </div>
                                     {node.type === 'ancetre' ? (
-                                        <p className="text-xs text-amber-700 font-semibold mt-0.5">Ancêtre Fondateur</p>
+                                        <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider mt-0.5">Ancêtre Fondateur</p>
                                     ) : (
-                                        <p className="text-xs text-[#FF6600] font-semibold mt-0.5">Vous — Village {villageNom}</p>
+                                        <p className="text-[11px] text-[#124E35] font-bold uppercase tracking-wider mt-0.5">Vous — {villageNom}</p>
                                     )}
                                     {node.periode && (
-                                        <p className="text-xs text-gray-400 mt-0.5">⏳ {node.periode}</p>
+                                        <p className="text-xs text-stone-400 mt-0.5 font-mono">⏳ {node.periode}</p>
                                     )}
                                     {node.type === 'self' && aiPosition && (
-                                        <p className="text-xs text-gray-500 mt-1 italic">{aiPosition.lien_probable}</p>
+                                        <p className="text-xs text-stone-500 mt-1 italic">{aiPosition.lien_probable}</p>
                                     )}
                                 </div>
                             </div>
                         </div>
+
+                        {/* Connecteur vertical (courbe descendante) */}
+                        {idx < lineage.length - 1 && (
+                            <div className="relative w-full h-12 flex justify-center">
+                                <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none" style={{ zIndex: 0 }}>
+                                    <path
+                                        d="M 160 0 Q 160 20, 160 48"
+                                        fill="none"
+                                        stroke="#d6d3d1"
+                                        strokeWidth="2"
+                                        strokeLinecap="round"
+                                        strokeDasharray="4 2"
+                                    />
+                                </svg>
+                                {aiPosition && idx === 0 && (
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border border-stone-100 rounded-full px-2 py-0.5 shadow-sm z-20">
+                                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tighter">
+                                            {aiPosition.generation} Générations
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
-type AllowedRole = 'admin' | 'cho' | 'choa' | 'user';
+type AllowedRole = 'admin' | 'cho' | 'choa' | 'user' | 'ambassadeur';
 
 /**
  * Hook useRoleRedirect
@@ -44,6 +44,7 @@ export function useRoleRedirect(allowedRoles: AllowedRole[]) {
                 if (userRole === 'admin') router.replace('/admin');
                 else if (userRole === 'cho') router.replace('/cho');
                 else if (userRole === 'choa') router.replace('/choa');
+                else if (userRole === 'ambassadeur') router.replace('/dashboard'); // Les ambassadeurs voient le dashboard standard plus options
                 else router.replace('/dashboard');
             }
         };

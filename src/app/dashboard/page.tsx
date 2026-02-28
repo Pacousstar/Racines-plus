@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { User, Bell, LogOut } from 'lucide-react';
 import UserDashboardContent from '@/components/UserDashboardContent';
+import MemorialView from '@/components/MemorialView';
+import CertificateView from '@/components/CertificateView';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -15,7 +17,10 @@ export default function Dashboard() {
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [profileName, setProfileName] = useState<string>('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'arbre' | 'memorial' | 'migration'>('arbre');
     const [isLoading, setIsLoading] = useState(true);
+    const [userProfile, setUserProfile] = useState<any>(null);
+    const [showCertificate, setShowCertificate] = useState(false);
 
     const fetchProfile = async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +29,7 @@ export default function Dashboard() {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, avatar_url, role')
+            .select('id, first_name, last_name, avatar_url, role, status, village_origin, created_at, certificate_requested, certificate_issued, certificate_issued_at')
             .eq('id', user.id)
             .single();
 
@@ -50,6 +55,7 @@ export default function Dashboard() {
             const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
             setProfileName(fullName || fallbackName);
             setAvatarUrl(data.avatar_url || user.user_metadata?.avatar_url || null);
+            setUserProfile(data);
         } else {
             console.warn('[dashboard] No profile data returned for user:', user.id);
             // On affiche quand même quelque chose
@@ -63,6 +69,19 @@ export default function Dashboard() {
         fetchProfile();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const handleRequestCertificate = async () => {
+        if (!userProfile) return;
+        setIsLoading(true);
+        const { error } = await supabase.from('profiles').update({ certificate_requested: true }).eq('id', currentUserId);
+        if (error) {
+            alert("Erreur lors de la demande.");
+        } else {
+            setUserProfile({ ...userProfile, certificate_requested: true });
+            alert("📩 Votre demande de certificat a été envoyée à l'Administration Racines+.");
+        }
+        setIsLoading(false);
+    };
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -79,20 +98,39 @@ export default function Dashboard() {
                 <div className="flex items-center gap-5">
                     <Link href="/"><Image src="/LOGO_Racines.png" alt="Logo Racines+" width={95} height={33} className="object-contain mix-blend-multiply" /></Link>
                     <nav className="hidden md:flex gap-5">
-                        <div className="text-sm font-semibold pb-0.5 text-racines-green border-b-2 border-racines-green">
-                            Mon Arbre
-                        </div>
                         <button
-                            onClick={() => alert("La gestion des documents chiffrés sera disponible dans la prochaine version.")}
-                            className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                            onClick={() => setActiveTab('arbre')}
+                            className={`text-sm font-semibold pb-0.5 transition-colors ${activeTab === 'arbre' ? 'text-racines-green border-b-2 border-racines-green' : 'text-gray-500 hover:text-gray-800'}`}
                         >
-                            Documents
+                            Mon Arbre
                         </button>
                         <button
-                            onClick={() => alert("Statistiques globales du village — Fonctionnalité PRO à venir.")}
-                            className="text-sm font-medium text-gray-500 hover:text-gray-800 flex items-center gap-1 transition-colors"
+                            onClick={() => setActiveTab('memorial')}
+                            className={`text-sm font-semibold pb-0.5 transition-colors ${activeTab === 'memorial' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-500 hover:text-gray-800'}`}
                         >
-                            Statistiques <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-[10px] font-bold">PRO</span>
+                            Mémorial 2010
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('migration')}
+                            className={`text-sm font-semibold pb-0.5 transition-colors ${activeTab === 'migration' ? 'text-[#C05C3C] border-b-2 border-[#C05C3C]' : 'text-gray-500 hover:text-gray-800'}`}
+                        >
+                            Carte Migration
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (userProfile?.certificate_issued) {
+                                    setShowCertificate(true);
+                                } else if (userProfile?.certificate_requested) {
+                                    alert("⏳ Votre certificat est en cours de traitement par l'Administration.");
+                                } else if (userProfile?.status === 'confirmed') {
+                                    handleRequestCertificate();
+                                } else {
+                                    alert("🔒 Votre dossier doit d'abord être validé 'Confirmé' par le CHO pour demander un certificat.");
+                                }
+                            }}
+                            className={`text-sm font-semibold pb-0.5 transition-colors ${userProfile?.certificate_issued ? 'text-amber-600 border-b-2 border-amber-600' : 'text-gray-500 hover:text-gray-800'}`}
+                        >
+                            {userProfile?.certificate_issued ? 'Mon Certificat' : userProfile?.certificate_requested ? 'Certificat (Attente)' : 'Demander Certificat'}
                         </button>
                     </nav>
                 </div>
@@ -130,8 +168,17 @@ export default function Dashboard() {
 
             {/* Main Content encapsulé dans le composant centralisé */}
             <main className="pt-20">
-                {currentUserId && <UserDashboardContent userId={currentUserId} />}
+                {currentUserId && activeTab === 'arbre' && <UserDashboardContent userId={currentUserId} activeSection="arbre" />}
+                {currentUserId && activeTab === 'migration' && <UserDashboardContent userId={currentUserId} activeSection="migration" />}
+                {activeTab === 'memorial' && <MemorialView />}
             </main>
+
+            {showCertificate && userProfile && (
+                <CertificateView
+                    userData={userProfile}
+                    onClose={() => setShowCertificate(false)}
+                />
+            )}
         </div>
     );
 }

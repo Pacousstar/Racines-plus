@@ -28,8 +28,8 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
     const [isExpanded, setIsExpanded] = useState(depth < 2);
 
     const statusStyles: Record<string, { ring: string; dot: string; badge: string }> = {
-        confirmed: { ring: 'border-emerald-400', dot: 'bg-emerald-400', badge: 'bg-emerald-500 text-white' },
-        probable: { ring: 'border-orange-400', dot: 'bg-orange-400', badge: 'bg-orange-500 text-white' },
+        confirmed: { ring: 'border-[#124E35]', dot: 'bg-[#124E35]', badge: 'bg-[#124E35] text-white' },
+        probable: { ring: 'border-[#C05C3C]', dot: 'bg-[#C05C3C]', badge: 'bg-[#C05C3C] text-white' },
         pending: { ring: 'border-gray-300', dot: 'bg-gray-400', badge: 'bg-gray-400 text-white' },
         rejected: { ring: 'border-red-400', dot: 'bg-red-400', badge: 'bg-red-500 text-white' },
     };
@@ -52,10 +52,10 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
                 relative flex items-center gap-3 p-4 rounded-2xl border-2 w-56 sm:w-64 shadow-lg
                 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer
                 ${person.isDeceased
-                        ? 'bg-stone-100/80 border-gray-300 grayscale-[50%]'
+                        ? 'bg-stone-50/80 border-gray-200 grayscale-[30%]'
                         : isAncestor
-                            ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 shadow-amber-100'
-                            : 'bg-white border-gray-100 hover:border-emerald-200'
+                            ? 'bg-gradient-to-br from-[#124E35]/5 to-amber-50 border-amber-300 shadow-amber-100'
+                            : 'bg-white border-gray-100 hover:border-[#124E35]/30'
                     }
             `}>
                 {/* Badge type */}
@@ -66,7 +66,7 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
                                 Mémorial 2010
                             </span>
                         ) : (
-                            <span className="bg-gray-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
+                            <span className="bg-stone-600 text-white text-[9px] px-2 py-0.5 rounded-full font-bold shadow">
                                 Défunt
                             </span>
                         )}
@@ -82,10 +82,10 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
 
                 {/* Avatar */}
                 <div className={`relative w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner
-                    ${person.isDeceased ? 'bg-gray-200' : isAncestor ? 'bg-amber-100' : 'bg-[#FF6600]/10'}`}>
+                    ${person.isDeceased ? 'bg-stone-100' : isAncestor ? 'bg-amber-100' : 'bg-[#124E35]/10'}`}>
                     {isAncestor
-                        ? <Crown className={`w-6 h-6 ${person.isDeceased ? 'text-gray-400' : 'text-amber-600'}`} />
-                        : <User className={`w-6 h-6 ${person.isDeceased ? 'text-gray-400' : 'text-[#FF6600]'}`} />
+                        ? <Crown className={`w-6 h-6 ${person.isDeceased ? 'text-stone-400' : 'text-amber-600'}`} />
+                        : <User className={`w-6 h-6 ${person.isDeceased ? 'text-stone-400' : 'text-[#124E35]'}`} />
                     }
                     {/* Pastille statut */}
                     <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm ${s.badge}`}>
@@ -95,42 +95,60 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
 
                 {/* Infos */}
                 <div className="flex flex-col flex-1 min-w-0">
-                    <h3 className={`font-bold text-sm leading-tight truncate ${person.isDeceased ? 'text-gray-600' : 'text-gray-900'}`}>
+                    <h3 className={`font-bold text-sm leading-tight truncate ${person.isDeceased ? 'text-stone-500' : 'text-gray-900'}`}>
                         {person.name}
                     </h3>
-                    <span className={`text-xs font-medium truncate ${isAncestor ? 'text-amber-600' : 'text-[#FF6600]'}`}>
+                    <span className={`text-[11px] font-bold uppercase tracking-wider truncate mt-0.5 ${isAncestor ? 'text-amber-600' : 'text-[#124E35]'}`}>
                         {person.role}
                     </span>
-                    {person.quartier && (
-                        <span className="text-[10px] text-gray-400 truncate">{person.quartier}</span>
-                    )}
-                    {person.birthYear && person.birthYear !== 'Inconnue' && (
-                        <span className="text-[10px] text-gray-400 font-mono">~{person.birthYear}</span>
-                    )}
+                    <div className="flex items-center gap-1.5 mt-1">
+                        {person.quartier && (
+                            <span className="text-[10px] text-stone-400 font-medium truncate italic">● {person.quartier}</span>
+                        )}
+                        {person.birthYear && person.birthYear !== 'Inconnue' && (
+                            <span className="text-[10px] text-stone-300 font-mono">| {person.birthYear}</span>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Connecteur vers parents (ascendants) */}
+            {/* Connecteur vers parents (ascendants) - Aspect Organique */}
             {person.parents && person.parents.length > 0 && (
-                <div className="flex flex-col items-center mt-1">
+                <div className="flex flex-col items-center mt-0 relative">
+                    {/* Ligne verticale principale */}
+                    <div className={`w-0.5 bg-gradient-to-b from-stone-200 to-amber-200/50 transition-all ${isExpanded ? 'h-6' : 'h-0'}`} />
+
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
-                        className="z-10 w-6 h-6 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-[#FF6600] hover:border-[#FF6600] transition-all shadow-sm hover:shadow-md mb-1"
+                        className="z-20 w-8 h-8 bg-white border-2 border-stone-100 rounded-full flex items-center justify-center text-[#124E35] hover:bg-[#124E35] hover:text-white transition-all shadow-md active:scale-90"
                     >
-                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                     </button>
 
-                    <div className={`w-px bg-gradient-to-t from-gray-200 to-transparent transition-all ${isExpanded ? 'h-5' : 'h-0'}`} />
-
-                    <div className={`transition-all duration-500 origin-bottom ${isExpanded ? 'opacity-100 max-h-[2000px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
-                        <div className="flex gap-6 relative pb-3 items-end">
-                            {/* Ligne horizontale reliant les parents */}
+                    <div className={`transition-all duration-700 origin-top ${isExpanded ? 'opacity-100 max-h-[3000px]' : 'opacity-0 max-h-0 overflow-hidden'}`}>
+                        <div className="flex gap-12 relative pt-6 items-start">
+                            {/* Connecteurs SVG organiques (courbes de Bézier) */}
                             {person.parents.length > 1 && (
-                                <div className="absolute bottom-0 left-1/4 right-1/4 h-px bg-gray-200" />
+                                <svg className="absolute top-0 left-0 w-full h-8 pointer-events-none overflow-visible" style={{ zIndex: 0 }}>
+                                    <path
+                                        d={`M ${50}% 0 C ${50}% 15, 20% 15, 20% 30`}
+                                        fill="none"
+                                        stroke="#e5e7eb"
+                                        strokeWidth="2"
+                                        className="transition-all duration-700"
+                                        style={{ d: `M px 0 C ...` }} /* NOTE: Tailwind/Browser handles percentages well in relative container */
+                                    />
+                                    {/* On dessine deux courbes symétriques au lieu d'une ligne droite */}
+                                    <path d="M 50% 0 L 50% 10 Q 50% 20, 20% 20 L 20% 30" fill="none" stroke="#d6d3d1" strokeWidth="2" strokeLinecap="round" />
+                                    <path d="M 50% 0 L 50% 10 Q 50% 20, 80% 20 L 80% 30" fill="none" stroke="#d6d3d1" strokeWidth="2" strokeLinecap="round" />
+                                </svg>
                             )}
+                            {person.parents.length === 1 && (
+                                <div className="absolute top-0 left-1/2 w-0.5 h-6 bg-stone-200 -translate-x-1/2" />
+                            )}
+
                             {person.parents.map((parent) => (
                                 <div key={parent.id} className="relative flex flex-col items-center">
-                                    <div className="w-px h-4 bg-gray-200 mb-0" />
                                     <TreeNode person={parent} depth={depth + 1} onSelectNode={onSelectNode} />
                                 </div>
                             ))}
