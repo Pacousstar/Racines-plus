@@ -355,9 +355,9 @@ export default function AdminDashboard() {
         setProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...updateData } : p));
 
         if (updateData.status === 'confirmed') {
-            setSuccessMessage(`Le rôle a été changé en ${newRole.toUpperCase()} et confirmé.`);
+            alert(`Le rôle a été changé en ${newRole.toUpperCase()} et confirmé.`);
         } else {
-            setSuccessMessage(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
+            alert(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
         }
 
         if (newRole === 'admin') {
