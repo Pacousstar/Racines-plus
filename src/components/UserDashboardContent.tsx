@@ -51,7 +51,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
         if (!profileData) setIsLoading(true);
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, village_origin, quartier_nom, status, avatar_url')
+            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, avatar_url')
             .eq('id', userId)
             .single();
 
@@ -86,7 +86,12 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     nombreEnfants: data.nombre_enfants || 0,
                     detailsEnfants: data.details_enfants || [],
                     consentementEnfants: data.consentement_enfants || false,
-                    adresseResidence: data.adresse_residence || ''
+                    adresseResidence: data.adresse_residence || '',
+                    residenceCity: data.residence_city || '',
+                    phone1: data.phone_1 || '',
+                    phone2: data.phone_2 || '',
+                    whatsapp1: data.whatsapp_1 || '',
+                    whatsapp2: data.whatsapp_2 || ''
                 }
             });
 
