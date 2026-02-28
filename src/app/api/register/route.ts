@@ -92,6 +92,10 @@ export async function POST(request: NextRequest) {
         const quartierNom = formData.get('quartierNom') as string | null;
         const residenceCountry = (formData.get('residenceCountry') as string) || 'CI';
         const residenceCity = (formData.get('residenceCity') as string) || '';
+        const phone1 = formData.get('phone1') as string | null;
+        const phone2 = formData.get('phone2') as string | null;
+        const whatsapp1 = formData.get('whatsapp1') as string | null;
+        const whatsapp2 = formData.get('whatsapp2') as string | null;
         const photoFile = formData.get('photo') as File | null;
 
         if (!email || !password || !firstName || !lastName) {
