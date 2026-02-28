@@ -15,6 +15,7 @@ interface LineageNode {
     is_certified?: boolean;
     periode?: string;
     status?: string;
+    avatarUrl?: string | null;
 }
 
 interface PersonalLineageTreeProps {
@@ -41,7 +42,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 // 1. Profil utilisateur
                 const { data: profil } = await supabase
                     .from('profiles')
-                    .select('first_name, last_name, status, ancestral_root_id')
+                    .select('first_name, last_name, status, ancestral_root_id, avatar_url')
                     .eq('id', userId)
                     .single();
 
@@ -100,7 +101,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     nom: `${profil.first_name || ''} ${profil.last_name || ''}`.trim() || 'Vous',
                     type: 'self',
                     generation: nodes.length,
-                    status: profil.status || 'pending'
+                    status: profil.status || 'pending',
+                    avatarUrl: profil.avatar_url
                 });
 
                 setLineage(nodes);
@@ -178,11 +180,14 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         >
                             <div className="flex items-start gap-3">
                                 {/* Icône */}
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${node.type === 'ancetre' ? 'bg-amber-100' : 'bg-[#124E35]/10'}`}>
-                                    {node.type === 'ancetre'
-                                        ? <Crown className="w-5 h-5 text-amber-600" />
-                                        : <User className="w-5 h-5 text-[#124E35]" />
-                                    }
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${node.type === 'ancetre' ? 'bg-amber-100' : 'bg-[#124E35]/10'}`}>
+                                    {node.type === 'ancetre' ? (
+                                        <Crown className="w-5 h-5 text-amber-600" />
+                                    ) : node.avatarUrl ? (
+                                        <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <User className="w-5 h-5 text-[#124E35]" />
+                                    )}
                                 </div>
 
                                 {/* Contenu */}

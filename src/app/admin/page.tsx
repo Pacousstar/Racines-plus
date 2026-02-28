@@ -338,18 +338,26 @@ export default function AdminDashboard() {
     };
 
     const handleRoleChange = async (userId: string, newRole: string) => {
+        setIsLoading(true);
         const updateData: any = { role: newRole };
         if (['cho', 'choa', 'admin'].includes(newRole)) {
             updateData.status = 'confirmed';
         }
 
-        await supabase.from('profiles').update(updateData).eq('id', userId);
+        const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
+
+        if (error) {
+            alert(`Erreur lors du changement de rôle : ${error.message}. Il se peut que les politiques RLS bloquent cette action.`);
+            setIsLoading(false);
+            return;
+        }
+
         setProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...updateData } : p));
 
         if (updateData.status === 'confirmed') {
-            alert(`Le rôle a été changé en ${newRole.toUpperCase()} et le statut a été automatiquement confirmé.`);
+            setSuccessMessage(`Le rôle a été changé en ${newRole.toUpperCase()} et confirmé.`);
         } else {
-            alert(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
+            setSuccessMessage(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
         }
 
         if (newRole === 'admin') {
@@ -358,6 +366,7 @@ export default function AdminDashboard() {
             const { data } = await supabase.from('admin_permissions').select('*').eq('user_id', userId).single();
             if (data) setAssistantPermissions(prev => ({ ...prev, [userId]: data }));
         }
+        setIsLoading(false);
     };
 
     const handleUpdatePermission = async (userId: string, key: keyof AdminPermission, value: boolean) => {
@@ -845,17 +854,23 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td className="py-3 px-4 text-sm text-gray-600">{p.village_origin || '—'}</td>
                                                 <td className="py-3 px-4">
-                                                    <select
-                                                        value={p.role || 'user'}
-                                                        onChange={e => handleRoleChange(p.id, e.target.value)}
-                                                        className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-[#FF6600]"
-                                                    >
-                                                        <option value="user">User</option>
-                                                        <option value="ambassadeur">Ambassadeur</option>
-                                                        <option value="choa">CHOa</option>
-                                                        <option value="cho">CHO</option>
-                                                        <option value="admin">Admin / Assistant</option>
-                                                    </select>
+                                                    {p.id === currentUserId ? (
+                                                        <span className="text-xs font-black text-[#FF6600] bg-orange-50 px-2 py-1 rounded-lg border border-orange-100 uppercase tracking-tighter">
+                                                            👑 Admin Principal
+                                                        </span>
+                                                    ) : (
+                                                        <select
+                                                            value={p.role || 'user'}
+                                                            onChange={e => handleRoleChange(p.id, e.target.value)}
+                                                            className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-[#FF6600]"
+                                                        >
+                                                            <option value="user">User</option>
+                                                            <option value="ambassadeur">Ambassadeur</option>
+                                                            <option value="choa">CHOa</option>
+                                                            <option value="cho">CHO</option>
+                                                            <option value="admin">Admin / Assistant</option>
+                                                        </select>
+                                                    )}
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <span className={`text-xs px-2 py-1 rounded-full font-bold ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
