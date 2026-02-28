@@ -128,16 +128,16 @@ export default function InviteModal({
 
                             {/* Lien d'invitation */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                                     <Link2 className="w-3.5 h-3.5" /> Lien d&apos;invitation
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-500 truncate font-mono">
+                                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-600 truncate font-mono">
                                         {inviteLink.replace('https://', '')}
                                     </div>
                                     <button
                                         onClick={handleCopyLink}
-                                        className={`p-2.5 rounded-xl transition-all flex-shrink-0 ${copied ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                        className={`p-2.5 rounded-xl transition-all flex-shrink-0 ${copied ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                         title="Copier le lien"
                                     >
                                         {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -148,14 +148,14 @@ export default function InviteModal({
 
                             <div className="relative flex items-center gap-3">
                                 <div className="flex-1 h-px bg-gray-200" />
-                                <span className="text-xs text-gray-400 font-medium">ou envoyer par email</span>
+                                <span className="text-xs text-gray-600 font-medium">ou envoyer par email</span>
                                 <div className="flex-1 h-px bg-gray-200" />
                             </div>
 
                             {/* Envoi par email */}
                             <form onSubmit={handleSendInvite} className="space-y-3">
                                 <div className="relative">
-                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 pointer-events-none" />
                                     <input
                                         type="email"
                                         value={email}
@@ -188,7 +188,7 @@ export default function InviteModal({
                             <h3 className="font-bold text-gray-900 mb-2">
                                 {emailSentForReal ? '✅ Invitation envoyée !' : 'Partagez le lien'}
                             </h3>
-                            <p className="text-sm text-gray-500 mb-5">
+                            <p className="text-sm text-gray-600 mb-5">
                                 {emailSentForReal
                                     ? 'Votre invitation a bien été envoyée par email. Votre famille recevra un lien pour rejoindre Racines+.'
                                     : 'Copiez et partagez le lien ci-dessous en attendant la configuration du système email.'

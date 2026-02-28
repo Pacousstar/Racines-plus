@@ -126,10 +126,10 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-foreground">Éditer mon profil complet</h2>
-                            <p className="text-xs text-text-muted">Mettez à jour vos informations pour l'arbre généalogique</p>
+                            <p className="text-xs text-gray-600">Mettez à jour vos informations pour l'arbre généalogique</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-text-muted hover:text-black hover:bg-gray-200 rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -260,7 +260,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <div className="space-y-4">
                                 {(formData.detailsEnfants || []).length === 0 ? (
                                     <div className="text-center py-6 bg-gray-50 border border-dashed border-gray-200 rounded-3xl">
-                                        <p className="text-xs text-text-dim">Aucun détail d&apos;enfant enregistré.</p>
+                                        <p className="text-xs text-gray-600">Aucun détail d&apos;enfant enregistré.</p>
                                     </div>
                                 ) : (
                                     formData.detailsEnfants?.map((child, index) => (
@@ -277,7 +277,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                             </button>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Prénoms</label>
+                                                    <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1 ml-1">Prénoms</label>
                                                     <input
                                                         type="text"
                                                         value={child.firstName}
@@ -291,7 +291,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nom</label>
+                                                    <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1 ml-1">Nom</label>
                                                     <input
                                                         type="text"
                                                         value={child.lastName}
@@ -304,7 +304,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Date de naissance</label>
+                                                    <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1 ml-1">Date de naissance</label>
                                                     <input
                                                         type="date"
                                                         value={child.birthDate}
@@ -317,7 +317,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Sexe</label>
+                                                    <label className="block text-[10px] font-bold text-gray-600 uppercase mb-1 ml-1">Sexe</label>
                                                     <select
                                                         value={child.gender}
                                                         onChange={e => {
@@ -345,7 +345,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                             }}
                                                             className="w-4 h-4 accent-[#FF6600] rounded"
                                                         />
-                                                        <span className="text-xs font-bold text-gray-500 uppercase">Mention "décédé(e)"</span>
+                                                        <span className="text-xs font-bold text-gray-600 uppercase">Mention "décédé(e)"</span>
                                                     </label>
 
                                                     {child.isDeceased && (
