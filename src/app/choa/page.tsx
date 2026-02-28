@@ -208,6 +208,12 @@ export default function ChoBoard() {
         setMotifModal(null);
         setMotifText('');
         setObservations('');
+
+        if (newStatus === 'probable') {
+            alert("🟠 Dossier pré-validé ! Il est maintenant transmis au Chef de Village (CHO) pour validation finale.");
+        } else if (newStatus === 'rejected') {
+            alert("❌ Le dossier a été rejeté.");
+        }
     };
 
     const loadComments = async (profileId: string) => {

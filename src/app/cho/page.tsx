@@ -252,6 +252,14 @@ export default function ChoBoard() {
         setMotifModal(null);
         setMotifText('');
         setObservations('');
+
+        if (newStatus === 'confirmed') {
+            alert("✅ Bascule Patrimoniale réussie ! L'utilisateur est désormais officiellement reconnu dans les registres du village.");
+        } else if (newStatus === 'probable') {
+            alert("🟠 Statut mis à jour sur 'Probable'. Dossier en attente de vérification complémentaire.");
+        } else if (newStatus === 'rejected') {
+            alert("❌ Dossier rejeté avec succès.");
+        }
     };
 
     const loadComments = async (profileId: string) => {

@@ -176,7 +176,12 @@ export default function AdminDashboard() {
                 nombreEnfants: data.nombre_enfants || 0,
                 detailsEnfants: data.details_enfants || [],
                 consentementEnfants: data.consentement_enfants || false,
-                adresseResidence: data.adresse_residence || ''
+                adresseResidence: data.adresse_residence || '',
+                residenceCity: data.residence_city || '',
+                phone1: data.phone_1 || '',
+                phone2: data.phone_2 || '',
+                whatsapp1: data.whatsapp_1 || '',
+                whatsapp2: data.whatsapp_2 || ''
             });
             setViewingUserId(id);
             setIsViewModalOpen(true);
@@ -739,14 +744,14 @@ export default function AdminDashboard() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-semibold">{p.first_name} {p.last_name}</p>
-                                                <p className="text-xs text-gray-500">{p.village_origin || 'Village non renseigné'}</p>
+                                                <p className="text-xs text-gray-600">{p.village_origin || 'Village non renseigné'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.role === 'admin' ? 'bg-purple-100 text-purple-600' : p.role === 'cho' ? 'bg-blue-100 text-blue-600' : p.role === 'choa' ? 'bg-cyan-100 text-cyan-600' : 'bg-gray-100 text-gray-600'}`}>
                                                 {p.role?.toUpperCase()}
                                             </span>
-                                            <ChevronRight className="w-4 h-4 text-gray-300" />
+                                            <ChevronRight className="w-4 h-4 text-gray-400" />
                                         </div>
                                     </div>
                                 ))}
@@ -853,7 +858,7 @@ export default function AdminDashboard() {
                                                     </select>
                                                 </td>
                                                 <td className="py-3 px-4">
-                                                    <span className={`text-xs px-2 py-1 rounded-full font-bold ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-500' : 'bg-orange-100 text-orange-500'}`}>
+                                                    <span className={`text-xs px-2 py-1 rounded-full font-bold ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
                                                         {p.status === 'confirmed' ? '✅ Confirmé' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
                                                     </span>
                                                 </td>
@@ -883,7 +888,7 @@ export default function AdminDashboard() {
                                                         {(p.role === 'cho' || p.role === 'choa') && (
                                                             <button
                                                                 onClick={() => handleToggleExportAuth(p.id, p.export_authorized)}
-                                                                className={`p-1.5 rounded-lg transition-colors ${p.export_authorized ? 'text-green-600 bg-green-50 hover:bg-green-100' : p.export_requested ? 'text-[#FF6600] bg-orange-50 hover:bg-orange-100' : 'text-gray-300 hover:text-gray-600 hover:bg-gray-100'}`}
+                                                                className={`p-1.5 rounded-lg transition-colors ${p.export_authorized ? 'text-green-600 bg-green-50 hover:bg-green-100' : p.export_requested ? 'text-[#FF6600] bg-orange-50 hover:bg-orange-100' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
                                                                 title={p.export_authorized ? "Retirer accès Export" : "Accorder accès Export"}
                                                             >
                                                                 <Download className="w-3.5 h-3.5" />
@@ -953,7 +958,7 @@ export default function AdminDashboard() {
                                                     <td key={perm.key} className="py-4 px-2 text-center">
                                                         <button
                                                             onClick={() => handleUpdatePermission(p.id, perm.key as any, !perms[perm.key as keyof typeof perms])}
-                                                            className={`p-2 rounded-xl transition-all ${perms[perm.key as keyof typeof perms] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-300'}`}
+                                                            className={`p-2 rounded-xl transition-all ${perms[perm.key as keyof typeof perms] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
                                                         >
                                                             <perm.icon className="w-4 h-4" />
                                                         </button>
@@ -1233,7 +1238,7 @@ export default function AdminDashboard() {
                                                         </td>
                                                         <td className="py-4 px-4">
                                                             <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => handleDeleteMemorialVictim(mv.id)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
+                                                                <button onClick={() => handleDeleteMemorialVictim(mv.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
                                                             </div>
                                                         </td>
                                                     </tr>
