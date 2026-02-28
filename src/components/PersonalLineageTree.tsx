@@ -39,10 +39,10 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
         const loadLineage = async () => {
             setIsLoading(true);
             try {
-                // 1. Profil utilisateur
+                // 1. Profil utilisateur (avec détails enfants)
                 const { data: profil } = await supabase
                     .from('profiles')
-                    .select('first_name, last_name, status, ancestral_root_id, avatar_url')
+                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, details_enfants')
                     .eq('id', userId)
                     .single();
 
@@ -62,7 +62,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         nodes.push({
                             id: ancetre.id,
                             nom: ancetre.nom_complet,
-                            type: 'ancetre',
+                            type: 'ancetre' as const,
                             generation: 0,
                             is_certified: ancetre.is_certified,
                             periode: ancetre.periode
@@ -70,7 +70,35 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     }
                 }
 
-                // 3. Dernière validation IA pour la position
+                // 3. Récupérer les parents via Neo4j
+                try {
+                    const res = await fetch('/api/tree');
+                    if (res.ok) {
+                        const treeData = await res.json();
+                        const userNode = treeData.nodes.find((n: any) => n.id === userId);
+                        if (userNode) {
+                            // Trouver les liens pointant vers l'utilisateur
+                            const parentLinks = treeData.links.filter((l: any) => l.target === userId);
+                            parentLinks.forEach((link: any) => {
+                                const parent = treeData.nodes.find((n: any) => n.id === link.source);
+                                if (parent) {
+                                    nodes.push({
+                                        id: parent.id,
+                                        nom: `${parent.firstName || ''} ${parent.lastName || ''}`.trim(),
+                                        type: 'self' as const, // On utilise "self" pour le style de carte standard
+                                        generation: nodes.length,
+                                        status: 'confirmed',
+                                        lien: link.type === 'FATHER_OF' ? 'Père' : 'Mère'
+                                    });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[LineageTree] Neo4j fetch error:', e);
+                }
+
+                // 4. Dernière validation IA pour la position (optionnel si parents présents)
                 const { data: validation } = await supabase
                     .from('validations')
                     .select('observations')
@@ -81,7 +109,6 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     .single();
 
                 if (validation?.observations) {
-                    // Parser le résultat IA depuis observations
                     const genMatch = validation.observations.match(/Génération\s+(\d+)/);
                     const confMatch = validation.observations.match(/Confiance\s+(\d+)/);
                     const lienMatch = validation.observations.match(/—\s+([^—]+)$/);
@@ -95,15 +122,29 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     }
                 }
 
-                // 4. Nœud utilisateur courant
+                // 5. Nœud utilisateur courant
                 nodes.push({
                     id: userId,
                     nom: `${profil.first_name || ''} ${profil.last_name || ''}`.trim() || 'Vous',
-                    type: 'self',
+                    type: 'self' as const,
                     generation: nodes.length,
                     status: profil.status || 'pending',
                     avatarUrl: profil.avatar_url
                 });
+
+                // 6. Ajouter les enfants s'ils existent
+                if (profil.details_enfants && Array.isArray(profil.details_enfants)) {
+                    profil.details_enfants.forEach((enfant: any, idx: number) => {
+                        nodes.push({
+                            id: `child-${idx}`,
+                            nom: `${enfant.firstName || ''} ${enfant.lastName || ''}`.trim() || 'Enfant',
+                            type: 'self' as const,
+                            generation: nodes.length,
+                            status: 'confirmed',
+                            lien: 'Enfant'
+                        });
+                    });
+                }
 
                 setLineage(nodes);
             } catch (err) {
@@ -170,7 +211,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                             onClick={() => setSelectedNode({
                                 id: node.id,
                                 nom: node.nom,
-                                roleOuLien: node.type === 'ancetre' ? 'Ancêtre Fondateur' : (aiPosition?.lien_probable || 'Vous'),
+                                roleOuLien: node.type === 'ancetre' ? 'Ancêtre Fondateur' : (node.lien || aiPosition?.lien_probable || 'Vous'),
                                 periodeOuNaissance: node.periode,
                                 status: node.status || 'confirmed',
                                 isCertified: node.is_certified,
@@ -180,13 +221,13 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         >
                             <div className="flex items-start gap-3">
                                 {/* Icône */}
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${node.type === 'ancetre' ? 'bg-amber-100' : 'bg-[#124E35]/10'}`}>
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${node.type === 'ancetre' ? 'bg-amber-100' : node.lien === 'Enfant' ? 'bg-blue-50' : 'bg-[#124E35]/10'}`}>
                                     {node.type === 'ancetre' ? (
                                         <Crown className="w-5 h-5 text-amber-600" />
                                     ) : node.avatarUrl ? (
                                         <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
                                     ) : (
-                                        <User className="w-5 h-5 text-[#124E35]" />
+                                        <User className={`w-5 h-5 ${node.lien === 'Enfant' ? 'text-blue-500' : 'text-[#124E35]'}`} />
                                     )}
                                 </div>
 
@@ -207,7 +248,9 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                     {node.type === 'ancetre' ? (
                                         <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider mt-0.5">Ancêtre Fondateur</p>
                                     ) : (
-                                        <p className="text-[11px] text-[#124E35] font-bold uppercase tracking-wider mt-0.5">Vous — {villageNom}</p>
+                                        <p className={`text-[11px] font-bold uppercase tracking-wider mt-0.5 ${node.lien === 'Enfant' ? 'text-blue-600' : 'text-[#124E35]'}`}>
+                                            {node.lien || (node.id === userId ? 'Vous' : 'Parent')} — {villageNom}
+                                        </p>
                                     )}
                                     {node.periode && (
                                         <p className="text-xs text-stone-400 mt-0.5 font-mono">⏳ {node.periode}</p>

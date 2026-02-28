@@ -159,7 +159,7 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
 
                     {/* Statut de Validation */}
                     <div className="mt-4">
-                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2 px-1">Statut d'intégration au graphe</p>
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2 px-1">Statut d&apos;intégration au graphe</p>
                         <div className={`p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-3 border transition-colors ${s.bg} border-white/0 shadow-sm`}>
                             <div className={`w-10 h-10 rounded-xl bg-white/60 flex items-center justify-center flex-shrink-0 ${s.text}`}>
                                 {s.icon}

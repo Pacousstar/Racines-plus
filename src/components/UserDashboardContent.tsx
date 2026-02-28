@@ -7,11 +7,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     User, Bell, Share2, ShieldCheck, MapPin, Plus, CheckCircle,
-    AlertTriangle, Camera, Clock, XCircle, TreePine, Users
+    AlertTriangle, Camera, Clock, XCircle, Users
 } from 'lucide-react';
 import AddAncestorModal from '@/components/AddAncestorModal';
 import ChooseAncetreModal from '@/components/ChooseAncetreModal';
 import InviteModal from '@/components/InviteModal';
+import TreeSpecimens from '@/components/TreeSpecimens';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import PersonalLineageTree from '@/components/PersonalLineageTree';
 import MigrationMap from '@/components/MigrationMap';
@@ -35,7 +36,7 @@ interface UserDashboardContentProps {
 
 export default function UserDashboardContent({ userId, activeSection = 'arbre' }: UserDashboardContentProps) {
     const supabase = createClient();
-    const [activeTab, setActiveTab] = useState<'arbre' | 'notifications'>(activeSection === 'migration' ? 'arbre' : 'arbre');
+    const [activeTab, setActiveTab] = useState<'arbre' | 'specimens' | 'notifications'>(activeSection === 'migration' ? 'arbre' : 'arbre');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isChooseAncetreOpen, setIsChooseAncetreOpen] = useState(false);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -236,10 +237,10 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse ml-auto"></span>
                     </div>
                     <p className="text-sm text-green-100/80 mb-4 leading-relaxed">
-                        L'IA analyse vos données et vous suggère des liens de parenté probables.
+                        L&apos;IA analyse vos données et vous suggère des liens de parenté probables.
                     </p>
                     <button onClick={() => alert("Analyse IA : Fonctionnalité en cours d'intégration.")} className="text-xs font-bold uppercase tracking-wider bg-white text-green-800 px-4 py-2 rounded-lg hover:bg-green-50 w-full transition-colors">
-                        Voir l'analyse
+                        Voir l&apos;analyse
                     </button>
                 </div>
             </div>
@@ -255,6 +256,12 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         Mon Arbre Connecté
                     </button>
                     <button
+                        onClick={() => setActiveTab('specimens')}
+                        className={`pb-2 text-sm font-bold transition-colors ${activeTab === 'specimens' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
+                    >
+                        Spécimens Validés
+                    </button>
+                    <button
                         onClick={() => setActiveTab('notifications')}
                         className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'notifications' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
                     >
@@ -263,7 +270,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                 </div>
 
                 {activeTab === 'arbre' && activeSection === 'arbre' && (
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h1 className="text-xl md:text-3xl font-black text-gray-900 tracking-tight">Mon Arbre Connecté</h1>
@@ -286,11 +293,23 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                             {!profileData?.ancestralRootId && !isLoading && (
                                 <div className="border-t border-gray-50 px-6 py-5 flex flex-col md:flex-row justify-center items-center gap-3 bg-gray-50/50">
                                     <button onClick={() => setIsChooseAncetreOpen(true)} className="bg-[#FF6600] hover:bg-[#e55c00] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-[#FF6600]/30 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                                        <TreePine className="w-4 h-4" /> Relier à mon Ancêtre Fondateur
+                                        <Users className="w-4 h-4" /> Relier à mon Ancêtre Fondateur
                                     </button>
                                 </div>
                             )}
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'specimens' && activeSection === 'arbre' && (
+                    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h1 className="text-xl md:text-3xl font-black text-gray-900 tracking-tight">Spécimens Validés</h1>
+                                <p className="text-sm text-gray-600 mt-1">Explorez les différents styles de visualisation pour votre héritage.</p>
+                            </div>
+                        </div>
+                        <TreeSpecimens />
                     </div>
                 )}
 
@@ -331,7 +350,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                                         <h4 className="font-bold text-foreground text-sm">Doublon Probable Détecté</h4>
                                         <span className="text-xs font-semibold text-orange-600">Action Requise</span>
                                     </div>
-                                    <p className="text-sm text-gray-600 mt-1">L'IA de Racines+ a détecté un ancêtre similaire déjà enregistré dans la base.</p>
+                                    <p className="text-sm text-gray-600 mt-1">L&apos;IA de Racines+ a détecté un ancêtre similaire déjà enregistré dans la base.</p>
                                 </div>
                             </div>
                             <div className="p-4 flex gap-4 items-start hover:bg-gray-50 transition-colors">

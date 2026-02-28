@@ -56,7 +56,7 @@ export default function MigrationMap() {
 
     const getCountryName = (code: string) => {
         const names: Record<string, string> = {
-            'CI': 'Côte d\'Ivoire',
+            'CI': 'Côte d&apos;Ivoire',
             'FR': 'France',
             'US': 'États-Unis',
             'BE': 'Belgique',
@@ -80,51 +80,80 @@ export default function MigrationMap() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-6">
-                {/* Visualisation stylisée (PlaceHolder SVG Map) */}
-                <div className="lg:col-span-2 relative bg-gray-950 rounded-3xl overflow-hidden min-h-[400px] border border-white/5 shadow-2xl">
-                    {/* Background SVG stylisé simplifié du monde */}
-                    <div className="absolute inset-0 opacity-20 pointer-events-none p-8">
-                        <svg viewBox="0 0 800 400" className="w-full h-full text-white/40 fill-current">
-                            {/* Formes simplifiées des continents */}
-                            <path d="M150 100 Q 200 80 250 120 T 300 200 Q 280 250 200 280 T 100 220 Q 80 150 150 100" /> {/* Amériques */}
-                            <path d="M400 120 Q 450 100 500 130 T 550 200 Q 530 250 450 280 T 350 220 Q 330 150 400 120" /> {/* Afrique/Europe */}
-                            <path d="M600 150 Q 650 130 700 160 T 750 230 Q 730 280 650 310 T 550 250 Q 530 180 600 150" /> {/* Asie/Océanie */}
+                {/* Visualisation stylisée (Premium World Map) */}
+                <div className="lg:col-span-2 relative bg-[#0A0F0D] rounded-[2.5rem] overflow-hidden min-h-[450px] border border-white/5 shadow-2xl flex items-center justify-center">
+                    {/* Background Grid & Glow */}
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#124E35]/20 via-transparent to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
+
+                    {/* World Map SVG (Simplified Premium) */}
+                    <div className="w-full h-full p-10 opacity-40">
+                        <svg viewBox="0 0 1000 500" className="w-full h-full text-[#124E35]/60 fill-current">
+                            <path d="M150,150 L200,140 L240,160 L280,220 L270,300 L200,340 L120,300 L110,220 Z" /> {/* North America */}
+                            <path d="M220,350 L260,340 L300,370 L310,450 L260,480 L200,450 Z" /> {/* South America */}
+                            <path d="M450,100 L500,80 L550,110 L580,180 L560,260 L480,280 L420,240 Z" /> {/* Europe */}
+                            <path d="M470,290 L530,280 L580,320 L570,420 L510,480 L440,430 L430,340 Z" /> {/* Africa */}
+                            <path d="M600,120 L750,100 L850,150 L880,280 L800,400 L650,420 L580,300 Z" /> {/* Eurasia */}
+                            <path d="M780,410 L850,400 L880,450 L840,490 L760,470 Z" /> {/* Australia */}
                         </svg>
                     </div>
 
-                    {/* Arcs et Points dynamiques */}
+                    {/* Arcs de Migration (SVG interactif) */}
+                    <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-20">
+                        {stats.map((item, idx) => {
+                            if (item.country === 'CI') return null;
+                            // Simulation de points sur la carte (Toa-Zéo est env au centre de l'Afrique)
+                            const originX = 500;
+                            const originY = 360;
+                            const destX = item.country === 'FR' ? 490 : item.country === 'US' ? 200 : item.country === 'CA' ? 180 : item.country === 'BE' ? 500 : 700;
+                            const destY = item.country === 'FR' ? 150 : item.country === 'US' ? 180 : item.country === 'CA' ? 120 : item.country === 'BE' ? 130 : 250;
+
+                            return (
+                                <g key={`arc-${idx}`}>
+                                    <path
+                                        d={`M ${originX} ${originY} Q ${(originX + destX) / 2} ${(originY + destY) / 2 - 50} ${destX} ${destY}`}
+                                        fill="none"
+                                        stroke="url(#grad-orange)"
+                                        strokeWidth="1"
+                                        strokeDasharray="1000"
+                                        strokeDashoffset="1000"
+                                        className="animate-draw-arc"
+                                        style={{ opacity: 0.6 }}
+                                    />
+                                    <circle cx={destX} cy={destY} r="3" className="fill-[#FF6600] animate-pulse" />
+                                </g>
+                            );
+                        })}
+                        <defs>
+                            <linearGradient id="grad-orange" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#124E35" />
+                                <stop offset="100%" stopColor="#FF6600" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
+
+                    {/* Points et Tooltips */}
                     {stats.map((item, idx) => {
-                        // Simulation de positions pour la démo
-                        const x = 430 + (idx * 40) * (item.country === 'CI' ? 0 : 1);
-                        const y = 200 + (idx * 30) * (item.country === 'CI' ? 0 : -1);
+                        const isCI = item.country === 'CI';
+                        const x = isCI ? 500 : (item.country === 'FR' ? 490 : item.country === 'US' ? 200 : item.country === 'CA' ? 180 : item.country === 'BE' ? 500 : 700);
+                        const y = isCI ? 360 : (item.country === 'FR' ? 150 : item.country === 'US' ? 180 : item.country === 'CA' ? 120 : item.country === 'BE' ? 130 : 250);
 
                         return (
-                            <div key={idx} style={{ left: `${(x / 800) * 100}%`, top: `${(y / 400) * 100}%` }} className="absolute transform -translate-x-1/2 -translate-y-1/2 group">
-                                {item.country !== 'CI' && (
-                                    <svg className="absolute overflow-visible pointer-events-none" style={{ left: 0, top: 0, width: 400, height: 400 }}>
-                                        <path
-                                            d={`M 0 0 Q ${-100} ${-50} ${430 - x} ${200 - y}`}
-                                            fill="none"
-                                            stroke="#C05C3C"
-                                            strokeWidth="1.5"
-                                            strokeDasharray="4 4"
-                                            className="opacity-40 animate-pulse"
-                                        />
-                                    </svg>
-                                )}
-                                <div className={`relative flex items-center justify-center w-6 h-6 rounded-full border-2 border-white shadow-lg cursor-pointer transition-all hover:scale-125 ${item.country === 'CI' ? 'bg-[#124E35] w-8 h-8' : 'bg-[#C05C3C]'}`}>
-                                    <MapPin className="w-3 h-3 text-white" />
-                                    {/* Tooltip */}
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-white dark:bg-gray-900 rounded-xl shadow-xl p-3 opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none border border-gray-100 dark:border-white/10">
-                                        <p className="font-bold text-xs mb-1">{item.city}, {getCountryName(item.country)}</p>
-                                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-bold mb-2">
-                                            <Users className="w-3 h-3 text-[#FF6600]" /> {item.count} Membres
+                            <div key={idx} style={{ left: `${x / 10}%`, top: `${y / 5}%` }} className="absolute transform -translate-x-1/2 -translate-y-1/2 group z-30">
+                                <div className={`relative flex items-center justify-center rounded-full border-2 border-white shadow-2xl cursor-pointer transition-all hover:scale-150 duration-500 ${isCI ? 'w-10 h-10 bg-[#124E35] ring-4 ring-[#124E35]/20' : 'w-6 h-6 bg-[#FF6600]'}`}>
+                                    {isCI ? <Users className="w-5 h-5 text-white" /> : <MapPin className="w-3 h-3 text-white" />}
+
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-56 bg-white dark:bg-[#1A1F1D] rounded-[1.5rem] shadow-2xl p-4 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none border border-gray-100 dark:border-white/10 scale-90 group-hover:scale-100">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-xl">{item.country === 'CI' ? '🇨🇮' : item.country === 'FR' ? '🇫🇷' : item.country === 'US' ? '🇺🇸' : '🌍'}</span>
+                                            <div>
+                                                <p className="font-black text-xs text-gray-900 dark:text-white uppercase leading-tight">{item.city}</p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{getCountryName(item.country)}</p>
+                                            </div>
                                         </div>
-                                        <div className="max-h-20 overflow-y-auto">
-                                            {item.members.slice(0, 3).map((m, i) => (
-                                                <p key={i} className="text-[9px] text-gray-400 border-l border-gray-200 pl-2 mb-1">{m}</p>
-                                            ))}
-                                            {item.members.length > 3 && <p className="text-[8px] text-gray-300 italic">+{item.members.length - 3} autres...</p>}
+                                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 p-2 rounded-xl">
+                                            <Users className="w-3 h-3 text-[#FF6600]" />
+                                            <span className="text-xs font-black text-gray-900 dark:text-white">{item.count} Membres</span>
                                         </div>
                                     </div>
                                 </div>
@@ -132,24 +161,25 @@ export default function MigrationMap() {
                         );
                     })}
 
-                    {/* Centre de Toa-Zéo */}
-                    <div className="absolute top-1/2 left-[53.75%] transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="relative">
-                            <div className="w-4 h-4 bg-white rounded-full animate-ping absolute inset-0" />
-                            <div className="w-4 h-4 bg-[#124E35] rounded-full border-2 border-white shadow-lg relative z-10" />
+                    <div className="absolute bottom-6 left-6 flex flex-col gap-2 z-40">
+                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#124E35] shadow-[0_0_8px_#124E35]" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Toa-Zéo (Foyer)</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#FF6600] shadow-[0_0_8px_#FF6600]" />
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Rayonnement</span>
                         </div>
                     </div>
 
-                    <div className="absolute bottom-6 left-6 flex flex-col gap-2">
-                        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                            <div className="w-2 h-2 rounded-full bg-[#124E35]" />
-                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Origine (Toa-Zéo)</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                            <div className="w-2 h-2 rounded-full bg-[#C05C3C]" />
-                            <span className="text-[10px] font-bold text-white uppercase tracking-wider">Diaspora</span>
-                        </div>
-                    </div>
+                    <style jsx>{`
+                        @keyframes draw-arc {
+                            to { stroke-dashoffset: 0; }
+                        }
+                        .animate-draw-arc {
+                            animation: draw-arc 2s cubic-bezier(0.445, 0.05, 0.55, 0.95) forwards;
+                        }
+                    `}</style>
                 </div>
 
                 {/* Liste des destinations */}
