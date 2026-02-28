@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, User, Crown, MapPin, Calendar, Activity, ShieldCheck, AlertTriangle, AlertCircle, Clock } from 'lucide-react';
+import { X, User, Crown, MapPin, Calendar, Activity, ShieldCheck, AlertTriangle, AlertCircle, Clock, Table } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
 export interface AncestorModalData {
@@ -63,7 +63,8 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
         confirmed: { bg: 'bg-green-100', text: 'text-green-700', icon: <ShieldCheck className="w-4 h-4" />, label: 'Confirmé (Bascule Patrimoniale)' },
         probable: { bg: 'bg-orange-100', text: 'text-orange-700', icon: <AlertTriangle className="w-4 h-4" />, label: 'Probable (Validé CHOa)' },
         pending: { bg: 'bg-gray-100', text: 'text-gray-600', icon: <Clock className="w-4 h-4" />, label: 'En attente de validation' },
-        rejected: { bg: 'bg-red-100', text: 'text-red-700', icon: <AlertCircle className="w-4 h-4" />, label: 'Rejeté' }
+        rejected: { bg: 'bg-red-100', text: 'text-red-700', icon: <AlertCircle className="w-4 h-4" />, label: 'Rejeté' },
+        declarative: { bg: 'bg-stone-100', text: 'text-stone-500', icon: <Table className="w-4 h-4" />, label: 'Donnée Déclarative' }
     };
 
     const s = statusConfig[person.status] || statusConfig.pending;

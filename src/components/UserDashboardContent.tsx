@@ -203,7 +203,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                                 onClick={() => setIsEditProfileOpen(true)}
                                 className="mt-4 text-xs font-semibold text-[#FF6600] border border-[#FF6600]/30 bg-[#FF6600]/5 px-3 py-1.5 rounded-lg hover:bg-[#FF6600]/10 transition-colors"
                             >
-                                Fiche détaillée complète 📝
+                                Fiche détaillée (Informations déclaratives) 📝
                             </button>
                         </div>
                     </div>
@@ -239,6 +239,11 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     <p className="text-sm text-green-100/80 mb-4 leading-relaxed">
                         L&apos;IA analyse vos données et vous suggère des liens de parenté probables.
                     </p>
+                    <div className="mb-4 p-3 bg-green-900/40 rounded-xl border border-green-700/50">
+                        <p className="text-[10px] text-green-300 font-medium leading-tight">
+                            ⚠️ Seules les données issues de l&apos;onboarding initial sont soumises à la certification officielle du CHO. Les ajouts via la "Fiche détaillée" (enfants, etc.) sont portés à titre informatif et déclaratif.
+                        </p>
+                    </div>
                     <button onClick={() => alert("Analyse IA : Fonctionnalité en cours d'intégration.")} className="text-xs font-bold uppercase tracking-wider bg-white text-green-800 px-4 py-2 rounded-lg hover:bg-green-50 w-full transition-colors">
                         Voir l&apos;analyse
                     </button>

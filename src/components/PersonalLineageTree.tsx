@@ -132,7 +132,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     avatarUrl: profil.avatar_url
                 });
 
-                // 6. Ajouter les enfants s'ils existent
+                // 6. Ajouter les enfants s'ils existent (Données Déclaratives uniquement)
+                // IMPORTANT: Ces données ne sont pas certifiées par le CHO
                 if (profil.details_enfants && Array.isArray(profil.details_enfants)) {
                     profil.details_enfants.forEach((enfant: any, idx: number) => {
                         nodes.push({
@@ -140,8 +141,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                             nom: `${enfant.firstName || ''} ${enfant.lastName || ''}`.trim() || 'Enfant',
                             type: 'self' as const,
                             generation: nodes.length,
-                            status: 'confirmed',
-                            lien: 'Enfant'
+                            status: 'declarative', // Statut spécifique non validé
+                            lien: 'Enfant (Déclaratif)'
                         });
                     });
                 }
@@ -184,6 +185,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
         if (status === 'confirmed') return 'border-[#124E35] bg-green-50/50';
         if (status === 'probable') return 'border-[#C05C3C] bg-orange-50/50';
         if (status === 'rejected') return 'border-red-400 bg-red-50/50';
+        if (status === 'declarative') return 'border-dashed border-stone-300 bg-stone-50/30';
         return 'border-gray-300 bg-white';
     };
 
@@ -243,6 +245,9 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                         )}
                                         {node.type === 'self' && node.status === 'pending' && (
                                             <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> En attente</span>
+                                        )}
+                                        {node.status === 'declarative' && (
+                                            <span className="text-[8px] border border-stone-200 text-stone-400 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 uppercase tracking-tighter">Déclaratif</span>
                                         )}
                                     </div>
                                     {node.type === 'ancetre' ? (
