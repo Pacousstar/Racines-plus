@@ -4,7 +4,9 @@ import React, { useState } from 'react';
 import { TreePine, Layout, Pyramid, Disc, Table, ChevronRight, Eye, Crown } from 'lucide-react';
 import PyramidTree from './PyramidTree';
 
-export default function TreeSpecimens() {
+// Composant Spécimens d'Arbre Généalogique — affiche 2 modèles premium propres à Racines+
+// Props : userName = nom de l'utilisateur connecté (données réelles), userStatus = statut de certification
+export default function TreeSpecimens({ userName, userStatus }: { userName?: string; userStatus?: string }) {
     const [selectedStyle, setSelectedStyle] = useState<'heritage' | 'modern' | 'classic'>('heritage');
 
     const styles = [
@@ -97,8 +99,10 @@ export default function TreeSpecimens() {
                                         </div>
                                         <span className="absolute -top-2 -right-2 bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-full border-2 border-white uppercase">Patriarch</span>
                                     </div>
-                                    <h3 className="font-black text-xl text-slate-800 uppercase tracking-tight">Kojo Mensah</h3>
-                                    <p className="text-xs text-[#FF6600] font-black mb-6 uppercase tracking-widest">Nœud Fondateur Certifié</p>
+                                    <h3 className="font-black text-xl text-slate-800 uppercase tracking-tight">{userName || 'Votre Arbre'}</h3>
+                                    <p className="text-xs text-[#FF6600] font-black mb-6 uppercase tracking-widest">
+                                        {userStatus === 'confirmed' ? 'Nœud Certifié ✅' : userStatus === 'probable' ? 'En cours de validation 🟠' : 'Profil en attente ⚫'}
+                                    </p>
 
                                     <div className="flex gap-8 items-end">
                                         {[1, 2, 3].map(i => (

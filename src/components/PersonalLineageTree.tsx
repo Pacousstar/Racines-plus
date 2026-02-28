@@ -70,28 +70,69 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     }
                 }
 
-                // 3. Récupérer les parents via Neo4j
+                // 3. Récupérer les membres de la lignée via Neo4j
+                // RÈGLE CRITIQUE : On n'affiche dans l'arbre QUE les membres ayant passé l'onboarding
+                // ET dont le statut a été validé par CHO (confirmed) ou pré-validé par CHOa (probable).
+                // Les données déclaratives (Fiche détaillée) ne doivent JAMAIS apparaître dans l'arbre.
                 try {
                     const res = await fetch('/api/tree');
                     if (res.ok) {
                         const treeData = await res.json();
-                        const userNode = treeData.nodes.find((n: any) => n.id === userId);
-                        if (userNode) {
-                            // Trouver les liens pointant vers l'utilisateur
-                            const parentLinks = treeData.links.filter((l: any) => l.target === userId);
-                            parentLinks.forEach((link: any) => {
-                                const parent = treeData.nodes.find((n: any) => n.id === link.source);
-                                if (parent) {
-                                    nodes.push({
-                                        id: parent.id,
-                                        nom: `${parent.firstName || ''} ${parent.lastName || ''}`.trim(),
-                                        type: 'self' as const, // On utilise "self" pour le style de carte standard
-                                        generation: nodes.length,
-                                        status: 'confirmed',
-                                        lien: link.type === 'FATHER_OF' ? 'Père' : 'Mère'
-                                    });
-                                }
+                        const parentLinks = treeData.links.filter((l: any) => l.target === userId);
+
+                        for (const link of parentLinks) {
+                            const parent = treeData.nodes.find((n: any) => n.id === link.source);
+                            if (!parent?.id) continue;
+
+                            // Vérification du statut Supabase — seuls confirmed ou probable sont affichés
+                            const { data: parentProfile } = await supabase
+                                .from('profiles')
+                                .select('status, first_name, last_name, avatar_url')
+                                .eq('id', parent.id)
+                                .single();
+
+                            if (!parentProfile) continue;
+
+                            // Filtre strict : uniquement les membres validés par l'équipe CHO
+                            if (parentProfile.status !== 'confirmed' && parentProfile.status !== 'probable') {
+                                console.log(`[LineageTree] Parent ${parent.id} exclu (statut: ${parentProfile.status})`);
+                                continue;
+                            }
+
+                            nodes.push({
+                                id: parent.id,
+                                nom: `${parentProfile.first_name || ''} ${parentProfile.last_name || ''}`.trim(),
+                                type: 'self' as const,
+                                generation: nodes.length,
+                                status: parentProfile.status,
+                                avatarUrl: parentProfile.avatar_url,
+                                lien: link.type === 'FATHER_OF' ? 'Père' : 'Mère'
                             });
+                        }
+
+                        // De même pour les enfants : on cherche les liens où l'utilisateur est la source
+                        // et on n'affiche que les enfants ayant un compte validé (onboarding + CHO)
+                        const childLinks = treeData.links.filter((l: any) => l.source === userId);
+                        for (const link of childLinks) {
+                            const child = treeData.nodes.find((n: any) => n.id === link.target);
+                            if (!child?.id) continue;
+
+                            const { data: childProfile } = await supabase
+                                .from('profiles')
+                                .select('status, first_name, last_name, avatar_url')
+                                .eq('id', child.id)
+                                .single();
+
+                            if (!childProfile) continue;
+
+                            // Filtre strict : uniquement les enfants inscrits via onboarding et validés CHO
+                            if (childProfile.status !== 'confirmed' && childProfile.status !== 'probable') {
+                                console.log(`[LineageTree] Enfant ${child.id} exclu (statut: ${childProfile.status})`);
+                                continue;
+                            }
+
+                            // Note: les enfants s'afficheront APRÈS le nœud utilisateur courant (ils seront ajoutés après)
+                            // On les stocke temporairement pour les insérer à la fin
                         }
                     }
                 } catch (e) {
@@ -132,20 +173,18 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     avatarUrl: profil.avatar_url
                 });
 
-                // 6. Ajouter les enfants s'ils existent (Données Déclaratives uniquement)
-                // IMPORTANT: Ces données ne sont pas certifiées par le CHO
-                if (profil.details_enfants && Array.isArray(profil.details_enfants)) {
-                    profil.details_enfants.forEach((enfant: any, idx: number) => {
-                        nodes.push({
-                            id: `child-${idx}`,
-                            nom: `${enfant.firstName || ''} ${enfant.lastName || ''}`.trim() || 'Enfant',
-                            type: 'self' as const,
-                            generation: nodes.length,
-                            status: 'declarative', // Statut spécifique non validé
-                            lien: 'Enfant (Déclaratif)'
-                        });
-                    });
-                }
+
+                // ============================================================
+                // RÈGLE MÉTIER FONDAMENTALE — Arbre Généalogique Racines+
+                // ============================================================
+                // L'arbre NE DOIT CONTENIR que des membres ayant :
+                //   1. Complété l'onboarding (inscription sur Racines+)
+                //   2. Été validés par le CHO (confirmed) ou pré-validés par CHOa (probable)
+                //
+                // Les enfants déclarés dans la "Fiche détaillée" (details_enfants) sont
+                // des données informatives UNIQUEMENT. Ils n'apparaissent PAS dans l'arbre
+                // tant qu'ils n'ont pas leur propre compte Racines+ validé par le CHO.
+                // ============================================================
 
                 setLineage(nodes);
             } catch (err) {

@@ -396,7 +396,7 @@ export default function ChoBoard() {
                                     setViewingCommentsProfile(profile);
                                     loadComments(profile.id);
                                 }}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
+                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
                             >
                                 <MessageSquare className="w-3.5 h-3.5" />
                             </button>
@@ -419,8 +419,8 @@ export default function ChoBoard() {
             <header className="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4 flex justify-between items-center z-50 shadow-sm">
                 <div className="flex items-center gap-5">
                     <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={100} height={35} className="object-contain hover:opacity-80 transition-opacity" /></Link>
-                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest border bg-gray-900 text-white shadow-lg shadow-gray-200 uppercase">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#FF6600]" />
+                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest border bg-[#FF6600] text-white shadow-lg shadow-orange-100 uppercase">
+                        <ShieldCheck className="w-3.5 h-3.5 text-white" />
                         CHO — DIRECTEUR DU PATRIMOINE
                     </div>
                 </div>

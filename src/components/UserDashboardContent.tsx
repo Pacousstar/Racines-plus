@@ -166,7 +166,8 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
             <div className="w-full lg:w-72 flex flex-col gap-4">
                 {/* Carte Profil */}
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className={`h-16 ${profileData?.status === 'confirmed' ? 'bg-gradient-to-br from-green-400/30 to-racines-green/10' : profileData?.status === 'rejected' ? 'bg-gradient-to-br from-red-400/20 to-red-100' : 'bg-gradient-to-r from-[#FF6600] to-amber-500'}`}></div>
+                    {/* Bannière orange — Charte graphique Racines+ : TOUJOURS orange, sans exception */}
+                    <div className="h-16 bg-gradient-to-r from-[#FF6600] to-amber-500"></div>
                     <div className="relative px-6 pb-6">
                         <div className="relative -mt-10 mb-4 w-fit mx-auto">
                             <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
@@ -314,7 +315,10 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                                 <p className="text-sm text-gray-600 mt-1">Explorez les différents styles de visualisation pour votre héritage.</p>
                             </div>
                         </div>
-                        <TreeSpecimens />
+                        <TreeSpecimens
+                            userName={profileData?.firstName && profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Votre Arbre'}
+                            userStatus={profileData?.status || 'pending'}
+                        />
                     </div>
                 )}
 
