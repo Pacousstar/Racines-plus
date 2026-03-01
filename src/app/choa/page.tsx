@@ -70,11 +70,7 @@ export default function ChoBoard() {
     const [ancestreSource, setAncetreSource] = useState('');
     const [isSavingAncetre, setIsSavingAncetre] = useState(false);
     const [ancestreSaved, setAncretreSaved] = useState(false);
-    // ─── Gestion des quartiers assignés du CHOa ───
-    const [villageQuartiers, setVillageQuartiers] = useState<string[]>([]);
-    const [selectedQuartiers, setSelectedQuartiers] = useState<string[]>([]);
-    const [showQuartierPanel, setShowQuartierPanel] = useState(false);
-    const [isSavingQuartiers, setIsSavingQuartiers] = useState(false);
+
 
     useEffect(() => {
         const load = async () => {
@@ -95,48 +91,33 @@ export default function ChoBoard() {
             }
             setMyProfile(profile);
 
-            // Initialiser les quartiers assignés
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const assignes: string[] = (profile as any).quartiers_assignes || [];
-            const fallback = profile.quartier_nom ? [profile.quartier_nom] : [];
-            const initQuartiers = assignes.length > 0 ? assignes : fallback;
-            setSelectedQuartiers(initQuartiers);
-            if (initQuartiers.length === 0) setShowQuartierPanel(true);
-
-            // Charger les quartiers disponibles du village
-            const { data: villageData } = await supabase
-                .from('villages').select('id').eq('nom', profile.village_origin).single();
-            if (villageData) {
-                const { data: qData } = await supabase
-                    .from('quartiers').select('nom').eq('village_id', villageData.id);
-                setVillageQuartiers((qData || []).map(q => q.nom));
-            }
-
-            // Charger les profils utilisateurs du village
+            // Charger les profils utilisateurs
             const { data: allUsers, error: usersErr } = await supabase
                 .from('profiles')
                 .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at')
                 .eq('role', 'user')
                 .order('created_at', { ascending: false });
+
             if (usersErr) console.error('[choa] Error fetching users:', usersErr);
 
             if (allUsers) {
-                // Tous les pending du village — les quartiers assignés du CHOa mis en tête
-                const villagePending = allUsers.filter(u =>
+                // Le CHOa voit SEULEMENT les pending de SON village et SON quartier
+                const myPending = allUsers.filter(u =>
                     u.village_origin === profile.village_origin &&
+                    u.quartier_nom === profile.quartier_nom &&
                     (u.status === 'pending' || !u.status)
                 );
-                villagePending.sort((a, b) => {
-                    const aP = initQuartiers.includes(a.quartier_nom) ? 0 : 1;
-                    const bP = initQuartiers.includes(b.quartier_nom) ? 0 : 1;
-                    return aP - bP;
-                });
-                setPendingProfiles(villagePending);
+
+                setPendingProfiles(myPending);
                 setConfirmedProfiles(allUsers.filter(u =>
-                    u.village_origin === profile.village_origin && u.status === 'confirmed'
+                    u.village_origin === profile.village_origin &&
+                    u.quartier_nom === profile.quartier_nom &&
+                    u.status === 'confirmed'
                 ));
                 setRejectedProfiles(allUsers.filter(u =>
-                    u.village_origin === profile.village_origin && u.status === 'rejected'
+                    u.village_origin === profile.village_origin &&
+                    u.quartier_nom === profile.quartier_nom &&
+                    u.status === 'rejected'
                 ));
             }
 
@@ -163,26 +144,7 @@ export default function ChoBoard() {
         setIsLoading(false);
     };
 
-    // ─── Sauvegarder les quartiers assignés du CHOa dans Supabase (persistant) ───
-    const handleSaveQuartiers = async () => {
-        if (!currentUserId || selectedQuartiers.length === 0) {
-            alert("Veuillez sélectionner au moins un quartier.");
-            return;
-        }
-        setIsSavingQuartiers(true);
-        const { error } = await supabase.from('profiles').update({
-            quartiers_assignes: selectedQuartiers,
-            quartier_nom: selectedQuartiers[0]   // quartier principal = premier sélectionné
-        }).eq('id', currentUserId);
-        if (error) {
-            alert("Erreur de sauvegarde : " + error.message);
-        } else {
-            setMyProfile(prev => prev ? { ...prev, quartier_nom: selectedQuartiers[0] } : prev);
-            setShowQuartierPanel(false);
-            alert("✅ Quartier(s) assigné(s) et enregistrés : " + selectedQuartiers.join(', '));
-        }
-        setIsSavingQuartiers(false);
-    };
+
 
     const handleExport = (dataToExport: PendingProfile[], label: string) => {
         if (!myProfile?.export_authorized) {
@@ -436,12 +398,7 @@ export default function ChoBoard() {
                             <span className="w-2 h-2 bg-[#FF6600] rounded-full animate-pulse" />
                             Village : <span className="text-gray-900 font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>
                             <span className="text-gray-400 mx-1">•</span>
-                            Quartier(s) :
-                            {selectedQuartiers.length > 0
-                                ? <span className="text-[#FF6600] font-black">{selectedQuartiers.join(' • ')}</span>
-                                : <button onClick={() => setShowQuartierPanel(true)} className="text-[#FF6600] font-black underline underline-offset-2">⚠️ Non assigné — Cliquer pour choisir</button>
-                            }
-                            <button onClick={() => setShowQuartierPanel(v => !v)} className="text-xs text-gray-400 hover:text-[#FF6600] transition-colors font-medium">(éditer)</button>
+                            Quartier : <span className="text-[#FF6600] font-black">{myProfile?.quartier_nom || 'Non assigné'}</span>
                         </p>
                     </div>
                     <div className="text-right hidden md:block">
@@ -449,62 +406,6 @@ export default function ChoBoard() {
                         <p className="text-sm font-bold text-gray-900 italic">Antigravity Panel v2.0</p>
                     </div>
                 </div>
-
-                {/* ─── Panel de sélection de quartier(s) ─── */}
-                {showQuartierPanel && (
-                    <div className="mb-8 bg-[#FF6600]/5 border-2 border-[#FF6600]/30 rounded-3xl p-6">
-                        <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 bg-[#FF6600] rounded-2xl flex-shrink-0 flex items-center justify-center">
-                                <MapPin className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="font-black text-gray-900 mb-1">
-                                    {selectedQuartiers.length === 0 ? '⚠️ Aucun quartier assigné' : '📍 Modifier mes quartiers'}
-                                </h3>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Sélectionnez le ou les quartiers dont vous êtes responsable.
-                                    {selectedQuartiers.length === 0 && <strong className="text-[#FF6600]"> Obligatoire pour traiter les dossiers.</strong>}
-                                </p>
-                                {villageQuartiers.length === 0 ? (
-                                    <p className="text-sm text-gray-400 italic">Aucun quartier trouvé. Contactez l&apos;Admin pour en créer.</p>
-                                ) : (
-                                    <div className="flex flex-wrap gap-3 mb-4">
-                                        {villageQuartiers.map(q => (
-                                            <label key={q} className="flex items-center gap-2 cursor-pointer group">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedQuartiers.includes(q)}
-                                                    onChange={() => setSelectedQuartiers(prev =>
-                                                        prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]
-                                                    )}
-                                                    className="w-4 h-4 accent-[#FF6600]"
-                                                />
-                                                <span className={`text-sm font-bold px-3 py-1.5 rounded-xl border-2 transition-all ${selectedQuartiers.includes(q)
-                                                        ? 'bg-[#FF6600] text-white border-[#FF6600]'
-                                                        : 'bg-white text-gray-600 border-gray-200 group-hover:border-[#FF6600]/40'
-                                                    }`}>{q}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={handleSaveQuartiers}
-                                        disabled={isSavingQuartiers || selectedQuartiers.length === 0}
-                                        className="px-6 py-3 bg-[#FF6600] text-white rounded-2xl font-black text-sm hover:bg-[#e55c00] disabled:bg-gray-200 disabled:text-gray-500 transition-all shadow-lg shadow-orange-100 active:scale-95"
-                                    >
-                                        {isSavingQuartiers ? 'Enregistrement...' : '✅ Enregistrer mes quartiers'}
-                                    </button>
-                                    {selectedQuartiers.length > 0 && (
-                                        <button onClick={() => setShowQuartierPanel(false)} className="px-4 py-3 bg-white border border-gray-200 text-gray-600 rounded-2xl font-bold text-sm hover:bg-gray-50 transition-all">
-                                            Fermer
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 <div className="flex gap-3 mb-10 overflow-x-auto pb-4 px-1 scrollbar-hide">
                     {tabs.map(tab => (

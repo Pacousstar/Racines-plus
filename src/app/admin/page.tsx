@@ -38,6 +38,9 @@ interface Profile {
     certificate_issued?: boolean;
     certificate_issued_at?: string;
     email?: string;
+    phone_1?: string;
+    whatsapp_1?: string;
+    quartier_nom?: string;
 }
 
 interface Village {
@@ -153,6 +156,10 @@ export default function AdminDashboard() {
     const [filterRole, setFilterRole] = useState('all');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterVillage, setFilterVillage] = useState('all');
+
+    const [valSearchTerm, setValSearchTerm] = useState('');
+    const [valFilterStatus, setValFilterStatus] = useState('all');
+    const [valFilterVillage, setValFilterVillage] = useState('all');
 
     const [memorialForm, setMemorialForm] = useState({ nom: '', prenoms: '', genre: 'M', age: '', village_id: '', quartier: '', description: '' });
     const [isSavingMemorial, setIsSavingMemorial] = useState(false);
@@ -532,6 +539,13 @@ export default function AdminDashboard() {
     });
 
     const uniqueVillages = Array.from(new Set(profiles.map(p => p.village_origin).filter(Boolean)));
+
+    const validationsProfiles = profiles.filter(p => {
+        const matchSearch = (p.first_name + ' ' + p.last_name + ' ' + (p.phone_1 || '')).toLowerCase().includes(valSearchTerm.toLowerCase());
+        const matchStatus = valFilterStatus === 'all' || p.status === valFilterStatus;
+        const matchVillage = valFilterVillage === 'all' || p.village_origin === valFilterVillage;
+        return matchSearch && matchStatus && matchVillage;
+    });
 
     const kpis = [
         { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
@@ -1143,7 +1157,90 @@ export default function AdminDashboard() {
                             </div>
                         </div>
                         <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                            <p className="text-gray-600 text-sm text-center py-8">Le tableau détaillé des validations CHO sera affiché ici une fois les données disponibles.</p>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                <h2 className="font-bold text-lg">Suivi Ultra-Détaillé</h2>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="relative">
+                                        <Search className="w-4 h-4 text-gray-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <input
+                                            type="text"
+                                            placeholder="Chercher nom, téléphone..."
+                                            value={valSearchTerm}
+                                            onChange={e => setValSearchTerm(e.target.value)}
+                                            className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm w-full md:w-64 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/10 outline-none"
+                                        />
+                                    </div>
+                                    <select value={valFilterStatus} onChange={e => setValFilterStatus(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
+                                        <option value="all">Tous Statuts</option>
+                                        <option value="confirmed">✅ Confirmés</option>
+                                        <option value="probable">🟠 Prés-validés (Probables)</option>
+                                        <option value="pending">⏳ En attente (Nouveaux)</option>
+                                        <option value="rejected">❌ Rejetés</option>
+                                    </select>
+                                    <select value={valFilterVillage} onChange={e => setValFilterVillage(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
+                                        <option value="all">Tous Villages</option>
+                                        {uniqueVillages.map(v => (
+                                            <option key={v as string} value={v as string}>{v as string}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 text-[10px] text-gray-600 uppercase font-bold tracking-wider">
+                                        <tr>
+                                            <th className="text-left py-3 px-4">Citoyen</th>
+                                            <th className="text-left py-3 px-4">Origines</th>
+                                            <th className="text-left py-3 px-4">Contact & Info</th>
+                                            <th className="text-left py-3 px-4">Statut</th>
+                                            <th className="text-left py-3 px-4">Délai</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {validationsProfiles.map((p: any) => (
+                                            <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                                                <td className="py-3 px-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold relative overflow-hidden">
+                                                            {p.avatar_url ? (
+                                                                <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (p.first_name?.[0] || '?').toUpperCase()
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-gray-900">{p.first_name} {p.last_name}</p>
+                                                            <p className="text-[10px] text-gray-500 uppercase">{p.gender || 'Genre non précisé'}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <p className="font-medium text-gray-800">{p.village_origin || '—'}</p>
+                                                    <p className="text-[10px] text-gray-500 uppercase">{p.quartier_nom || 'Quartier non précisé'}</p>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <p className="text-xs text-gray-600">{p.phone_1 || p.whatsapp_1 ? `📞 ${p.phone_1 || p.whatsapp_1}` : 'Vérifier la fiche'}</p>
+                                                    <p className="text-[10px] text-gray-400 capitalize">{p.niveau_etudes || 'Études non précisées'}</p>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <span className={`text-[10px] px-2 py-1 rounded-full font-black tracking-wide ${p.status === 'confirmed' ? 'bg-green-100 text-green-700' : p.status === 'probable' ? 'bg-orange-100 text-orange-700' : p.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                        {p.status === 'confirmed' ? 'CERTIFIÉ ✅' : p.status === 'probable' ? 'PROBABLE 🟠' : p.status === 'rejected' ? 'REJETÉ 🔴' : 'EN ATTENTE ⏳'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-xs text-gray-500">
+                                                    {new Date(p.created_at).toLocaleDateString('fr-FR')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {validationsProfiles.length === 0 && (
+                                    <div className="text-center py-10">
+                                        <p className="text-gray-500 font-medium">Aucun profil ne correspond aux filtres actuels.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}

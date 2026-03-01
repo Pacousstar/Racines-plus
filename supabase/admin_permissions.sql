@@ -36,17 +36,21 @@ ALTER TABLE public.activity_logs      ENABLE ROW LEVEL SECURITY;
 -- 4. POLITIQUES RLS
 -- Seul l'Admin Principal (ou quelqu'un avec permission spéciale si vous le décidez plus tard) peut gérer les permissions
 -- Pour l'instant, protection par email de l'Admin Principal pour la sécurité maximale
+
+DROP POLICY IF EXISTS "Admin_Principal_Manage_Permissions" ON public.admin_permissions;
 CREATE POLICY "Admin_Principal_Manage_Permissions" ON public.admin_permissions
     FOR ALL USING (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'Pacous2000@gmail.com')
+        auth.jwt() ->> 'email' = 'Pacous2000@gmail.com'
     );
 
+DROP POLICY IF EXISTS "Assistants_Read_Own_Permissions" ON public.admin_permissions;
 CREATE POLICY "Assistants_Read_Own_Permissions" ON public.admin_permissions
     FOR SELECT USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Admin_Principal_View_Logs" ON public.activity_logs;
 CREATE POLICY "Admin_Principal_View_Logs" ON public.activity_logs
     FOR SELECT USING (
-        EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND email = 'Pacous2000@gmail.com')
+        auth.jwt() ->> 'email' = 'Pacous2000@gmail.com'
     );
 
 -- 5. TRIGGER : Journalisation automatique (Audit Trailing)
