@@ -610,10 +610,13 @@ export default function Onboarding() {
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin || (formData.residenceCountry === 'OTHER' && !formData.residenceCountryCustom)}
+                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin || !formData.quartierNom || (formData.residenceCountry === 'OTHER' && !formData.residenceCountryCustom)}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Continuer <ArrowRight className="w-5 h-5" />
                             </button>
+                            {!formData.quartierNom && (
+                                <p className="text-white/80 text-center text-xs mt-2 font-semibold">⚠️ Le quartier d&apos;origine est obligatoire</p>
+                            )}
                         </form>
                     )}
 

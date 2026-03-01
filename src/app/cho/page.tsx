@@ -137,8 +137,10 @@ export default function ChoBoard() {
                     pre_validated_by: validationsMap[u.id] || null
                 }));
 
-                // Le CHO voit les 'pending' (nouveaux) ET les 'probable' (pré-traités par les CHOa)
-                setPendingProfiles(enhancedUsers.filter(u => !u.status || u.status === 'pending' || u.status === 'probable'));
+                // ─── Flux de validation obligatoire : pending → CHOa → probable → CHO ───
+                // Le CHO ne voit QUE les dossiers pré-validés par un CHOa (status='probable')
+                // Les nouveaux inscrits (status='pending') restent côté CHOa jusqu'à leur pré-validation
+                setPendingProfiles(enhancedUsers.filter(u => u.status === 'probable'));
                 setConfirmedProfiles(enhancedUsers.filter(u => u.status === 'confirmed'));
                 setRejectedProfiles(enhancedUsers.filter(u => u.status === 'rejected'));
 
