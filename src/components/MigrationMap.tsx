@@ -19,7 +19,7 @@ export interface MigrationMarker {
 
 // Coordonnées GPS réelles et métadonnées des principales destinations
 export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; flag: string; name: string }> = {
-    'CI': { lat: 7.5400, lng: -5.5471, flag: '🇨🇮', name: "Côte d'Ivoire" },
+    'CI': { lat: 6.805080, lng: -7.329396, flag: '🇨🇮', name: "Côte d'Ivoire" },
     'FR': { lat: 46.2276, lng: 2.2137, flag: '🇫🇷', name: 'France' },
     'US': { lat: 37.0902, lng: -95.7129, flag: '🇺🇸', name: 'États-Unis' },
     'CA': { lat: 56.1304, lng: -106.3468, flag: '🇨🇦', name: 'Canada' },

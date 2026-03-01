@@ -357,8 +357,8 @@ export default function PyramidTree() {
                         Visualisation pyramidale africaine. Les liens familiaux sont analysés et certifiés par le CHO.
                     </p>
                     {source === 'neo4j' && (
-                        <div className="inline-flex items-center gap-1.5 mt-3 text-xs bg-blue-50 text-blue-600 border border-blue-100 px-3 py-1 rounded-full font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                        <div className="inline-flex items-center gap-1.5 mt-3 text-xs bg-orange-50 text-[#FF6600] border border-orange-100 px-3 py-1 rounded-full font-medium">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#FF6600] animate-pulse" />
                             Données live Neo4j Aura
                         </div>
                     )}

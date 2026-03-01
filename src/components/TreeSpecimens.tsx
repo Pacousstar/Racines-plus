@@ -4,6 +4,84 @@ import React, { useState } from 'react';
 import { TreePine, Layout, Table, Eye, Crown } from 'lucide-react';
 import PyramidTree from './PyramidTree';
 
+// ─────────────────────────────────────────────────────────────
+// Sous-composant : un niveau de l'arbre généalogique illustré
+// ─────────────────────────────────────────────────────────────
+interface TreeNodeData {
+    nom: string;
+    dates?: string;
+    quartier?: string;
+    certified?: boolean;
+    isYou?: boolean;
+    small?: boolean;
+}
+
+function TreeLevel({
+    label, labelColor, nodes, connectorColor
+}: {
+    label: string;
+    labelColor: string;
+    nodes: TreeNodeData[];
+    connectorColor: string;
+}) {
+    return (
+        <div className="flex flex-col items-center gap-1 w-full">
+            {/* Connecteur vers le haut */}
+            <div className="w-px h-4" style={{ background: connectorColor, opacity: 0.4 }} />
+            {/* Label du niveau */}
+            <div className={`text-[9px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full border mb-1 ${labelColor}`}
+                style={{ borderColor: connectorColor, background: `${connectorColor}12` }}>
+                {label}
+            </div>
+            {/* Ligne horizontale de connexion */}
+            <div className="w-2/3 h-px mb-1" style={{ background: connectorColor, opacity: 0.3 }} />
+            {/* Nœuds du niveau */}
+            <div className="flex flex-wrap justify-center gap-2 w-full">
+                {nodes.map((node, idx) => (
+                    <div
+                        key={idx}
+                        className={`
+                            relative flex flex-col items-center gap-1 rounded-xl border-2 shadow-sm
+                            transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer
+                            ${node.small ? 'px-2 py-1 w-10' : 'px-3 py-2 min-w-[90px] max-w-[120px]'}
+                            ${node.isYou
+                                ? 'border-[#FF6600] bg-orange-50'
+                                : node.certified
+                                    ? 'border-[#124E35] bg-white'
+                                    : 'border-stone-200 bg-stone-50/60'
+                            }
+                        `}
+                    >
+                        {/* Badge certifié CHO */}
+                        {node.certified && !node.small && (
+                            <div className="absolute -top-2 -right-2 w-4 h-4 bg-[#124E35] text-white rounded-full flex items-center justify-center text-[8px] font-black shadow-sm">✓</div>
+                        )}
+                        {node.isYou && (
+                            <div className="absolute -top-2 -right-2 w-4 h-4 bg-[#FF6600] text-white rounded-full flex items-center justify-center text-[8px] font-black shadow-sm">★</div>
+                        )}
+                        {node.small ? (
+                            <span className="text-[9px] font-black text-stone-400">{node.nom}</span>
+                        ) : (
+                            <>
+                                {/* Avatar initiales */}
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black
+                                    ${node.isYou ? 'bg-[#FF6600] text-white' : node.certified ? 'bg-[#124E35] text-white' : 'bg-stone-200 text-stone-500'}
+                                `}>
+                                    {node.nom.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                                <p className="text-[9px] font-black text-gray-800 text-center leading-tight truncate w-full">{node.nom}</p>
+                                {node.dates && <p className="text-[8px] text-stone-400 text-center leading-none">{node.dates}</p>}
+                                {node.quartier && <p className="text-[7px] font-bold text-stone-400 text-center uppercase tracking-tighter">{node.quartier}</p>}
+                            </>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+
 // Composant Spécimens d'Arbre Généalogique — affiche 2 modèles premium propres à Racines+
 // Props : userName = nom de l'utilisateur connecté (données réelles), userStatus = statut de certification
 export default function TreeSpecimens({ userName, userStatus }: { userName?: string; userStatus?: string }) {
@@ -93,11 +171,11 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                                 <div className="lg:col-span-2 flex flex-col items-center justify-center border-r border-slate-100 pr-10">
                                     <div className="relative">
                                         <div className="w-24 h-24 rounded-full border-4 border-[#FF6600] p-1.5 mb-4 shadow-xl shadow-orange-100 animate-pulse">
-                                            <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center overflow-hidden">
+                                            <div className="w-full h-full bg-orange-50 rounded-full flex items-center justify-center overflow-hidden">
                                                 <Crown className="w-12 h-12 text-[#FF6600]" />
                                             </div>
                                         </div>
-                                        <span className="absolute -top-2 -right-2 bg-slate-900 text-white text-[8px] font-black px-2 py-1 rounded-full border-2 border-white uppercase">Patriarch</span>
+                                        <span className="absolute -top-2 -right-2 bg-[#FF6600] text-white text-[8px] font-black px-2 py-1 rounded-full border-2 border-white uppercase">Vous</span>
                                     </div>
                                     <h3 className="font-black text-xl text-slate-800 uppercase tracking-tight">{userName || 'Votre Arbre'}</h3>
                                     <p className="text-xs text-[#FF6600] font-black mb-6 uppercase tracking-widest">
@@ -150,20 +228,72 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                         </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center p-20 text-center min-h-[500px] bg-gray-50/30">
-                        <div className="w-24 h-24 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-6 border border-gray-100 animate-bounce">
-                            <Table className="w-12 h-12 text-[#124E35]" />
-                        </div>
-                        <h3 className="text-xl font-black text-gray-800 mb-2">Génération en cours...</h3>
-                        <p className="text-sm text-gray-400 max-w-sm leading-relaxed">
-                            Le style <strong>{styles.find(s => s.id === selectedStyle)?.name}</strong> arrive bientôt.
-                            L'IA Racines+ adapte vos données de lignée pour ce format spécifique.
-                        </p>
-                        <div className="mt-8 flex items-center gap-3">
-                            <div className="flex -space-x-2">
-                                {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-gray-200" />)}
+                    /* ─── Aperçu : Généalogie Standard ─── Arbre Africain Illustré */
+                    <div className="relative min-h-[600px] bg-[#f9f3e8] overflow-hidden">
+                        {/* Bordure décorative africaine */}
+                        <div className="absolute inset-x-0 top-0 h-4 bg-gradient-to-r from-[#124E35] via-[#C05C3C] to-[#d4af37] via-[#124E35]" />
+                        <div className="absolute inset-x-0 bottom-0 h-4 bg-gradient-to-r from-[#d4af37] via-[#C05C3C] to-[#124E35]" />
+                        {/* Titre bannière */}
+                        <div className="flex justify-center pt-8 mb-4">
+                            <div className="bg-[#124E35] text-white px-8 py-2 rounded-full border-2 border-[#d4af37] shadow-lg">
+                                <span className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                                    <TreePine className="w-4 h-4 text-[#d4af37]" />
+                                    MON ARBRE GÉNÉALOGIQUE — RACINES+
+                                    <TreePine className="w-4 h-4 text-[#d4af37]" />
+                                </span>
                             </div>
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">+12 membres connectés</span>
+                        </div>
+
+                        {/* ── Niveaux de l'arbre (du haut vers le bas) ── */}
+                        <div className="px-4 pb-8 space-y-1">
+                            {/* Niveau Ancêtres */}
+                            <TreeLevel label="Ancêtres" labelColor="text-amber-700" nodes={[
+                                { nom: 'Ancêtre 1', dates: 'Env. 1820 – 1890', quartier: 'Toa-Zéo', certified: true },
+                                { nom: 'Ancêtre 2', dates: 'Env. 1830 – 1900', quartier: 'Toa-Zéo', certified: true },
+                                { nom: 'GA', dates: '', quartier: '', certified: false, small: true },
+                                { nom: 'Ancêtre 3', dates: 'Env. 1825 – 1895', quartier: 'Toa-Zéo', certified: true },
+                                { nom: 'Ancêtre 4', dates: 'Env. 1840 – 1910', quartier: 'Toa-Zéo', certified: true },
+                            ]} connectorColor="#d4af37" />
+
+                            {/* Niveau Grands-Parents */}
+                            <TreeLevel label="Grands-Parents" labelColor="text-[#124E35]" nodes={[
+                                { nom: 'Grand-Père P.', dates: '1910 – 1988', quartier: 'Gbéya', certified: true },
+                                { nom: 'Grand-Mère P.', dates: '1914 – 1992', quartier: 'Gbéya', certified: true },
+                                { nom: 'GP', dates: '', quartier: '', certified: false, small: true },
+                                { nom: 'Grand-Père M.', dates: '1908 – 1985', quartier: 'Bonyé', certified: true },
+                            ]} connectorColor="#124E35" />
+
+                            {/* Niveau Parents */}
+                            <TreeLevel label="Parents" labelColor="text-[#124E35]" nodes={[
+                                { nom: 'NOM PRÉNOM', dates: '1948 – 2001', quartier: 'Gbéya', certified: true },
+                                { nom: 'NOM PRÉNOM', dates: '1952 –', quartier: 'Gbéya', certified: true },
+                                { nom: 'NOM PRÉNOM', dates: '1950 – 2010', quartier: 'Bonyé', certified: true },
+                                { nom: 'NOM PRÉNOM', dates: '1955 –', quartier: 'Zouhaé', certified: true },
+                            ]} connectorColor="#124E35" />
+
+                            {/* Génération Actuelle */}
+                            <TreeLevel label="Génération Actuelle" labelColor="text-[#FF6600]" nodes={[
+                                { nom: userName || 'NOM PRÉNOM', dates: 'Né(e) en', quartier: 'Vous', certified: userStatus === 'confirmed', isYou: true },
+                                { nom: 'NOM PRÉNOM', dates: '± 1980 –', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '± 1983 –', quartier: '', certified: false },
+                            ]} connectorColor="#FF6600" />
+
+                            {/* Enfants */}
+                            <TreeLevel label="Enfants" labelColor="text-[#C05C3C]" nodes={[
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                            ]} connectorColor="#C05C3C" />
+
+                            {/* Petits-Enfants */}
+                            <TreeLevel label="Petits-Enfants" labelColor="text-stone-500" nodes={[
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                                { nom: 'NOM PRÉNOM', dates: '', quartier: '', certified: false },
+                            ]} connectorColor="#a0856b" />
                         </div>
                     </div>
                 )}

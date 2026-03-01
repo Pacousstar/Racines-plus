@@ -56,8 +56,8 @@ const createDiasporaIcon = (count: number) => new L.DivIcon({
     popupAnchor: [0, -20],
 });
 
-// Coordonnées du foyer Toa-Zéo
-const TOA_ZEO: [number, number] = [7.5400, -5.5471];
+// Coordonnées GPS exactes du village de Toa-Zéo (Côte d'Ivoire)
+const TOA_ZEO: [number, number] = [6.805080, -7.329396];
 
 interface LeafletMapProps {
     markers: MigrationMarker[];
