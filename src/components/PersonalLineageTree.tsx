@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TreePine, Crown, Clock, Heart, GitBranch, FileText, Image as ImageIcon, BookOpen, ChevronRight } from 'lucide-react';
+import { TreePine, Crown, Clock, Heart, GitBranch, FileText, Image as ImageIcon, BookOpen, ChevronRight, Download } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
+import ExportTreeModal from './ExportTreeModal';
 
 interface LineageNode {
     id: string;
@@ -142,6 +143,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
     const [isLoading, setIsLoading] = useState(true);
     const [aiPosition, setAiPosition] = useState<{ generation: number; lien_probable: string; confidence: number } | null>(null);
     const [selectedNode, setSelectedNode] = useState<AncestorModalData | null>(null);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [userRole, setUserRole] = useState('user');
     const [stats, setStats] = useState({ members: 0, generations: 0 });
 
     useEffect(() => {
@@ -151,11 +154,12 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 // 1. Profil utilisateur courant
                 const { data: profil } = await supabase
                     .from('profiles')
-                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom')
+                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom, role')
                     .eq('id', userId)
                     .single();
 
                 if (!profil) { setIsLoading(false); return; }
+                setUserRole(profil.role || 'user');
 
                 // 2. Ancêtre fondateur certifié CHO
                 let ancestreNode: LineageNode | null = null;
@@ -372,6 +376,15 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     <div className="flex items-center gap-1 text-[10px] bg-[#124E35]/10 border border-[#124E35]/20 text-[#124E35] px-2 py-1 rounded-full font-black">
                         ✅ CHO Certifié
                     </div>
+                    {lineage && (
+                        <button
+                            onClick={() => setIsExportModalOpen(true)}
+                            className="flex items-center gap-1.5 text-xs font-bold bg-[#124E35] text-white px-3 py-1.5 rounded-full shadow-md hover:bg-[#0c3624] transition-colors ml-2"
+                        >
+                            <Download className="w-4 h-4" />
+                            Exporter l'Arbre
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -508,6 +521,12 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
 
 
             <AncestorDetailsModal isOpen={!!selectedNode} onClose={() => setSelectedNode(null)} person={selectedNode} />
+            <ExportTreeModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                data={{ ancestre: ancetre, parents, self: currentUser, children }}
+                userRole={userRole}
+            />
         </div>
     );
 }
