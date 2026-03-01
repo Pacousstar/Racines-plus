@@ -84,7 +84,7 @@ function TreeLevel({
 
 // Composant Spécimens d'Arbre Généalogique — affiche 2 modèles premium propres à Racines+
 // Props : userName = nom de l'utilisateur connecté (données réelles), userStatus = statut de certification
-export default function TreeSpecimens({ userName, userStatus }: { userName?: string; userStatus?: string }) {
+export default function TreeSpecimens({ userName, userStatus, userRole }: { userName?: string; userStatus?: string; userRole?: string }) {
     const [selectedStyle, setSelectedStyle] = useState<'heritage' | 'modern' | 'classic'>('heritage');
 
     const styles = [
@@ -200,27 +200,29 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                                         {
                                             label: 'Statut de certification',
                                             desc: userStatus === 'confirmed' ? '✅ Certifié par le CHO' : userStatus === 'probable' ? '🟠 En cours de validation' : '⚫ En attente du CHO',
-                                            color: userStatus === 'confirmed' ? 'text-green-700 bg-green-50 border-green-100' : 'text-[#FF6600] bg-orange-50 border-orange-100'
+                                            color: userStatus === 'confirmed' ? 'text-green-800 bg-green-50 border-green-200 shadow-sm' : 'text-[#FF6600] bg-orange-50 border-orange-200 shadow-sm'
                                         },
                                         {
                                             label: 'Votre lignée',
                                             desc: 'Ancêtres et descendants validés dans l\'arbre.',
-                                            color: 'text-[#FF6600] bg-orange-50 border-orange-100'
+                                            color: 'text-[#FF6600] bg-orange-50 border-orange-200 shadow-sm'
                                         },
                                         {
-                                            label: 'Documents (à venir)',
-                                            desc: 'Actes, photos de famille, preuves historiques.',
-                                            color: 'text-slate-600 bg-slate-50 border-slate-100'
+                                            label: userRole === 'admin' ? 'Documents (Espace Test Admin)' : 'Documents (À venir)',
+                                            desc: userRole === 'admin' ? 'Cliquez pour ouvrir le dossier (Simulation).' : 'Actes, photos de famille, preuves historiques.',
+                                            color: userRole === 'admin' ? 'text-blue-800 bg-blue-50 border-blue-200 shadow-sm cursor-pointer hover:bg-blue-100' : 'text-slate-700 bg-slate-100 border-slate-200 shadow-sm',
+                                            onClick: () => userRole === 'admin' && alert('Fonctionnalité Documents (Admin Test) lancée !')
                                         },
                                         {
-                                            label: 'Médias (à venir)',
-                                            desc: 'Photos et vidéos de votre famille.',
-                                            color: 'text-slate-600 bg-slate-50 border-slate-100'
+                                            label: userRole === 'admin' ? 'Médias (Espace Test Admin)' : 'Médias (À venir)',
+                                            desc: userRole === 'admin' ? 'Cliquez pour ouvrir la galerie (Simulation).' : 'Photos et vidéos de votre famille.',
+                                            color: userRole === 'admin' ? 'text-indigo-800 bg-indigo-50 border-indigo-200 shadow-sm cursor-pointer hover:bg-indigo-100' : 'text-slate-700 bg-slate-100 border-slate-200 shadow-sm',
+                                            onClick: () => userRole === 'admin' && alert('Fonctionnalité Médias (Admin Test) lancée !')
                                         }
                                     ].map((item, idx) => (
-                                        <div key={idx} className={`p-3 rounded-xl border ${item.color} transition-all`}>
-                                            <p className="text-[10px] font-black uppercase tracking-wide leading-tight">{item.label}</p>
-                                            <p className="text-[10px] font-medium mt-0.5 opacity-80">{item.desc}</p>
+                                        <div key={idx} onClick={item.onClick} className={`p-4 rounded-xl border transition-all ${item.color}`}>
+                                            <p className="text-xs font-black uppercase tracking-wide leading-tight">{item.label}</p>
+                                            <p className="text-xs font-semibold mt-1 opacity-90">{item.desc}</p>
                                         </div>
                                     ))}
                                 </div>

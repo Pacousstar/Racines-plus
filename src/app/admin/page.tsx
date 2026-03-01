@@ -169,6 +169,14 @@ export default function AdminDashboard() {
     const [viewingUserId, setViewingUserId] = useState<string | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
+    // Pagination States
+    const [usersPage, setUsersPage] = useState(1);
+    const [valPage, setValPage] = useState(1);
+    const [villagesPage, setVillagesPage] = useState(1);
+    const [memorialPage, setMemorialPage] = useState(1);
+    const [logsPage, setLogsPage] = useState(1);
+    const itemsPerPage = 20;
+
     const handleViewProfile = async (id: string) => {
         const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
         if (data) {
@@ -551,6 +559,9 @@ export default function AdminDashboard() {
         return matchSearch && matchRole && matchStatus && matchVillage;
     });
 
+    const paginatedProfiles = filteredProfiles.slice((usersPage - 1) * itemsPerPage, usersPage * itemsPerPage);
+    const totalUserPages = Math.ceil(filteredProfiles.length / itemsPerPage);
+
     const uniqueVillages = Array.from(new Set(profiles.map(p => p.village_origin).filter(Boolean)));
 
     const validationsProfiles = profiles.filter(p => {
@@ -559,6 +570,9 @@ export default function AdminDashboard() {
         const matchVillage = valFilterVillage === 'all' || p.village_origin === valFilterVillage;
         return matchSearch && matchStatus && matchVillage;
     });
+
+    const paginatedValidations = validationsProfiles.slice((valPage - 1) * itemsPerPage, valPage * itemsPerPage);
+    const totalValPages = Math.ceil(validationsProfiles.length / itemsPerPage);
 
     const kpis = [
         { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
@@ -860,7 +874,7 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {filteredProfiles.map(p => (
+                                        {paginatedProfiles.map(p => (
                                             <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="py-3 px-5">
                                                     <div className="flex items-center gap-2">
@@ -965,6 +979,26 @@ export default function AdminDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+                            {/* Pagination Utilisateurs */}
+                            {totalUserPages > 1 && (
+                                <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
+                                    <button
+                                        disabled={usersPage === 1}
+                                        onClick={() => setUsersPage(prev => Math.max(1, prev - 1))}
+                                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Précédent
+                                    </button>
+                                    <span className="text-sm font-semibold text-gray-600">Page {usersPage} sur {totalUserPages}</span>
+                                    <button
+                                        disabled={usersPage === totalUserPages}
+                                        onClick={() => setUsersPage(prev => Math.min(totalUserPages, prev + 1))}
+                                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Suivant
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1088,63 +1122,66 @@ export default function AdminDashboard() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-50">
-                                            {villages.map(v => (
-                                                <React.Fragment key={v.id}>
-                                                    <tr className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="px-4 py-3 font-semibold">{v.nom}</td>
-                                                        <td className="px-4 py-3 text-gray-600 text-sm">{v.region || '-'}</td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <button
-                                                                    onClick={() => handleAddQuartier(v.id)}
-                                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-bold"
-                                                                    title="Ajouter un Quartier"
-                                                                >
-                                                                    <Plus className="w-3 h-3" /> QUARTIER
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const nextName = prompt("Nouveau nom :", v.nom);
-                                                                        if (nextName && nextName !== v.nom) {
-                                                                            supabase.from('villages').update({ nom: nextName }).eq('id', v.id).then(({ error }) => {
-                                                                                if (error) alert(error.message);
-                                                                                else setVillages(prev => prev.map(vi => vi.id === v.id ? { ...vi, nom: nextName } : vi));
-                                                                            });
-                                                                        }
-                                                                    }}
-                                                                    className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                                                                >
-                                                                    <Edit3 className="w-4 h-4" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteVillage(v.id, v.nom)}
-                                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                    {/* Quartiers associés */}
-                                                    {quartiers.filter(q => q.village_id === v.id).length > 0 && (
-                                                        <tr className="bg-gray-50/30">
-                                                            <td colSpan={3} className="px-8 py-2">
-                                                                <div className="flex flex-wrap gap-2 text-[10px]">
-                                                                    <span className="text-gray-600 font-bold uppercase py-1">Quartiers :</span>
-                                                                    {quartiers.filter(q => q.village_id === v.id).map(q => (
-                                                                        <div key={q.id} className="bg-white border border-gray-100 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
-                                                                            <span>{q.nom}</span>
-                                                                            <button onClick={() => handleDeleteQuartier(q.id)} className="text-red-400 hover:text-red-600">
-                                                                                <XCircle className="w-3 h-3" />
-                                                                            </button>
-                                                                        </div>
-                                                                    ))}
+                                            {(() => {
+                                                const paginatedVillages = villages.slice((villagesPage - 1) * itemsPerPage, villagesPage * itemsPerPage);
+                                                return paginatedVillages.map(v => (
+                                                    <React.Fragment key={v.id}>
+                                                        <tr className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="px-4 py-3 font-semibold">{v.nom}</td>
+                                                            <td className="px-4 py-3 text-gray-600 text-sm">{v.region || '-'}</td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <button
+                                                                        onClick={() => handleAddQuartier(v.id)}
+                                                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-1 text-[10px] font-bold"
+                                                                        title="Ajouter un Quartier"
+                                                                    >
+                                                                        <Plus className="w-3 h-3" /> QUARTIER
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const nextName = prompt("Nouveau nom :", v.nom);
+                                                                            if (nextName && nextName !== v.nom) {
+                                                                                supabase.from('villages').update({ nom: nextName }).eq('id', v.id).then(({ error }) => {
+                                                                                    if (error) alert(error.message);
+                                                                                    else setVillages(prev => prev.map(vi => vi.id === v.id ? { ...vi, nom: nextName } : vi));
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                        className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Edit3 className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteVillage(v.id, v.nom)}
+                                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
                                                                 </div>
                                                             </td>
                                                         </tr>
-                                                    )}
-                                                </React.Fragment>
-                                            ))}
+                                                        {/* Quartiers associés */}
+                                                        {quartiers.filter(q => q.village_id === v.id).length > 0 && (
+                                                            <tr className="bg-gray-50/30">
+                                                                <td colSpan={3} className="px-8 py-2">
+                                                                    <div className="flex flex-wrap gap-2 text-[10px]">
+                                                                        <span className="text-gray-600 font-bold uppercase py-1">Quartiers :</span>
+                                                                        {quartiers.filter(q => q.village_id === v.id).map(q => (
+                                                                            <div key={q.id} className="bg-white border border-gray-100 rounded-full px-2 py-1 flex items-center gap-1 shadow-sm">
+                                                                                <span>{q.nom}</span>
+                                                                                <button onClick={() => handleDeleteQuartier(q.id)} className="text-red-400 hover:text-red-600">
+                                                                                    <XCircle className="w-3 h-3" />
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </React.Fragment>
+                                                ));
+                                            })()}
                                             {villages.length === 0 && (
                                                 <tr>
                                                     <td colSpan={3} className="px-4 py-8 text-center text-gray-600 italic">Aucun village enregistré</td>
@@ -1153,6 +1190,14 @@ export default function AdminDashboard() {
                                         </tbody>
                                     </table>
                                 </div>
+                                {/* Pagination Villages */}
+                                {Math.ceil(villages.length / itemsPerPage) > 1 && (
+                                    <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
+                                        <button disabled={villagesPage === 1} onClick={() => setVillagesPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Précédent</button>
+                                        <span className="text-sm font-semibold text-gray-600">Page {villagesPage} sur {Math.ceil(villages.length / itemsPerPage)}</span>
+                                        <button disabled={villagesPage === Math.ceil(villages.length / itemsPerPage)} onClick={() => setVillagesPage(prev => Math.min(Math.ceil(villages.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Suivant</button>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Info */}
@@ -1229,7 +1274,7 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {validationsProfiles.map((p: any) => (
+                                        {paginatedValidations.map((p: any) => (
                                             <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                                                 <td className="py-3 px-4">
                                                     <div className="flex items-center gap-3">
@@ -1268,10 +1313,17 @@ export default function AdminDashboard() {
                                 </table>
                                 {validationsProfiles.length === 0 && (
                                     <div className="text-center py-10">
-                                        <p className="text-gray-500 font-medium">Aucun profil ne correspond aux filtres actuels.</p>
                                     </div>
                                 )}
                             </div>
+                            {/* Pagination Validations */}
+                            {totalValPages > 1 && (
+                                <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
+                                    <button disabled={valPage === 1} onClick={() => setValPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Précédent</button>
+                                    <span className="text-sm font-semibold text-gray-600">Page {valPage} sur {totalValPages}</span>
+                                    <button disabled={valPage === totalValPages} onClick={() => setValPage(prev => Math.min(totalValPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Suivant</button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1360,33 +1412,36 @@ export default function AdminDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50">
-                                                {memorialVictims.map(mv => (
-                                                    <tr key={mv.id} className="hover:bg-gray-50/50 transition-colors">
-                                                        <td className="py-4 px-6">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className={`w-9 h-9 rounded-full ${mv.genre === 'F' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center font-bold text-xs border border-white shadow-sm`}>
-                                                                    {mv.nom[0]}{mv.prenoms[0]}
+                                                {(() => {
+                                                    const paginatedMemorial = memorialVictims.slice((memorialPage - 1) * itemsPerPage, memorialPage * itemsPerPage);
+                                                    return paginatedMemorial.map(mv => (
+                                                        <tr key={mv.id} className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="py-4 px-6">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={`w-9 h-9 rounded-full ${mv.genre === 'F' ? 'bg-pink-100 text-pink-600' : 'bg-blue-100 text-blue-600'} flex items-center justify-center font-bold text-xs border border-white shadow-sm`}>
+                                                                        {mv.nom[0]}{mv.prenoms[0]}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-bold text-gray-900">{mv.nom} {mv.prenoms}</p>
+                                                                        <p className="text-[10px] text-gray-600 font-medium uppercase tracking-tighter">{mv.age_approximatif || '?'}-ANS • {mv.genre}</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <p className="font-bold text-gray-900">{mv.nom} {mv.prenoms}</p>
-                                                                    <p className="text-[10px] text-gray-600 font-medium uppercase tracking-tighter">{mv.age_approximatif || '?'}-ANS • {mv.genre}</p>
+                                                            </td>
+                                                            <td className="py-4 px-4">
+                                                                <p className="text-gray-600 font-medium">{villages.find(v => v.id === mv.village_id)?.nom || 'Inconnu'}</p>
+                                                                <p className="text-[10px] text-gray-600 font-bold uppercase">{mv.quartier_nom || '—'}</p>
+                                                            </td>
+                                                            <td className="py-4 px-4 max-w-[200px]">
+                                                                <p className="text-xs text-gray-600 line-clamp-2 italic">&quot;{mv.description_circonstances || 'Aucun détail'}&quot;</p>
+                                                            </td>
+                                                            <td className="py-4 px-4">
+                                                                <div className="flex items-center justify-center gap-2">
+                                                                    <button onClick={() => handleDeleteMemorialVictim(mv.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
                                                                 </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="py-4 px-4">
-                                                            <p className="text-gray-600 font-medium">{villages.find(v => v.id === mv.village_id)?.nom || 'Inconnu'}</p>
-                                                            <p className="text-[10px] text-gray-600 font-bold uppercase">{mv.quartier_nom || '—'}</p>
-                                                        </td>
-                                                        <td className="py-4 px-4 max-w-[200px]">
-                                                            <p className="text-xs text-gray-600 line-clamp-2 italic">&quot;{mv.description_circonstances || 'Aucun détail'}&quot;</p>
-                                                        </td>
-                                                        <td className="py-4 px-4">
-                                                            <div className="flex items-center justify-center gap-2">
-                                                                <button onClick={() => handleDeleteMemorialVictim(mv.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 className="w-4 h-4" /></button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                            </td>
+                                                        </tr>
+                                                    ));
+                                                })()}
                                                 {memorialVictims.length === 0 && (
                                                     <tr>
                                                         <td colSpan={4} className="py-20 text-center text-gray-600">
@@ -1398,6 +1453,14 @@ export default function AdminDashboard() {
                                             </tbody>
                                         </table>
                                     </div>
+                                    {/* Pagination Mémorial */}
+                                    {Math.ceil(memorialVictims.length / itemsPerPage) > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
+                                            <button disabled={memorialPage === 1} onClick={() => setMemorialPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {memorialPage} sur {Math.ceil(memorialVictims.length / itemsPerPage)}</span>
+                                            <button disabled={memorialPage === Math.ceil(memorialVictims.length / itemsPerPage)} onClick={() => setMemorialPage(prev => Math.min(Math.ceil(memorialVictims.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Suivant</button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Section legacy/sync — victimes de l'arbre */}
@@ -1440,25 +1503,28 @@ export default function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50">
-                                        {auditLogs.map(log => (
-                                            <tr key={log.id} className="hover:bg-gray-50/50">
-                                                <td className="py-4 px-6 text-[10px] text-gray-600">
-                                                    {new Date(log.timestamp).toLocaleString('fr-FR')}
-                                                </td>
-                                                <td className="py-4 px-6 font-bold">
-                                                    {log.user_id === currentUserId ? 'VOUS (Principal)' : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`}
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600' : log.action_type === 'UPDATE' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
-                                                        {log.action_type}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 px-4 font-mono text-[10px] text-gray-600 uppercase">{log.table_name}</td>
-                                                <td className="py-4 px-4">
-                                                    <button onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))} className="text-[10px] text-blue-500 hover:underline">Voir JSON</button>
-                                                </td>
-                                            </tr>
-                                        ))}
+                                        {(() => {
+                                            const paginatedLogs = auditLogs.slice((logsPage - 1) * itemsPerPage, logsPage * itemsPerPage);
+                                            return paginatedLogs.map(log => (
+                                                <tr key={log.id} className="hover:bg-gray-50/50">
+                                                    <td className="py-4 px-6 text-[10px] text-gray-600">
+                                                        {new Date(log.timestamp).toLocaleString('fr-FR')}
+                                                    </td>
+                                                    <td className="py-4 px-6 font-bold">
+                                                        {log.user_id === currentUserId ? 'VOUS (Principal)' : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`}
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600' : log.action_type === 'UPDATE' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
+                                                            {log.action_type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-4 font-mono text-[10px] text-gray-600 uppercase">{log.table_name}</td>
+                                                    <td className="py-4 px-4">
+                                                        <button onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))} className="text-[10px] text-blue-500 hover:underline">Voir JSON</button>
+                                                    </td>
+                                                </tr>
+                                            ));
+                                        })()}
                                         {auditLogs.length === 0 && (
                                             <tr>
                                                 <td colSpan={5} className="py-12 text-center text-gray-600 italic text-sm">Aucune activité enregistrée.</td>
@@ -1467,6 +1533,14 @@ export default function AdminDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+                            {/* Pagination Logs */}
+                            {Math.ceil(auditLogs.length / itemsPerPage) > 1 && (
+                                <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
+                                    <button disabled={logsPage === 1} onClick={() => setLogsPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Précédent</button>
+                                    <span className="text-sm font-semibold text-gray-600">Page {logsPage} sur {Math.ceil(auditLogs.length / itemsPerPage)}</span>
+                                    <button disabled={logsPage === Math.ceil(auditLogs.length / itemsPerPage)} onClick={() => setLogsPage(prev => Math.min(Math.ceil(auditLogs.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Suivant</button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

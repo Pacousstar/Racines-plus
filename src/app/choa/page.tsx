@@ -81,7 +81,11 @@ export default function ChoBoard() {
     const [isSavingAncetre, setIsSavingAncetre] = useState(false);
     const [ancestreSaved, setAncretreSaved] = useState(false);
 
-
+    // Pagination States
+    const [pendingPage, setPendingPage] = useState(1);
+    const [confirmedPage, setConfirmedPage] = useState(1);
+    const [rejectedPage, setRejectedPage] = useState(1);
+    const itemsPerPage = 20;
     useEffect(() => {
         const load = async () => {
             setIsLoading(true);
@@ -496,7 +500,22 @@ export default function ChoBoard() {
                                 <p className="text-sm text-gray-600 mt-1">Tous les profils ont été traités.</p>
                             </div>
                         )}
-                        {pendingProfiles.map(p => <ProfileCard key={p.id} profile={p} />)}
+                        {(() => {
+                            const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
+                            const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={pendingPage === 1} onClick={() => setPendingPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {pendingPage} sur {totalPages}</span>
+                                            <button disabled={pendingPage === totalPages} onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -516,16 +535,44 @@ export default function ChoBoard() {
                                 </button>
                             )}
                         </div>
-                        {confirmedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil confirmé pour l&apos;instant.</p>}
-                        {confirmedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                        {(() => {
+                            const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
+                            const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={confirmedPage === 1} onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {confirmedPage} sur {totalPages}</span>
+                                            <button disabled={confirmedPage === totalPages} onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
                 {/* Rejetés */}
                 {activeTab === 'rejected' && (
                     <div className="space-y-4">
-                        {rejectedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil rejeté.</p>}
-                        {rejectedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                        {(() => {
+                            const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
+                            const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={rejectedPage === 1} onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {rejectedPage} sur {totalPages}</span>
+                                            <button disabled={rejectedPage === totalPages} onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 

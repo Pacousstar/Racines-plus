@@ -83,6 +83,13 @@ export default function ChoBoard() {
     const [isSavingAncetre, setIsSavingAncetre] = useState(false);
     const [ancestreSaved, setAncretreSaved] = useState(false);
 
+    // Pagination States
+    const [pendingPage, setPendingPage] = useState(1);
+    const [confirmedPage, setConfirmedPage] = useState(1);
+    const [rejectedPage, setRejectedPage] = useState(1);
+    const [teamPage, setTeamPage] = useState(1);
+    const itemsPerPage = 20;
+
     useEffect(() => {
         const load = async () => {
             setIsLoading(true);
@@ -520,7 +527,22 @@ export default function ChoBoard() {
                                 <p className="text-sm text-gray-600 mt-1">Tous les profils ont été traités.</p>
                             </div>
                         )}
-                        {pendingProfiles.map(p => <ProfileCard key={p.id} profile={p} />)}
+                        {(() => {
+                            const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
+                            const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={pendingPage === 1} onClick={() => setPendingPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {pendingPage} sur {totalPages}</span>
+                                            <button disabled={pendingPage === totalPages} onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -541,7 +563,22 @@ export default function ChoBoard() {
                             )}
                         </div>
                         {confirmedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil confirmé pour l&apos;instant.</p>}
-                        {confirmedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                        {(() => {
+                            const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
+                            const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={confirmedPage === 1} onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {confirmedPage} sur {totalPages}</span>
+                                            <button disabled={confirmedPage === totalPages} onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -549,7 +586,22 @@ export default function ChoBoard() {
                 {activeTab === 'rejected' && (
                     <div className="space-y-4">
                         {rejectedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil rejeté.</p>}
-                        {rejectedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                        {(() => {
+                            const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
+                            const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={rejectedPage === 1} onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {rejectedPage} sur {totalPages}</span>
+                                            <button disabled={rejectedPage === totalPages} onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -652,30 +704,33 @@ export default function ChoBoard() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {team.map(member => (
-                                <div key={member.id} className="group bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden">
-                                    <div className="flex items-center gap-4 mb-6">
-                                        <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform">
-                                            {member.avatar_url ? (
-                                                <img src={member.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                                            ) : (
-                                                (member.first_name?.[0] || '?').toUpperCase()
-                                            )}
+                            {(() => {
+                                const paginatedTeam = team.slice((teamPage - 1) * itemsPerPage, teamPage * itemsPerPage);
+                                return paginatedTeam.map(member => (
+                                    <div key={member.id} className="group bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform">
+                                                {member.avatar_url ? (
+                                                    <img src={member.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    (member.first_name?.[0] || '?').toUpperCase()
+                                                )}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-black text-gray-900 leading-tight">{member.first_name} {member.last_name}</h3>
+                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-0.5">{member.quartier_nom || 'Secteur Libre'}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="font-black text-gray-900 leading-tight">{member.first_name} {member.last_name}</h3>
-                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-0.5">{member.quartier_nom || 'Secteur Libre'}</p>
+                                        <div className="flex items-center justify-between pt-5 border-t border-gray-50">
+                                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Certifié le {new Date(member.created_at).toLocaleDateString('fr-FR')}</span>
+                                            <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                                <span className="text-[8px] font-black text-green-600 uppercase">Actif</span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-5 border-t border-gray-50">
-                                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Certifié le {new Date(member.created_at).toLocaleDateString('fr-FR')}</span>
-                                        <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-100">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                            <span className="text-[8px] font-black text-green-600 uppercase">Actif</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                ));
+                            })()}
 
                             {team.length === 0 && (
                                 <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
@@ -688,6 +743,15 @@ export default function ChoBoard() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Pagination Équipe */}
+                        {Math.ceil(team.length / itemsPerPage) > 1 && (
+                            <div className="p-4 flex justify-center items-center gap-2 mt-2">
+                                <button disabled={teamPage === 1} onClick={() => setTeamPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                <span className="text-sm font-semibold text-gray-600">Page {teamPage} sur {Math.ceil(team.length / itemsPerPage)}</span>
+                                <button disabled={teamPage === Math.ceil(team.length / itemsPerPage)} onClick={() => setTeamPage(prev => Math.min(Math.ceil(team.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                            </div>
+                        )}
 
                         <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mt-4">
                             <ShieldCheck className="w-5 h-5 text-blue-500 mt-0.5" />

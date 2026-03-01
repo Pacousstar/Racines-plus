@@ -24,6 +24,7 @@ interface ProfileData {
     village: string;
     quartier: string;
     status: string;
+    role: string;
     avatarUrl: string | null;
     ancestralRootId: string | null;
     extendedData: ExtendedProfileData;
@@ -53,7 +54,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
         if (!profileData) setIsLoading(true);
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, avatar_url, ancestral_root_id')
+            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id')
             .eq('id', userId)
             .single();
 
@@ -74,6 +75,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                 village: data.village_origin || 'Toa-Zéo',
                 quartier: data.quartier_nom || '',
                 status: data.status || 'pending',
+                role: data.role || 'user',
                 avatarUrl: data.avatar_url || null,
                 ancestralRootId: data.ancestral_root_id || null,
                 extendedData: {
@@ -318,6 +320,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         <TreeSpecimens
                             userName={profileData?.firstName && profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Votre Arbre'}
                             userStatus={profileData?.status || 'pending'}
+                            userRole={profileData?.role}
                         />
                     </div>
                 )}
