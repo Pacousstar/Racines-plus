@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TreePine, User, ChevronUp, Crown, Clock, Hash, GitBranch } from 'lucide-react';
+import { TreePine, Crown, Clock, Heart, GitBranch, FileText, Image as ImageIcon, BookOpen, ChevronRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
 
 interface LineageNode {
     id: string;
     nom: string;
-    type: 'ancetre' | 'self';
+    type: 'ancetre' | 'self' | 'parent' | 'child';
     generation: number;
-    lien?: string;        // "Arrière-petit-fils de", etc.
+    lien?: string;
     confidence?: number;
     is_certified?: boolean;
     periode?: string;
     status?: string;
     avatarUrl?: string | null;
+    quartier?: string;
 }
 
 interface PersonalLineageTreeProps {
@@ -23,321 +24,574 @@ interface PersonalLineageTreeProps {
     villageNom?: string;
 }
 
-/**
- * Composant d'arbre de lignée personnelle pour le Dashboard User.
- * Affiche : Ancêtre Fondateur (CHO-certifié) ← Lignée → Utilisateur Courant
- * Données depuis Supabase (profiles + ancestres + validations)
- */
+// ─────────────────────────────────────────────────────────────
+// Nœud circulaire individuel — style Arbre Héritage Traditionnel
+// ─────────────────────────────────────────────────────────────
+function HeritageNode({
+    node,
+    isCurrentUser,
+    onSelect,
+}: {
+    node: LineageNode;
+    isCurrentUser: boolean;
+    onSelect: (node: LineageNode) => void;
+}) {
+    const isAncetre = node.type === 'ancetre';
+    const isPatriarch = isAncetre;
+
+    const ringColor = isPatriarch
+        ? 'ring-4 ring-[#124E35] ring-offset-2'
+        : node.status === 'confirmed'
+            ? 'ring-4 ring-[#124E35] ring-offset-2'
+            : node.status === 'probable'
+                ? 'ring-4 ring-[#FF6600] ring-offset-2'
+                : 'ring-2 ring-gray-300 ring-offset-1';
+
+    const initials = node.nom
+        .split(' ')
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+    const avatarBg = isPatriarch
+        ? 'bg-[#124E35]'
+        : node.type === 'parent'
+            ? 'bg-[#1f6b4a]'
+            : isCurrentUser
+                ? 'bg-[#FF6600]'
+                : 'bg-[#C05C3C]';
+
+    return (
+        <button
+            onClick={() => onSelect(node)}
+            className="flex flex-col items-center gap-2 group focus:outline-none"
+        >
+            {/* Cercle avatar */}
+            <div className="relative">
+                {/* Halo animé pour le patriarch */}
+                {isPatriarch && (
+                    <div className="absolute inset-0 rounded-full bg-[#124E35]/20 animate-ping scale-125 pointer-events-none" />
+                )}
+
+                <div
+                    className={`
+                        relative rounded-full overflow-hidden flex items-center justify-center
+                        border-3 border-white shadow-xl group-hover:scale-110 transition-all duration-300
+                        ${isPatriarch ? 'w-20 h-20' : isCurrentUser ? 'w-16 h-16' : 'w-14 h-14'}
+                        ${ringColor} ${avatarBg}
+                    `}
+                >
+                    {node.avatarUrl ? (
+                        <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
+                    ) : isPatriarch ? (
+                        <Crown className="w-8 h-8 text-amber-300" />
+                    ) : (
+                        <span className="text-white font-black text-lg">{initials}</span>
+                    )}
+                </div>
+
+                {/* Badge statut */}
+                <div className={`
+                    absolute -bottom-1 -right-1 flex items-center justify-center w-5 h-5 rounded-full border-2 border-white shadow-md text-[9px]
+                    ${isPatriarch ? 'bg-amber-400' : node.status === 'confirmed' ? 'bg-[#124E35]' : node.status === 'probable' ? 'bg-[#FF6600]' : 'bg-gray-400'}
+                `}>
+                    {isPatriarch ? '👑' : node.status === 'confirmed' ? '✓' : '○'}
+                </div>
+
+                {/* Badge status quick-access sous les nœuds non-patriarch */}
+                {!isPatriarch && !isCurrentUser && (
+                    <div className="absolute -top-1 -left-1 flex gap-0.5">
+                        <div className="w-4 h-1.5 rounded-full bg-[#124E35]/60" title="Lignée" />
+                        <div className="w-4 h-1.5 rounded-full bg-[#C05C3C]/50" title="Document" />
+                    </div>
+                )}
+            </div>
+
+            {/* Nom + rôle */}
+            <div className="text-center max-w-[120px]">
+                <p className={`font-black leading-tight truncate ${isPatriarch ? 'text-sm text-[#1c2b23]' : 'text-xs text-gray-800'}`}>
+                    {node.nom}
+                </p>
+                <p className={`text-[10px] font-bold uppercase tracking-tight truncate ${isPatriarch ? 'text-amber-600' :
+                        isCurrentUser ? 'text-[#FF6600]' :
+                            node.type === 'parent' ? 'text-[#124E35]' : 'text-[#C05C3C]'
+                    }`}>
+                    {isPatriarch ? 'Ancêtre Fondateur' :
+                        isCurrentUser ? 'Vous' :
+                            node.lien || node.type === 'parent' ? (node.lien || 'Parent') : 'Membre'}
+                </p>
+                {node.quartier && (
+                    <p className="text-[9px] text-stone-400 font-medium mt-0.5 italic truncate">{node.quartier}</p>
+                )}
+            </div>
+        </button>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Composant principal
+// ─────────────────────────────────────────────────────────────
 export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }: PersonalLineageTreeProps) {
     const supabase = createClient();
     const [lineage, setLineage] = useState<LineageNode[]>([]);
+    const [ancetre, setAncetre] = useState<LineageNode | null>(null);
+    const [parents, setParents] = useState<LineageNode[]>([]);
+    const [currentUser, setCurrentUser] = useState<LineageNode | null>(null);
+    const [children, setChildren] = useState<LineageNode[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [aiPosition, setAiPosition] = useState<{ generation: number; lien_probable: string; confidence: number } | null>(null);
     const [selectedNode, setSelectedNode] = useState<AncestorModalData | null>(null);
+    const [stats, setStats] = useState({ members: 0, generations: 0 });
 
     useEffect(() => {
-        const loadLineage = async () => {
+        const load = async () => {
             setIsLoading(true);
             try {
-                // 1. Profil utilisateur (avec détails enfants)
+                // 1. Profil utilisateur courant
                 const { data: profil } = await supabase
                     .from('profiles')
-                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, details_enfants')
+                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom')
                     .eq('id', userId)
                     .single();
 
                 if (!profil) { setIsLoading(false); return; }
 
-                const nodes: LineageNode[] = [];
-
-                // 2. Ancêtre fondateur (si choisi)
+                // 2. Ancêtre fondateur certifié CHO
+                let ancestreNode: LineageNode | null = null;
                 if (profil.ancestral_root_id) {
-                    const { data: ancetre } = await supabase
+                    const { data: a } = await supabase
                         .from('ancestres')
                         .select('id, nom_complet, periode, is_certified')
                         .eq('id', profil.ancestral_root_id)
                         .single();
 
-                    if (ancetre) {
-                        nodes.push({
-                            id: ancetre.id,
-                            nom: ancetre.nom_complet,
-                            type: 'ancetre' as const,
+                    if (a) {
+                        ancestreNode = {
+                            id: a.id,
+                            nom: a.nom_complet,
+                            type: 'ancetre',
                             generation: 0,
-                            is_certified: ancetre.is_certified,
-                            periode: ancetre.periode
-                        });
+                            is_certified: a.is_certified,
+                            periode: a.periode,
+                            status: 'confirmed',
+                        };
+                    }
+                } else {
+                    // Chercher le premier ancêtre certifié du village
+                    const { data: a } = await supabase
+                        .from('ancestres')
+                        .select('id, nom_complet, periode, is_certified')
+                        .eq('is_certified', true)
+                        .order('created_at', { ascending: true })
+                        .limit(1)
+                        .single();
+
+                    if (a) {
+                        ancestreNode = {
+                            id: a.id,
+                            nom: a.nom_complet,
+                            type: 'ancetre',
+                            generation: 0,
+                            is_certified: a.is_certified,
+                            periode: a.periode,
+                            status: 'confirmed',
+                        };
                     }
                 }
+                setAncetre(ancestreNode);
 
-                // 3. Récupérer les membres de la lignée via Neo4j
-                // RÈGLE CRITIQUE : On n'affiche dans l'arbre QUE les membres ayant passé l'onboarding
-                // ET dont le statut a été validé par CHO (confirmed) ou pré-validé par CHOa (probable).
-                // Les données déclaratives (Fiche détaillée) ne doivent JAMAIS apparaître dans l'arbre.
+                // 3. Nœud utilisateur courant
+                const selfNode: LineageNode = {
+                    id: userId,
+                    nom: `${profil.first_name || ''} ${profil.last_name || ''}`.trim() || 'Vous',
+                    type: 'self',
+                    generation: 2,
+                    status: profil.status || 'pending',
+                    avatarUrl: profil.avatar_url,
+                    quartier: profil.quartier_nom,
+                };
+                setCurrentUser(selfNode);
+
+                // 4. Parents et enfants via Neo4j (uniquement confirmed/probable)
+                const parentNodes: LineageNode[] = [];
+                const childNodes: LineageNode[] = [];
+
                 try {
                     const res = await fetch('/api/tree');
                     if (res.ok) {
                         const treeData = await res.json();
-                        const parentLinks = treeData.links.filter((l: any) => l.target === userId);
 
+                        // Parents (liens dont la cible est l'utilisateur)
+                        const parentLinks = treeData.links.filter((l: any) => l.target === userId);
                         for (const link of parentLinks) {
                             const parent = treeData.nodes.find((n: any) => n.id === link.source);
                             if (!parent?.id) continue;
-
-                            // Vérification du statut Supabase — seuls confirmed ou probable sont affichés
-                            const { data: parentProfile } = await supabase
+                            const { data: pp } = await supabase
                                 .from('profiles')
-                                .select('status, first_name, last_name, avatar_url')
-                                .eq('id', parent.id)
-                                .single();
-
-                            if (!parentProfile) continue;
-
-                            // Filtre strict : uniquement les membres validés par l'équipe CHO
-                            if (parentProfile.status !== 'confirmed' && parentProfile.status !== 'probable') {
-                                console.log(`[LineageTree] Parent ${parent.id} exclu (statut: ${parentProfile.status})`);
-                                continue;
-                            }
-
-                            nodes.push({
+                                .select('status, first_name, last_name, avatar_url, quartier_nom')
+                                .eq('id', parent.id).single();
+                            if (!pp || (pp.status !== 'confirmed' && pp.status !== 'probable')) continue;
+                            parentNodes.push({
                                 id: parent.id,
-                                nom: `${parentProfile.first_name || ''} ${parentProfile.last_name || ''}`.trim(),
-                                type: 'self' as const,
-                                generation: nodes.length,
-                                status: parentProfile.status,
-                                avatarUrl: parentProfile.avatar_url,
-                                lien: link.type === 'FATHER_OF' ? 'Père' : 'Mère'
+                                nom: `${pp.first_name} ${pp.last_name}`.trim(),
+                                type: 'parent',
+                                generation: 1,
+                                status: pp.status,
+                                avatarUrl: pp.avatar_url,
+                                quartier: pp.quartier_nom,
+                                lien: link.type === 'FATHER_OF' ? 'Père' : 'Mère',
                             });
                         }
 
-                        // De même pour les enfants : on cherche les liens où l'utilisateur est la source
-                        // et on n'affiche que les enfants ayant un compte validé (onboarding + CHO)
+                        // Enfants (liens dont la source est l'utilisateur)
                         const childLinks = treeData.links.filter((l: any) => l.source === userId);
                         for (const link of childLinks) {
                             const child = treeData.nodes.find((n: any) => n.id === link.target);
                             if (!child?.id) continue;
-
-                            const { data: childProfile } = await supabase
+                            const { data: cp } = await supabase
                                 .from('profiles')
-                                .select('status, first_name, last_name, avatar_url')
-                                .eq('id', child.id)
-                                .single();
-
-                            if (!childProfile) continue;
-
-                            // Filtre strict : uniquement les enfants inscrits via onboarding et validés CHO
-                            if (childProfile.status !== 'confirmed' && childProfile.status !== 'probable') {
-                                console.log(`[LineageTree] Enfant ${child.id} exclu (statut: ${childProfile.status})`);
-                                continue;
-                            }
-
-                            // Note: les enfants s'afficheront APRÈS le nœud utilisateur courant (ils seront ajoutés après)
-                            // On les stocke temporairement pour les insérer à la fin
+                                .select('status, first_name, last_name, avatar_url, quartier_nom')
+                                .eq('id', child.id).single();
+                            if (!cp || (cp.status !== 'confirmed' && cp.status !== 'probable')) continue;
+                            childNodes.push({
+                                id: child.id,
+                                nom: `${cp.first_name} ${cp.last_name}`.trim(),
+                                type: 'child',
+                                generation: 3,
+                                status: cp.status,
+                                avatarUrl: cp.avatar_url,
+                                quartier: cp.quartier_nom,
+                                lien: 'Enfant',
+                            });
                         }
                     }
-                } catch (e) {
-                    console.warn('[LineageTree] Neo4j fetch error:', e);
-                }
+                } catch { /* Neo4j non disponible */ }
 
-                // 4. Dernière validation IA pour la position (optionnel si parents présents)
-                const { data: validation } = await supabase
+                setParents(parentNodes);
+                setChildren(childNodes);
+
+                // 5. Stats globales du village
+                const { count: memberCount } = await supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .in('status', ['confirmed', 'probable']);
+                setStats({ members: memberCount || 0, generations: ancestreNode ? 3 : 1 });
+
+                // 6. Position IA
+                const { data: val } = await supabase
                     .from('validations')
                     .select('observations')
                     .eq('profile_id', userId)
                     .eq('role_validateur', 'system')
                     .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
+                    .limit(1).single();
 
-                if (validation?.observations) {
-                    const genMatch = validation.observations.match(/Génération\s+(\d+)/);
-                    const confMatch = validation.observations.match(/Confiance\s+(\d+)/);
-                    const lienMatch = validation.observations.match(/—\s+([^—]+)$/);
-
-                    if (genMatch && confMatch) {
-                        setAiPosition({
-                            generation: parseInt(genMatch[1]),
-                            confidence: parseInt(confMatch[1]),
-                            lien_probable: lienMatch?.[1]?.trim() || 'Descendant de'
-                        });
+                if (val?.observations) {
+                    const gm = val.observations.match(/Génération\s+(\d+)/);
+                    const cm = val.observations.match(/Confiance\s+(\d+)/);
+                    const lm = val.observations.match(/—\s+([^—]+)$/);
+                    if (gm && cm) {
+                        setAiPosition({ generation: parseInt(gm[1]), confidence: parseInt(cm[1]), lien_probable: lm?.[1]?.trim() || 'Descendant de' });
                     }
                 }
 
-                // 5. Nœud utilisateur courant
-                nodes.push({
-                    id: userId,
-                    nom: `${profil.first_name || ''} ${profil.last_name || ''}`.trim() || 'Vous',
-                    type: 'self' as const,
-                    generation: nodes.length,
-                    status: profil.status || 'pending',
-                    avatarUrl: profil.avatar_url
-                });
-
-
-                // ============================================================
-                // RÈGLE MÉTIER FONDAMENTALE — Arbre Généalogique Racines+
-                // ============================================================
-                // L'arbre NE DOIT CONTENIR que des membres ayant :
-                //   1. Complété l'onboarding (inscription sur Racines+)
-                //   2. Été validés par le CHO (confirmed) ou pré-validés par CHOa (probable)
-                //
-                // Les enfants déclarés dans la "Fiche détaillée" (details_enfants) sont
-                // des données informatives UNIQUEMENT. Ils n'apparaissent PAS dans l'arbre
-                // tant qu'ils n'ont pas leur propre compte Racines+ validé par le CHO.
-                // ============================================================
-
-                setLineage(nodes);
+                setLineage([...(ancestreNode ? [ancestreNode] : []), ...parentNodes, selfNode, ...childNodes]);
             } catch (err) {
-                console.warn('[LineageTree] Erreur:', err);
+                console.warn('[PersonalLineageTree] Erreur:', err);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        if (userId) loadLineage();
-    }, [userId, supabase]);
+        if (userId) load();
+    }, [userId]);
+
+    const handleSelect = (node: LineageNode) => {
+        setSelectedNode({
+            id: node.id,
+            nom: node.nom,
+            roleOuLien: node.type === 'ancetre' ? 'Ancêtre Fondateur' : node.lien || (node.id === userId ? 'Vous' : 'Membre'),
+            periodeOuNaissance: node.periode,
+            status: node.status || 'pending',
+            isCertified: node.is_certified,
+            type: node.type === 'ancetre' ? 'ancetre' : 'other',
+        });
+    };
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <div className="w-10 h-10 border-2 border-[#FF6600] border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-gray-400 animate-pulse">Chargement de votre lignée…</p>
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+                <div className="w-12 h-12 border-3 border-[#FF6600] border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-medium text-[#FF6600] animate-pulse">Dérivation de votre lignée…</p>
             </div>
         );
     }
 
-    if (lineage.length === 0) {
+    if (!currentUser && lineage.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-                <div className="w-16 h-16 bg-orange-50 rounded-3xl flex items-center justify-center mb-4">
-                    <TreePine className="w-8 h-8 text-[#FF6600]" />
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#124E35]/10 to-amber-50 rounded-3xl flex items-center justify-center mb-5 border border-amber-200/50">
+                    <TreePine className="w-10 h-10 text-[#124E35]" />
                 </div>
-                <h3 className="font-bold text-gray-800 mb-1">Votre arbre est vide</h3>
-                <p className="text-sm text-gray-500 leading-relaxed max-w-xs">
-                    Choisissez votre ancêtre fondateur pour que l&apos;IA Racines+ positionne votre lignée dans l&apos;arbre du village de <strong>{villageNom}</strong>.
+                <h3 className="font-black text-gray-900 mb-2">Votre arbre est vide</h3>
+                <p className="text-sm text-gray-600 max-w-xs leading-relaxed">
+                    Choisissez votre ancêtre fondateur pour que l'IA Racines+ positionne votre lignée dans l'arbre de <strong>{villageNom}</strong>.
                 </p>
             </div>
         );
     }
 
-    const getStatusColor = (status?: string) => {
-        if (status === 'confirmed') return 'border-[#124E35] bg-green-50/50';
-        if (status === 'probable') return 'border-[#C05C3C] bg-orange-50/50';
-        if (status === 'rejected') return 'border-red-400 bg-red-50/50';
-        if (status === 'declarative') return 'border-dashed border-stone-300 bg-stone-50/30';
-        return 'border-gray-300 bg-white';
-    };
-
     return (
-        <div className="py-6 px-2">
-            {/* En-tête */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <GitBranch className="w-4 h-4 text-[#124E35]" />
-                    <h3 className="font-bold text-sm text-gray-700">Votre Lignée Ancestrale</h3>
+        <div className="relative overflow-hidden">
+            {/* ── Fond parcheminé avec motifs africains ── */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#fcf8f0] via-[#fef9f2] to-[#f8f2e8] pointer-events-none" />
+            {/* Motifs décoratifs latéraux (kente) */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 opacity-10 pointer-events-none"
+                style={{ background: 'repeating-linear-gradient(45deg, #124E35 0px, #124E35 2px, transparent 2px, transparent 12px, #C05C3C 12px, #C05C3C 14px, transparent 14px, transparent 24px)' }}
+            />
+            <div className="absolute right-0 top-0 bottom-0 w-8 opacity-10 pointer-events-none"
+                style={{ background: 'repeating-linear-gradient(-45deg, #124E35 0px, #124E35 2px, transparent 2px, transparent 12px, #C05C3C 12px, #C05C3C 14px, transparent 14px, transparent 24px)' }}
+            />
+
+            {/* ── En-tête style Family Tree ── */}
+            <div className="relative z-10 flex items-center justify-between px-4 pt-5 pb-3 border-b border-amber-200/50">
+                <div>
+                    <h3 className="font-black text-base text-[#1c2b23] flex items-center gap-2">
+                        <TreePine className="w-4 h-4 text-[#124E35]" />
+                        Arbre Héritage Traditionnel
+                    </h3>
+                    <p className="text-[11px] text-stone-500 font-medium mt-0.5">Village de {villageNom}</p>
                 </div>
-                {aiPosition && (
-                    <div className="flex items-center gap-1 text-xs bg-amber-50 border border-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-semibold">
-                        🤖 {aiPosition.confidence}% confiance
+                <div className="flex items-center gap-2">
+                    {aiPosition && (
+                        <div className="flex items-center gap-1 text-[10px] bg-amber-50 border border-amber-200 text-amber-700 px-2 py-1 rounded-full font-black">
+                            🤖 {aiPosition.confidence}%
+                        </div>
+                    )}
+                    <div className="flex items-center gap-1 text-[10px] bg-[#124E35]/10 border border-[#124E35]/20 text-[#124E35] px-2 py-1 rounded-full font-black">
+                        ✅ CHO Certifié
+                    </div>
+                </div>
+            </div>
+
+            {/* ═══════════════════════════════════════════════ */}
+            {/* ARBRE GÉNÉALOGIQUE VISUEL — Style Heritage */}
+            {/* ═══════════════════════════════════════════════ */}
+            <div className="relative z-10 flex flex-col items-center px-4 py-8" style={{ minHeight: '480px' }}>
+
+                {/* SVG des branches organiques */}
+                <svg
+                    className="absolute inset-0 w-full pointer-events-none"
+                    style={{ height: '100%', zIndex: 0 }}
+                    viewBox="0 0 400 500"
+                    preserveAspectRatio="xMidYMid meet"
+                >
+                    {/* Tronc principal (ancêtre → parents niveau 1) */}
+                    <path
+                        d="M 200 80 C 200 110, 200 120, 200 160"
+                        fill="none" stroke="#2d5a3d" strokeWidth="2.5" strokeLinecap="round" opacity="0.4"
+                    />
+                    {/* Branche vers parent gauche */}
+                    {parents.length > 0 && (
+                        <path
+                            d={parents.length > 1
+                                ? "M 200 160 C 200 175, 120 185, 120 210"
+                                : "M 200 160 C 200 175, 200 195, 200 220"}
+                            fill="none" stroke="#2d5a3d" strokeWidth="2" strokeLinecap="round" opacity="0.35"
+                        />
+                    )}
+                    {/* Branche vers parent droit */}
+                    {parents.length > 1 && (
+                        <path
+                            d="M 200 160 C 200 175, 280 185, 280 210"
+                            fill="none" stroke="#2d5a3d" strokeWidth="2" strokeLinecap="round" opacity="0.35"
+                        />
+                    )}
+                    {/* Branche vers utilisateur (du bas des parents) */}
+                    <path
+                        d="M 200 260 C 200 285, 200 295, 200 330"
+                        fill="none" stroke="#C05C3C" strokeWidth="2" strokeLinecap="round" opacity="0.3"
+                        strokeDasharray="4 3"
+                    />
+                    {/* Branches vers enfants */}
+                    {children.length > 0 && (
+                        <path
+                            d={children.length > 1
+                                ? "M 200 390 C 200 410, 120 420, 120 445"
+                                : "M 200 390 C 200 410, 200 425, 200 445"}
+                            fill="none" stroke="#C05C3C" strokeWidth="1.5" strokeLinecap="round" opacity="0.25"
+                            strokeDasharray="3 3"
+                        />
+                    )}
+                    {children.length > 1 && (
+                        <path
+                            d="M 200 390 C 200 410, 280 420, 280 445"
+                            fill="none" stroke="#C05C3C" strokeWidth="1.5" strokeLinecap="round" opacity="0.25"
+                            strokeDasharray="3 3"
+                        />
+                    )}
+                </svg>
+
+                {/* ── Niveau 0 : ANCÊTRE FONDATEUR (PATRIARCH) ── */}
+                {ancetre && (
+                    <div className="relative z-10 mb-6">
+                        <div className="bg-white/70 backdrop-blur-sm border border-amber-200 rounded-2xl px-4 py-1.5 text-[10px] font-black text-amber-700 uppercase tracking-widest mb-3 text-center shadow-sm">
+                            <Crown className="w-3 h-3 inline mr-1" />PATRIARCH
+                        </div>
+                        <div className="flex justify-center">
+                            <HeritageNode node={ancetre} isCurrentUser={false} onSelect={handleSelect} />
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Niveau 1 : PARENTS ── */}
+                {parents.length > 0 ? (
+                    <div className="relative z-10 mb-6">
+                        <div className="text-[9px] font-black text-stone-400 uppercase tracking-widest text-center mb-3">
+                            Génération N-1 · Parents
+                        </div>
+                        <div className={`flex justify-center ${parents.length > 1 ? 'gap-12' : ''}`}>
+                            {parents.map((p) => (
+                                <HeritageNode key={p.id} node={p} isCurrentUser={false} onSelect={handleSelect} />
+                            ))}
+                        </div>
+                    </div>
+                ) : ancetre && (
+                    // Placeholder si pas encore de parents dans le graphe
+                    <div className="relative z-10 mb-6">
+                        <div className="text-[9px] font-black text-stone-400 uppercase tracking-widest text-center mb-3">Génération N-1 · Parents</div>
+                        <div className="flex gap-8 justify-center">
+                            {['Père', 'Mère'].map((lien) => (
+                                <div key={lien} className="flex flex-col items-center gap-2 opacity-30">
+                                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-stone-300 bg-stone-50 flex items-center justify-center">
+                                        <span className="text-xs text-stone-400">?</span>
+                                    </div>
+                                    <p className="text-[10px] font-bold text-stone-400">{lien}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Niveau 2 : UTILISATEUR COURANT ── */}
+                {currentUser && (
+                    <div className="relative z-10 mb-6">
+                        <div className="text-[9px] font-black text-[#FF6600]/70 uppercase tracking-widest text-center mb-3">
+                            Vous — Génération Actuelle
+                        </div>
+                        {/* Halo parcheminé derrière l'utilisateur */}
+                        <div className="relative flex justify-center">
+                            <div className="absolute inset-0 rounded-full bg-[#FF6600]/5 scale-150 pointer-events-none" />
+                            <HeritageNode node={currentUser} isCurrentUser={true} onSelect={handleSelect} />
+                        </div>
+
+                        {/* Quick info sous l'utilisateur */}
+                        <div className="mt-3 flex justify-center gap-2">
+                            {[
+                                { icon: Heart, label: 'Vitalité', color: 'text-red-500' },
+                                { icon: GitBranch, label: 'Lignée', color: 'text-[#124E35]' },
+                                { icon: FileText, label: 'Documents', color: 'text-blue-500' },
+                                { icon: ImageIcon, label: 'Médias', color: 'text-purple-500' },
+                                { icon: BookOpen, label: 'Histoire', color: 'text-amber-600' },
+                            ].map(({ icon: Icon, label, color }) => (
+                                <div key={label} className="flex flex-col items-center gap-0.5 cursor-pointer opacity-60 hover:opacity-100 transition-opacity group">
+                                    <div className={`w-7 h-7 rounded-lg bg-white shadow-sm border border-gray-100 flex items-center justify-center group-hover:border-[#FF6600]/30 transition-colors`}>
+                                        <Icon className={`w-3.5 h-3.5 ${color}`} />
+                                    </div>
+                                    <span className="text-[8px] font-bold text-gray-500">{label}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Niveau 3 : ENFANTS (validés CHO) ── */}
+                {children.length > 0 && (
+                    <div className="relative z-10">
+                        <div className="text-[9px] font-black text-stone-400 uppercase tracking-widest text-center mb-3">
+                            Génération N+1 · Enfants inscrits
+                        </div>
+                        <div className={`flex justify-center ${children.length > 1 ? 'gap-8' : ''}`}>
+                            {children.slice(0, 4).map((c) => (
+                                <HeritageNode key={c.id} node={c} isCurrentUser={false} onSelect={handleSelect} />
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Arbre vertical - de l'ancêtre (haut) vers l'utilisateur (bas) */}
-            <div className="flex flex-col items-center space-y-0 text-left">
-                {lineage.map((node, idx) => (
-                    <div key={node.id} className="flex flex-col items-center w-full max-w-xs">
-                        {/* Nœud */}
-                        <div
-                            onClick={() => setSelectedNode({
-                                id: node.id,
-                                nom: node.nom,
-                                roleOuLien: node.type === 'ancetre' ? 'Ancêtre Fondateur' : (node.lien || aiPosition?.lien_probable || 'Vous'),
-                                periodeOuNaissance: node.periode,
-                                status: node.status || 'confirmed',
-                                isCertified: node.is_certified,
-                                type: node.type
-                            })}
-                            className={`w-full border-2 rounded-2xl p-4 shadow-sm transition-all hover:shadow-md cursor-pointer relative z-10 ${node.type === 'ancetre' ? 'border-amber-300 bg-amber-50' : getStatusColor(node.status)}`}
-                        >
-                            <div className="flex items-start gap-3">
-                                {/* Icône */}
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${node.type === 'ancetre' ? 'bg-amber-100' : node.lien === 'Enfant' ? 'bg-blue-50' : 'bg-[#124E35]/10'}`}>
-                                    {node.type === 'ancetre' ? (
-                                        <Crown className="w-5 h-5 text-amber-600" />
-                                    ) : node.avatarUrl ? (
-                                        <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <User className={`w-5 h-5 ${node.lien === 'Enfant' ? 'text-blue-500' : 'text-[#124E35]'}`} />
-                                    )}
-                                </div>
-
-                                {/* Contenu */}
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <h4 className="font-bold text-sm text-gray-900 truncate">{node.nom}</h4>
-                                        {node.type === 'ancetre' && node.is_certified && (
-                                            <span className="text-[10px] bg-[#124E35] text-white px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">Certifié</span>
-                                        )}
-                                        {node.type === 'self' && node.status === 'confirmed' && (
-                                            <span className="text-[10px] bg-[#124E35] text-white px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">Confirmé</span>
-                                        )}
-                                        {node.type === 'self' && node.status === 'pending' && (
-                                            <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 flex items-center gap-1"><Clock className="w-2.5 h-2.5" /> En attente</span>
-                                        )}
-                                        {node.status === 'declarative' && (
-                                            <span className="text-[8px] border border-stone-200 text-stone-400 px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 uppercase tracking-tighter">Déclaratif</span>
-                                        )}
-                                    </div>
-                                    {node.type === 'ancetre' ? (
-                                        <p className="text-[11px] text-amber-700 font-bold uppercase tracking-wider mt-0.5">Ancêtre Fondateur</p>
-                                    ) : (
-                                        <p className={`text-[11px] font-bold uppercase tracking-wider mt-0.5 ${node.lien === 'Enfant' ? 'text-blue-600' : 'text-[#124E35]'}`}>
-                                            {node.lien || (node.id === userId ? 'Vous' : 'Parent')} — {villageNom}
-                                        </p>
-                                    )}
-                                    {node.periode && (
-                                        <p className="text-xs text-stone-400 mt-0.5 font-mono">⏳ {node.periode}</p>
-                                    )}
-                                    {node.type === 'self' && aiPosition && (
-                                        <p className="text-xs text-stone-500 mt-1 italic">{aiPosition.lien_probable}</p>
-                                    )}
-                                </div>
-                            </div>
+            {/* ── Quick Stats & Recent Activity (bas de l'arbre) ── */}
+            <div className="relative z-10 border-t border-amber-200/50 bg-white/60 backdrop-blur-sm px-4 py-4">
+                <div className="grid grid-cols-3 gap-3">
+                    {/* Quick Access */}
+                    <div className="col-span-1 bg-white/80 rounded-2xl p-3 border border-amber-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Accès Rapide</h4>
+                            <ChevronRight className="w-3 h-3 text-stone-300" />
                         </div>
+                        <div className="space-y-1.5">
+                            {[
+                                { label: 'Vitalité', icon: '❤️' },
+                                { label: 'Lignée', icon: '🌿' },
+                                { label: 'Documents', icon: '📄' },
+                                { label: 'Médias', icon: '📸' },
+                            ].map(({ label, icon }) => (
+                                <div key={label} className="flex items-center gap-2 text-[10px] font-bold text-stone-500 hover:text-[#124E35] cursor-pointer transition-colors group">
+                                    <span>{icon}</span>
+                                    <span>{label}</span>
+                                    <ChevronRight className="w-2.5 h-2.5 ml-auto text-stone-200 group-hover:text-[#124E35] transition-colors" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-                        {/* Connecteur vertical (courbe descendante) */}
-                        {idx < lineage.length - 1 && (
-                            <div className="relative w-full h-12 flex justify-center">
-                                <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none" style={{ zIndex: 0 }}>
-                                    <path
-                                        d="M 160 0 Q 160 20, 160 48"
-                                        fill="none"
-                                        stroke="#d6d3d1"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeDasharray="4 2"
-                                    />
-                                </svg>
-                                {aiPosition && idx === 0 && (
-                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white border border-stone-100 rounded-full px-2 py-0.5 shadow-sm z-20">
-                                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-tighter">
-                                            {aiPosition.generation} Générations
-                                        </span>
+                    {/* Activité Récente */}
+                    <div className="col-span-1 bg-white/80 rounded-2xl p-3 border border-amber-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Activité</h4>
+                            <ChevronRight className="w-3 h-3 text-stone-300" />
+                        </div>
+                        {aiPosition ? (
+                            <div className="space-y-1.5">
+                                <div className="flex items-start gap-2 text-[10px] text-stone-600">
+                                    <span className="text-base leading-none">🤖</span>
+                                    <div>
+                                        <p className="font-bold text-stone-700">IA positionnée</p>
+                                        <p className="text-stone-400">Gén. {aiPosition.generation} · {aiPosition.confidence}%</p>
                                     </div>
-                                )}
+                                </div>
                             </div>
+                        ) : (
+                            <p className="text-[10px] text-stone-400 italic">En attente de validation CHO...</p>
                         )}
                     </div>
-                ))}
+
+                    {/* Quick Stats */}
+                    <div className="col-span-1 bg-white/80 rounded-2xl p-3 border border-amber-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Stats</h4>
+                        </div>
+                        <div className="space-y-2">
+                            <div>
+                                <p className="text-lg font-black text-[#124E35] leading-none">{stats.members}</p>
+                                <p className="text-[8px] font-bold text-stone-400 uppercase">Membres</p>
+                            </div>
+                            <div>
+                                <p className="text-lg font-black text-[#C05C3C] leading-none">{stats.generations}</p>
+                                <p className="text-[8px] font-bold text-stone-400 uppercase">Générations</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* Note IA en bas */}
+            {/* Note IA */}
             {!aiPosition && lineage.length > 1 && (
-                <div className="mt-4 bg-amber-50 border border-amber-100 rounded-2xl p-3 flex items-center gap-2">
+                <div className="relative z-10 mx-4 mb-4 mt-2 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-2">
                     <span className="text-base">🤖</span>
                     <p className="text-xs text-amber-700">
-                        L&apos;IA Racines+ analysera votre position dans la lignée lors de la prochaine validation.
+                        L'IA Racines+ analysera votre position dans la lignée lors de la prochaine validation CHO.
                     </p>
                 </div>
             )}
