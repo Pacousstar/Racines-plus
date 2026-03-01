@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { TreePine, Layout, Pyramid, Disc, Table, ChevronRight, Eye, Crown } from 'lucide-react';
+import { TreePine, Layout, Table, Eye, Crown } from 'lucide-react';
 import PyramidTree from './PyramidTree';
 
 // Composant Spécimens d'Arbre Généalogique — affiche 2 modèles premium propres à Racines+
@@ -32,7 +32,7 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                         </div>
                         <div className="text-left">
                             <h4 className={`font-bold text-sm ${selectedStyle === style.id ? 'text-[#FF6600]' : 'text-gray-700'}`}>{style.name}</h4>
-                            <p className="text-[10px] text-gray-400 font-medium">{style.desc}</p>
+                            <p className="text-[10px] text-gray-600 font-medium">{style.desc}</p>
                         </div>
                         {style.premium && (
                             <span className="bg-amber-100 text-amber-600 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter self-start ml-2">Premium</span>
@@ -116,17 +116,33 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-4">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Quick Access</h4>
+                                <div className="flex flex-col gap-3">
+                                    <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Votre Espace Racines+</h4>
                                     {[
-                                        { label: 'Vitalité', color: 'bg-red-50 text-red-500' },
-                                        { label: 'Lignée', color: 'bg-[#FF6600]/10 text-[#FF6600]' },
-                                        { label: 'Documents', color: 'bg-blue-50 text-blue-500' },
-                                        { label: 'Médias', color: 'bg-green-50 text-green-500' }
+                                        {
+                                            label: 'Statut de certification',
+                                            desc: userStatus === 'confirmed' ? '✅ Certifié par le CHO' : userStatus === 'probable' ? '🟠 En cours de validation' : '⚫ En attente du CHO',
+                                            color: userStatus === 'confirmed' ? 'text-green-700 bg-green-50 border-green-100' : 'text-[#FF6600] bg-orange-50 border-orange-100'
+                                        },
+                                        {
+                                            label: 'Votre lignée',
+                                            desc: 'Ancêtres et descendants validés dans l\'arbre.',
+                                            color: 'text-[#FF6600] bg-orange-50 border-orange-100'
+                                        },
+                                        {
+                                            label: 'Documents (à venir)',
+                                            desc: 'Actes, photos de famille, preuves historiques.',
+                                            color: 'text-slate-600 bg-slate-50 border-slate-100'
+                                        },
+                                        {
+                                            label: 'Médias (à venir)',
+                                            desc: 'Photos et vidéos de votre famille.',
+                                            color: 'text-slate-600 bg-slate-50 border-slate-100'
+                                        }
                                     ].map((item, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group hover:border-[#FF6600]/30 transition-all cursor-pointer">
-                                            <span className="text-xs font-bold text-slate-600">{item.label}</span>
-                                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-[#FF6600]" />
+                                        <div key={idx} className={`p-3 rounded-xl border ${item.color} transition-all`}>
+                                            <p className="text-[10px] font-black uppercase tracking-wide leading-tight">{item.label}</p>
+                                            <p className="text-[10px] font-medium mt-0.5 opacity-80">{item.desc}</p>
                                         </div>
                                     ))}
                                 </div>

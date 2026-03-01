@@ -1,18 +1,42 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Globe, MapPin, Users, ArrowUpRight } from 'lucide-react';
+import { Globe, MapPin, ArrowUpRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import dynamic from 'next/dynamic';
 
-interface MigrationData {
+// Import dynamique de Leaflet — évite les erreurs SSR Next.js
+const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
+
+export interface MigrationMarker {
     country: string;
     city: string;
     count: number;
     members: string[];
+    lat?: number;
+    lng?: number;
 }
 
+// Coordonnées GPS réelles et métadonnées des principales destinations
+export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; flag: string; name: string }> = {
+    'CI': { lat: 7.5400, lng: -5.5471, flag: '🇨🇮', name: "Côte d'Ivoire" },
+    'FR': { lat: 46.2276, lng: 2.2137, flag: '🇫🇷', name: 'France' },
+    'US': { lat: 37.0902, lng: -95.7129, flag: '🇺🇸', name: 'États-Unis' },
+    'CA': { lat: 56.1304, lng: -106.3468, flag: '🇨🇦', name: 'Canada' },
+    'BE': { lat: 50.5039, lng: 4.4699, flag: '🇧🇪', name: 'Belgique' },
+    'GB': { lat: 55.3781, lng: -3.4360, flag: '🇬🇧', name: 'Royaume-Uni' },
+    'DE': { lat: 51.1657, lng: 10.4515, flag: '🇩🇪', name: 'Allemagne' },
+    'SN': { lat: 14.4974, lng: -14.4524, flag: '🇸🇳', name: 'Sénégal' },
+    'CM': { lat: 7.3697, lng: 12.3547, flag: '🇨🇲', name: 'Cameroun' },
+    'MA': { lat: 31.7917, lng: -7.0926, flag: '🇲🇦', name: 'Maroc' },
+    'GN': { lat: 9.9456, lng: -11.1874, flag: '🇬🇳', name: 'Guinée' },
+    'BF': { lat: 12.3641, lng: -1.5275, flag: '🇧🇫', name: 'Burkina Faso' },
+    'ML': { lat: 17.5707, lng: -3.9962, flag: '🇲🇱', name: 'Mali' },
+    'GH': { lat: 7.9465, lng: -1.0232, flag: '🇬🇭', name: 'Ghana' },
+};
+
 export default function MigrationMap() {
-    const [stats, setStats] = useState<MigrationData[]>([]);
+    const [stats, setStats] = useState<MigrationMarker[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const supabase = createClient();
 
@@ -23,6 +47,7 @@ export default function MigrationMap() {
     const fetchMigrationData = async () => {
         setIsLoading(true);
         try {
+            // Récupérer UNIQUEMENT les membres validés (confirmed) avec leur localisation réelle
             const { data, error } = await supabase
                 .from('profiles')
                 .select('residence_country, residence_city, first_name, last_name')
@@ -30,195 +55,132 @@ export default function MigrationMap() {
 
             if (error) throw error;
 
-            // Grouper les données par ville/pays
-            const groups: Record<string, MigrationData> = {};
-            data.forEach(p => {
-                const key = `${p.residence_country}-${p.residence_city || 'Inconnue'}`;
+            // Regrouper par pays/ville puis enrichir avec les coordonnées GPS
+            const groups: Record<string, MigrationMarker> = {};
+            (data || []).forEach(p => {
+                const countryCode = (p.residence_country || 'CI').toUpperCase();
+                const cityKey = p.residence_city || 'Ville inconnue';
+                const key = `${countryCode}-${cityKey}`;
+
                 if (!groups[key]) {
+                    const coords = COUNTRY_COORDS[countryCode];
                     groups[key] = {
-                        country: p.residence_country,
-                        city: p.residence_city || 'Inconnue',
+                        country: countryCode,
+                        city: cityKey,
                         count: 0,
-                        members: []
+                        members: [],
+                        // Coordonnées GPS réelles du pays/ville
+                        lat: coords?.lat,
+                        lng: coords?.lng,
                     };
                 }
                 groups[key].count += 1;
-                groups[key].members.push(`${p.first_name} ${p.last_name}`);
+                groups[key].members.push(`${p.first_name || ''} ${p.last_name || ''}`.trim());
             });
 
-            setStats(Object.values(groups).sort((a, b) => b.count - a.count));
+            let result = Object.values(groups).sort((a, b) => b.count - a.count);
+
+            // Afficher Toa-Zéo comme point d'origine même si aucune donnée
+            if (result.length === 0) {
+                result = [{ country: 'CI', city: 'Toa-Zéo (Origine)', count: 0, members: [], lat: 7.5400, lng: -5.5471 }];
+            }
+
+            setStats(result);
         } catch (err) {
-            console.error("Erreur chargement migration:", err);
+            console.error('[MigrationMap] Erreur chargement:', err);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const getCountryName = (code: string) => {
-        const names: Record<string, string> = {
-            'CI': 'Côte d&apos;Ivoire',
-            'FR': 'France',
-            'US': 'États-Unis',
-            'BE': 'Belgique',
-            'CA': 'Canada',
-        };
-        return names[code] || code;
-    };
-
     return (
         <section className="py-12 bg-white dark:bg-black rounded-3xl border border-gray-100 dark:border-white/10 overflow-hidden shadow-sm">
-            <div className="px-6 mb-8">
+            <div className="px-6 mb-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-[#C05C3C]/10 text-[#C05C3C] rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#FF6600]/10 text-[#FF6600] rounded-xl flex items-center justify-center">
                         <Globe className="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold">Carte des Migrations</h2>
-                        <p className="text-sm text-gray-500">Rayonnement de Toa-Zéo à travers le monde</p>
+                        <h2 className="text-2xl font-black text-gray-900">Carte des Migrations</h2>
+                        <p className="text-sm text-gray-600 font-medium">Rayonnement de Toa-Zéo à travers le monde</p>
                     </div>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                    Seuls les membres certifiés par le CHO sont affichés. Les données sont basées sur la localisation déclarée lors de l'inscription.
+                </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-6">
-                {/* Visualisation stylisée (Premium World Map) */}
-                <div className="lg:col-span-2 relative bg-[#0A0F0D] rounded-[2.5rem] overflow-hidden min-h-[450px] border border-white/5 shadow-2xl flex items-center justify-center">
-                    {/* Background Grid & Glow */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#124E35]/20 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] pointer-events-none" />
-
-                    {/* World Map SVG (Simplified Premium) */}
-                    <div className="w-full h-full p-10 opacity-40">
-                        <svg viewBox="0 0 1000 500" className="w-full h-full text-[#124E35]/60 fill-current">
-                            <path d="M150,150 L200,140 L240,160 L280,220 L270,300 L200,340 L120,300 L110,220 Z" /> {/* North America */}
-                            <path d="M220,350 L260,340 L300,370 L310,450 L260,480 L200,450 Z" /> {/* South America */}
-                            <path d="M450,100 L500,80 L550,110 L580,180 L560,260 L480,280 L420,240 Z" /> {/* Europe */}
-                            <path d="M470,290 L530,280 L580,320 L570,420 L510,480 L440,430 L430,340 Z" /> {/* Africa */}
-                            <path d="M600,120 L750,100 L850,150 L880,280 L800,400 L650,420 L580,300 Z" /> {/* Eurasia */}
-                            <path d="M780,410 L850,400 L880,450 L840,490 L760,470 Z" /> {/* Australia */}
-                        </svg>
-                    </div>
-
-                    {/* Arcs de Migration (SVG interactif) */}
-                    <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none z-20">
-                        {stats.map((item, idx) => {
-                            if (item.country === 'CI') return null;
-                            // Simulation de points sur la carte (Toa-Zéo est env au centre de l'Afrique)
-                            const originX = 500;
-                            const originY = 360;
-                            const destX = item.country === 'FR' ? 490 : item.country === 'US' ? 200 : item.country === 'CA' ? 180 : item.country === 'BE' ? 500 : 700;
-                            const destY = item.country === 'FR' ? 150 : item.country === 'US' ? 180 : item.country === 'CA' ? 120 : item.country === 'BE' ? 130 : 250;
-
-                            return (
-                                <g key={`arc-${idx}`}>
-                                    <path
-                                        d={`M ${originX} ${originY} Q ${(originX + destX) / 2} ${(originY + destY) / 2 - 50} ${destX} ${destY}`}
-                                        fill="none"
-                                        stroke="url(#grad-orange)"
-                                        strokeWidth="1"
-                                        strokeDasharray="1000"
-                                        strokeDashoffset="1000"
-                                        className="animate-draw-arc"
-                                        style={{ opacity: 0.6 }}
-                                    />
-                                    <circle cx={destX} cy={destY} r="3" className="fill-[#FF6600] animate-pulse" />
-                                </g>
-                            );
-                        })}
-                        <defs>
-                            <linearGradient id="grad-orange" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#124E35" />
-                                <stop offset="100%" stopColor="#FF6600" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-
-                    {/* Points et Tooltips */}
-                    {stats.map((item, idx) => {
-                        const isCI = item.country === 'CI';
-                        const x = isCI ? 500 : (item.country === 'FR' ? 490 : item.country === 'US' ? 200 : item.country === 'CA' ? 180 : item.country === 'BE' ? 500 : 700);
-                        const y = isCI ? 360 : (item.country === 'FR' ? 150 : item.country === 'US' ? 180 : item.country === 'CA' ? 120 : item.country === 'BE' ? 130 : 250);
-
-                        return (
-                            <div key={idx} style={{ left: `${x / 10}%`, top: `${y / 5}%` }} className="absolute transform -translate-x-1/2 -translate-y-1/2 group z-30">
-                                <div className={`relative flex items-center justify-center rounded-full border-2 border-white shadow-2xl cursor-pointer transition-all hover:scale-150 duration-500 ${isCI ? 'w-10 h-10 bg-[#124E35] ring-4 ring-[#124E35]/20' : 'w-6 h-6 bg-[#FF6600]'}`}>
-                                    {isCI ? <Users className="w-5 h-5 text-white" /> : <MapPin className="w-3 h-3 text-white" />}
-
-                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-56 bg-white dark:bg-[#1A1F1D] rounded-[1.5rem] shadow-2xl p-4 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none border border-gray-100 dark:border-white/10 scale-90 group-hover:scale-100">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-xl">{item.country === 'CI' ? '🇨🇮' : item.country === 'FR' ? '🇫🇷' : item.country === 'US' ? '🇺🇸' : '🌍'}</span>
-                                            <div>
-                                                <p className="font-black text-xs text-gray-900 dark:text-white uppercase leading-tight">{item.city}</p>
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{getCountryName(item.country)}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 p-2 rounded-xl">
-                                            <Users className="w-3 h-3 text-[#FF6600]" />
-                                            <span className="text-xs font-black text-gray-900 dark:text-white">{item.count} Membres</span>
-                                        </div>
-                                    </div>
-                                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6">
+                {/* ─── Carte Leaflet OpenStreetMap (vraie carte monde) ─── */}
+                <div className="lg:col-span-2 relative rounded-[2rem] overflow-hidden min-h-[450px] border border-gray-200 shadow-xl">
+                    {isLoading ? (
+                        <div className="w-full h-[450px] bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-10 h-10 border-2 border-[#FF6600] border-t-transparent rounded-full animate-spin" />
+                                <p className="text-sm font-medium text-white/60">Chargement de la carte…</p>
                             </div>
-                        );
-                    })}
-
-                    <div className="absolute bottom-6 left-6 flex flex-col gap-2 z-40">
-                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#124E35] shadow-[0_0_8px_#124E35]" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Toa-Zéo (Foyer)</span>
                         </div>
-                        <div className="flex items-center gap-2 bg-black/60 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-lg">
-                            <div className="w-2.5 h-2.5 rounded-full bg-[#FF6600] shadow-[0_0_8px_#FF6600]" />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Rayonnement</span>
+                    ) : (
+                        <LeafletMap markers={stats} />
+                    )}
+
+                    {/* Légende superposée */}
+                    <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-[500]">
+                        <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-gray-100 shadow-lg">
+                            <div className="w-3 h-3 rounded-full bg-[#124E35]" />
+                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Toa-Zéo (Foyer)</span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-gray-100 shadow-lg">
+                            <div className="w-3 h-3 rounded-full bg-[#FF6600]" />
+                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Diaspora confirmée</span>
                         </div>
                     </div>
-
-                    <style jsx>{`
-                        @keyframes draw-arc {
-                            to { stroke-dashoffset: 0; }
-                        }
-                        .animate-draw-arc {
-                            animation: draw-arc 2s cubic-bezier(0.445, 0.05, 0.55, 0.95) forwards;
-                        }
-                    `}</style>
                 </div>
 
-                {/* Liste des destinations */}
-                <div className="space-y-4">
-                    <h3 className="font-bold text-sm uppercase tracking-widest text-gray-400">Top Destinations</h3>
+                {/* ─── Liste des destinations ─── */}
+                <div className="space-y-3">
+                    <h3 className="font-black text-sm uppercase tracking-widest text-gray-700 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-[#FF6600]" /> Top Destinations
+                    </h3>
                     {isLoading ? (
                         <div className="space-y-3">
                             {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-2xl animate-pulse" />)}
                         </div>
-                    ) : stats.length === 0 ? (
-                        <div className="p-6 text-center bg-gray-50 rounded-2xl">
-                            <p className="text-xs text-gray-400 italic">Aucune donnée de migration validée.</p>
+                    ) : stats.length === 1 && stats[0].count === 0 ? (
+                        <div className="p-5 text-center bg-orange-50 rounded-2xl border border-orange-100">
+                            <p className="text-sm font-bold text-[#FF6600]">Aucun membre certifié pour l'instant.</p>
+                            <p className="text-xs text-gray-600 mt-1">Les membres validés par le CHO apparaîtront ici.</p>
                         </div>
                     ) : (
-                        stats.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 hover:bg-white border border-transparent hover:border-gray-100 rounded-2xl transition-all group overflow-hidden relative">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-lg shadow-sm border border-gray-100">
-                                        {item.country === 'CI' ? '🇨🇮' : item.country === 'FR' ? '🇫🇷' : item.country === 'US' ? '🇺🇸' : '🌍'}
+                        stats.map((item, idx) => {
+                            const meta = COUNTRY_COORDS[item.country];
+                            return (
+                                <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 hover:bg-white border border-transparent hover:border-[#FF6600]/20 rounded-2xl transition-all group overflow-hidden relative cursor-default">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-lg shadow-sm border border-gray-100 flex-shrink-0">
+                                            {meta?.flag || '🌍'}
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-sm text-gray-900 leading-tight">{item.city}</p>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{meta?.name || item.country}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-sm">{item.city}</p>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{getCountryName(item.country)}</p>
+                                    <div className="text-right flex-shrink-0">
+                                        <div className="flex items-center gap-1 justify-end">
+                                            <span className="text-base font-black text-[#FF6600]">{item.count}</span>
+                                            <ArrowUpRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#FF6600] transition-colors" />
+                                        </div>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase">Membres</p>
                                     </div>
+                                    {stats[0]?.count > 0 && (
+                                        <div
+                                            className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#FF6600]/30 to-[#FF6600]/5 transition-all duration-1000"
+                                            style={{ width: `${(item.count / stats[0].count) * 100}%` }}
+                                        />
+                                    )}
                                 </div>
-                                <div className="text-right">
-                                    <div className="flex items-center gap-1.5 justify-end">
-                                        <span className="text-lg font-black text-[#C05C3C]">{item.count}</span>
-                                        <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-[#C05C3C] transition-colors" />
-                                    </div>
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase">Membres</p>
-                                </div>
-                                {/* Barre de progression discrète en arrière-plan */}
-                                <div
-                                    className="absolute bottom-0 left-0 h-1 bg-[#C05C3C]/10 transition-all duration-1000"
-                                    style={{ width: `${(item.count / stats[0].count) * 100}%` }}
-                                />
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </div>

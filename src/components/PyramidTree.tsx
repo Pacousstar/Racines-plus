@@ -247,22 +247,27 @@ export default function PyramidTree() {
             // Neo4j non disponible → fallback Supabase
         }
 
-        // 2. Fallback Supabase : charger les profils + ancêtres du village pilote
+        // 2. Fallback Supabase : charger l'ancêtre réel validé par le CHO + membres du village
         try {
-            // Charger les ancêtres certifiés (priorité aux fondateurs)
+            // ----------------------------------------------------------------
+            // RÈGLE MÉTIER — Ancêtre fondateur :
+            // Ici on charge le VRAI ancêtre enregistré et validé par le CHO
+            // (is_certified = true). On ne filtre PAS par nom.
+            // Le vrai ancêtre du village est celui que le CHO a officiellement certifié.
+            // ----------------------------------------------------------------
             const { data: ancestres } = await supabase
                 .from('ancestres')
                 .select('id, nom_complet, periode, is_certified')
                 .eq('is_certified', true)
-                .ilike('nom_complet', '%TAESSOO%') // Ciblage spécifique de TAESSOO comme demandé
-                .limit(1);
+                .order('created_at', { ascending: true }) // Le premier ancêtre enregistré = fondateur
+                .limit(3); // On prend les 3 premiers au cas où il y en a plusieurs
 
-            // Charger les membres du village (confirmés en priorité)
+            // Charger les membres du village (confirmés et probables, pas pending/rejected)
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, first_name, last_name, status, quartier_nom, village_origin')
-                .in('status', ['confirmed', 'probable', 'pending'])
-                .order('status', { ascending: true })
+                .in('status', ['confirmed', 'probable'])
+                .order('status', { ascending: true }) // confirmed d'abord
                 .limit(8);
 
             const members: PersonData[] = [];
