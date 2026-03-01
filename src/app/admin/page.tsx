@@ -18,6 +18,7 @@ import InvitationsList from '@/components/InvitationsList';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import { TreePine } from 'lucide-react';
 import MigrationMap from '@/components/MigrationMap';
+import InternalMessaging from '@/components/InternalMessaging';
 
 interface Profile {
     id: string;
@@ -377,6 +378,18 @@ export default function AdminDashboard() {
         setIsLoading(false);
     };
 
+    const handleAssignQuartier = async (userId: string, quartierNom: string) => {
+        setIsLoading(true);
+        const { error } = await supabase.from('profiles').update({ quartier_nom: quartierNom }).eq('id', userId);
+        if (error) {
+            alert("Erreur lors de l'assignation du quartier : " + error.message);
+        } else {
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, quartier_nom: quartierNom } : p));
+            alert("Quartier assigné avec succès !");
+        }
+        setIsLoading(false);
+    };
+
     const handleUpdatePermission = async (userId: string, key: keyof AdminPermission, value: boolean) => {
         const { error } = await supabase.from('admin_permissions').update({ [key]: value }).eq('user_id', userId);
         if (error) {
@@ -656,8 +669,7 @@ export default function AdminDashboard() {
                                 <div className="space-y-4">
                                     {[
                                         { label: 'Hommes', value: stats.genderStats.male, color: 'bg-blue-500', icon: '♂️' },
-                                        { label: 'Femmes', value: stats.genderStats.female, color: 'bg-pink-500', icon: '♀️' },
-                                        { label: 'Non renseigné', value: stats.genderStats.unknown, color: 'bg-gray-300', icon: '❓' }
+                                        { label: 'Femmes', value: stats.genderStats.female, color: 'bg-pink-500', icon: '♀️' }
                                     ].map(item => {
                                         const percentage = stats.totalUsers > 0 ? (item.value / stats.totalUsers) * 100 : 0;
                                         return (
@@ -874,17 +886,36 @@ export default function AdminDashboard() {
                                                             👑 Admin Principal
                                                         </span>
                                                     ) : (
-                                                        <select
-                                                            value={p.role || 'user'}
-                                                            onChange={e => handleRoleChange(p.id, e.target.value)}
-                                                            className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-[#FF6600]"
-                                                        >
-                                                            <option value="user">User</option>
-                                                            <option value="ambassadeur">Ambassadeur</option>
-                                                            <option value="choa">CHOa</option>
-                                                            <option value="cho">CHO</option>
-                                                            <option value="admin">Admin / Assistant</option>
-                                                        </select>
+                                                        <div className="flex flex-col gap-2">
+                                                            <select
+                                                                value={p.role || 'user'}
+                                                                onChange={e => handleRoleChange(p.id, e.target.value)}
+                                                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-[#FF6600]"
+                                                            >
+                                                                <option value="user">User</option>
+                                                                <option value="ambassadeur">Ambassadeur</option>
+                                                                <option value="choa">CHOa</option>
+                                                                <option value="cho">CHO</option>
+                                                                <option value="admin">Admin / Assistant</option>
+                                                            </select>
+                                                            {(p.role === 'cho' || p.role === 'choa') && (
+                                                                <select
+                                                                    value={p.quartier_nom || ''}
+                                                                    onChange={e => handleAssignQuartier(p.id, e.target.value)}
+                                                                    className="text-[10px] border border-amber-200 rounded-lg px-2 py-1 bg-amber-50 text-amber-900 font-semibold focus:outline-none focus:border-amber-500"
+                                                                >
+                                                                    <option value="">-- Assigner quartier --</option>
+                                                                    {quartiers
+                                                                        .filter(q => {
+                                                                            const v = villages.find(v => v.nom === p.village_origin);
+                                                                            return v && q.village_id === v.id;
+                                                                        })
+                                                                        .map(q => (
+                                                                            <option key={q.id} value={q.nom}>{q.nom}</option>
+                                                                        ))}
+                                                                </select>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </td>
                                                 <td className="py-3 px-4">

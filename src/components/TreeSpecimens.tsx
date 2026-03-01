@@ -119,15 +119,15 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                 ))}
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px] relative">
+            <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[400px] relative">
                 <div className="absolute top-6 left-6 z-20 flex items-center gap-2 bg-black/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
                     <Eye className="w-3.5 h-3.5 text-gray-600" />
                     <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">Aperçu interactif : {styles.find(s => s.id === selectedStyle)?.name}</span>
                 </div>
 
                 {selectedStyle === 'heritage' ? (
-                    <div className="flex flex-col items-center justify-center p-12 min-h-[500px] bg-[#fcf8f1]">
-                        <div className="relative w-full max-w-2xl bg-white/50 rounded-[3rem] p-10 border border-amber-200/50 shadow-inner flex flex-col items-center">
+                    <div className="flex flex-col items-center justify-center p-8 min-h-[400px] bg-[#fcf8f1]">
+                        <div className="relative w-full max-w-2xl bg-white/50 rounded-[3rem] p-6 border border-amber-200/50 shadow-inner flex flex-col items-center">
                             {/* Version stylisée de l'image Heritage */}
                             <div className="absolute inset-0 opacity-10 pointer-events-none">
                                 <TreePine className="w-full h-full text-amber-900" />
@@ -149,8 +149,8 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                         </div>
                     </div>
                 ) : selectedStyle === 'modern' ? (
-                    <div className="flex flex-col items-center justify-center p-8 min-h-[500px] bg-slate-50/50">
-                        <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+                    <div className="flex flex-col items-center justify-center p-6 min-h-[400px] bg-slate-50/50">
+                        <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col mb-4">
                             {/* Header Modern premium */}
                             <div className="bg-slate-900 p-6 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
@@ -229,7 +229,7 @@ export default function TreeSpecimens({ userName, userStatus }: { userName?: str
                     </div>
                 ) : (
                     /* ─── Aperçu : Généalogie Standard ─── Arbre Africain Illustré */
-                    <div className="relative min-h-[600px] bg-[#f9f3e8] overflow-hidden">
+                    <div className="relative min-h-[400px] bg-[#f9f3e8] overflow-hidden">
                         {/* Bordure décorative africaine */}
                         <div className="absolute inset-x-0 top-0 h-4 bg-gradient-to-r from-[#124E35] via-[#C05C3C] to-[#d4af37] via-[#124E35]" />
                         <div className="absolute inset-x-0 bottom-0 h-4 bg-gradient-to-r from-[#d4af37] via-[#C05C3C] to-[#124E35]" />

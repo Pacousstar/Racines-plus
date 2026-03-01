@@ -114,8 +114,8 @@ function HeritageNode({
                     {node.nom}
                 </p>
                 <p className={`text-[10px] font-bold uppercase tracking-tight truncate ${isPatriarch ? 'text-amber-600' :
-                        isCurrentUser ? 'text-[#FF6600]' :
-                            node.type === 'parent' ? 'text-[#124E35]' : 'text-[#C05C3C]'
+                    isCurrentUser ? 'text-[#FF6600]' :
+                        node.type === 'parent' ? 'text-[#124E35]' : 'text-[#C05C3C]'
                     }`}>
                     {isPatriarch ? 'Ancêtre Fondateur' :
                         isCurrentUser ? 'Vous' :
@@ -486,23 +486,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                             <HeritageNode node={currentUser} isCurrentUser={true} onSelect={handleSelect} />
                         </div>
 
-                        {/* Quick info sous l'utilisateur */}
-                        <div className="mt-3 flex justify-center gap-2">
-                            {[
-                                { icon: Heart, label: 'Vitalité', color: 'text-red-500' },
-                                { icon: GitBranch, label: 'Lignée', color: 'text-[#124E35]' },
-                                { icon: FileText, label: 'Documents', color: 'text-blue-500' },
-                                { icon: ImageIcon, label: 'Médias', color: 'text-purple-500' },
-                                { icon: BookOpen, label: 'Histoire', color: 'text-amber-600' },
-                            ].map(({ icon: Icon, label, color }) => (
-                                <div key={label} className="flex flex-col items-center gap-0.5 cursor-pointer opacity-60 hover:opacity-100 transition-opacity group">
-                                    <div className={`w-7 h-7 rounded-lg bg-white shadow-sm border border-gray-100 flex items-center justify-center group-hover:border-[#FF6600]/30 transition-colors`}>
-                                        <Icon className={`w-3.5 h-3.5 ${color}`} />
-                                    </div>
-                                    <span className="text-[8px] font-bold text-gray-500">{label}</span>
-                                </div>
-                            ))}
-                        </div>
+
                     </div>
                 )}
 
@@ -521,80 +505,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 )}
             </div>
 
-            {/* ── Quick Stats & Recent Activity (bas de l'arbre) ── */}
-            <div className="relative z-10 border-t border-amber-200/50 bg-white/60 backdrop-blur-sm px-4 py-4">
-                <div className="grid grid-cols-3 gap-3">
-                    {/* Quick Access */}
-                    <div className="col-span-1 bg-white/80 rounded-2xl p-3 border border-amber-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Accès Rapide</h4>
-                            <ChevronRight className="w-3 h-3 text-stone-300" />
-                        </div>
-                        <div className="space-y-1.5">
-                            {[
-                                { label: 'Vitalité', icon: '❤️' },
-                                { label: 'Lignée', icon: '🌿' },
-                                { label: 'Documents', icon: '📄' },
-                                { label: 'Médias', icon: '📸' },
-                            ].map(({ label, icon }) => (
-                                <div key={label} className="flex items-center gap-2 text-[10px] font-bold text-stone-500 hover:text-[#124E35] cursor-pointer transition-colors group">
-                                    <span>{icon}</span>
-                                    <span>{label}</span>
-                                    <ChevronRight className="w-2.5 h-2.5 ml-auto text-stone-200 group-hover:text-[#124E35] transition-colors" />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    {/* Activité Récente */}
-                    <div className="col-span-1 bg-white/80 rounded-2xl p-3 border border-amber-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Activité</h4>
-                            <ChevronRight className="w-3 h-3 text-stone-300" />
-                        </div>
-                        {aiPosition ? (
-                            <div className="space-y-1.5">
-                                <div className="flex items-start gap-2 text-[10px] text-stone-600">
-                                    <span className="text-base leading-none">🤖</span>
-                                    <div>
-                                        <p className="font-bold text-stone-700">IA positionnée</p>
-                                        <p className="text-stone-400">Gén. {aiPosition.generation} · {aiPosition.confidence}%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-[10px] text-stone-400 italic">En attente de validation CHO...</p>
-                        )}
-                    </div>
-
-                    {/* Quick Stats */}
-                    <div className="col-span-1 bg-white/80 rounded-2xl p-3 border border-amber-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-[9px] font-black text-stone-600 uppercase tracking-widest">Stats</h4>
-                        </div>
-                        <div className="space-y-2">
-                            <div>
-                                <p className="text-lg font-black text-[#124E35] leading-none">{stats.members}</p>
-                                <p className="text-[8px] font-bold text-stone-400 uppercase">Membres</p>
-                            </div>
-                            <div>
-                                <p className="text-lg font-black text-[#C05C3C] leading-none">{stats.generations}</p>
-                                <p className="text-[8px] font-bold text-stone-400 uppercase">Générations</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Note IA */}
-            {!aiPosition && lineage.length > 1 && (
-                <div className="relative z-10 mx-4 mb-4 mt-2 bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-2">
-                    <span className="text-base">🤖</span>
-                    <p className="text-xs text-amber-700">
-                        L'IA Racines+ analysera votre position dans la lignée lors de la prochaine validation CHO.
-                    </p>
-                </div>
-            )}
 
             <AncestorDetailsModal isOpen={!!selectedNode} onClose={() => setSelectedNode(null)} person={selectedNode} />
         </div>

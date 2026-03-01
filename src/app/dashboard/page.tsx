@@ -9,6 +9,7 @@ import MemorialView from '@/components/MemorialView';
 import CertificateView from '@/components/CertificateView';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import InternalMessaging from '@/components/InternalMessaging';
 
 
 export default function Dashboard() {
@@ -179,6 +180,8 @@ export default function Dashboard() {
                     onClose={() => setShowCertificate(false)}
                 />
             )}
+
+            {currentUserId && userProfile && <InternalMessaging currentUserRole={userProfile.role} currentUserId={currentUserId} />}
         </div>
     );
 }

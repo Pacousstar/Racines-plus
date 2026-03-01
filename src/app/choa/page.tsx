@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
+import InternalMessaging from '@/components/InternalMessaging';
 
 interface PendingProfile {
     id: string;
@@ -22,6 +23,14 @@ interface PendingProfile {
     status: string;
     avatar_url?: string | null;
     created_at: string;
+    birth_date?: string;
+    residence_country?: string;
+    residence_city?: string;
+    father_first_name?: string;
+    father_last_name?: string;
+    mother_first_name?: string;
+    mother_last_name?: string;
+    choa_approvals?: string[];
 }
 
 interface ValidationComment {
@@ -61,6 +70,7 @@ export default function ChoBoard() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
+    const [infoModalProfile, setInfoModalProfile] = useState<PendingProfile | null>(null);
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -94,18 +104,18 @@ export default function ChoBoard() {
             // Charger les profils utilisateurs
             const { data: allUsers, error: usersErr } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at')
+                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, mother_first_name, mother_last_name, choa_approvals')
                 .eq('role', 'user')
                 .order('created_at', { ascending: false });
 
             if (usersErr) console.error('[choa] Error fetching users:', usersErr);
 
             if (allUsers) {
-                // Le CHOa voit SEULEMENT les pending de SON village et SON quartier
+                // Le CHOa voit les pending, et les probable/pre_approved pour ne pas les perdre
                 const myPending = allUsers.filter(u =>
                     u.village_origin === profile.village_origin &&
                     u.quartier_nom === profile.quartier_nom &&
-                    (u.status === 'pending' || !u.status)
+                    (u.status === 'pending' || !u.status || u.status === 'probable' || u.status === 'pre_approved')
                 );
 
                 setPendingProfiles(myPending);
@@ -189,6 +199,24 @@ export default function ChoBoard() {
         if (newStatus === 'rejected' && motifText) updateData.rejection_motif = motifText;
         if (observations) updateData.rejection_observations = observations;
 
+        if (newStatus === 'probable' || newStatus === 'pre_approved') {
+            const profile = pendingProfiles.find(p => p.id === profileId);
+            const currentApprovals = Array.isArray(profile?.choa_approvals) ? profile.choa_approvals : [];
+            if (!currentApprovals.includes(currentUserId!)) {
+                const newApprovals = [...currentApprovals, currentUserId!];
+                updateData.choa_approvals = newApprovals;
+                if (newApprovals.length >= 2) {
+                    updateData.status = 'probable';
+                } else {
+                    updateData.status = 'pre_approved';
+                }
+            } else {
+                // Déjà approuvé par ce CHOa
+                updateData.status = profile?.status || 'pending';
+                delete updateData.choa_approvals;
+            }
+        }
+
         await supabase.from('profiles').update(updateData).eq('id', profileId);
 
         // Historiser l'action du CHOa dans la table validations
@@ -206,8 +234,8 @@ export default function ChoBoard() {
         }
 
         // Rafraîchir
-        if (newStatus === 'probable') {
-            setPendingProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: 'probable' } : p));
+        if (updateData.status === 'probable' || updateData.status === 'pre_approved') {
+            setPendingProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: updateData.status as string, choa_approvals: updateData.choa_approvals as string[] || p.choa_approvals } : p));
         } else {
             const profileToMove = pendingProfiles.find(p => p.id === profileId);
             setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
@@ -220,8 +248,10 @@ export default function ChoBoard() {
         setMotifText('');
         setObservations('');
 
-        if (newStatus === 'probable') {
-            alert("🟠 Dossier pré-validé ! Il est maintenant transmis au Chef de Village (CHO) pour validation finale.");
+        if (updateData.status === 'probable') {
+            alert("🟠 Dossier pré-validé définitivement ! Il est maintenant transmis au Chef de Village (CHO) pour validation finale.");
+        } else if (updateData.status === 'pre_approved') {
+            alert("👍 Votre approbation a été enregistrée. En attente d'un second Assistant (CHOa).");
         } else if (newStatus === 'rejected') {
             alert("❌ Le dossier a été rejeté.");
         }
@@ -286,7 +316,8 @@ export default function ChoBoard() {
             confirmed: { color: 'text-green-700', bg: 'bg-green-50 border-green-200', label: 'CERTIFIÉ ✅' },
             pending: { color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'EN ATTENTE ⚫' },
             rejected: { color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: 'REJETÉ 🔴' },
-            probable: { color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', label: 'PROBABLE 🟠' },
+            probable: { color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', label: 'PRÊT POUR CHO 🟠' },
+            pre_approved: { color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', label: '1 APPROBATION 🔵' },
         };
         const s = map[status] || map['pending'];
         return (
@@ -334,6 +365,13 @@ export default function ChoBoard() {
                         </button>
 
                         <div className="flex gap-2 w-full md:w-auto">
+                            <button
+                                onClick={() => setInfoModalProfile(profile)}
+                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
+                                title="Fiche détaillée"
+                            >
+                                <Eye className="w-3.5 h-3.5" />
+                            </button>
                             <button
                                 onClick={() => {
                                     setViewingCommentsProfile(profile);
@@ -403,7 +441,6 @@ export default function ChoBoard() {
                     </div>
                     <div className="text-right hidden md:block">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Session Adjoint</p>
-                        <p className="text-sm font-bold text-gray-900 italic">Antigravity Panel v2.0</p>
                     </div>
                 </div>
 
@@ -614,12 +651,56 @@ export default function ChoBoard() {
                 </div>
             )}
 
+            {/* Modale Infos Complètes */}
+            {infoModalProfile && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="font-bold text-lg flex items-center gap-2">
+                                <Eye className="w-5 h-5 text-blue-500" /> Fiche d'évaluation
+                            </h3>
+                            <button onClick={() => setInfoModalProfile(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                <XCircle className="w-5 h-5 text-gray-600" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                            <div className="space-y-4">
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                    <h4 className="text-[10px] font-black uppercase text-gray-400 mb-2">Demandeur</h4>
+                                    <p className="font-bold text-gray-800">{infoModalProfile.first_name} {infoModalProfile.last_name}</p>
+                                    <p className="text-sm text-gray-600">Né(e) le : {infoModalProfile.birth_date ? new Date(infoModalProfile.birth_date).toLocaleDateString('fr-FR') : 'Non renseigné'}</p>
+                                </div>
+                                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                    <h4 className="text-[10px] font-black uppercase text-blue-400 mb-2">Résidence actuelle</h4>
+                                    <p className="font-bold text-blue-900">{infoModalProfile.residence_city || 'Ville ?'}, {infoModalProfile.residence_country || 'Pays ?'}</p>
+                                </div>
+                                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                                    <h4 className="text-[10px] font-black uppercase text-amber-500 mb-2">Filiation déclarée</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-xs font-bold text-amber-900">Père</p>
+                                            <p className="text-sm text-amber-800">{infoModalProfile.father_first_name} {infoModalProfile.father_last_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-amber-900">Mère</p>
+                                            <p className="text-sm text-amber-800">{infoModalProfile.mother_first_name} {infoModalProfile.mother_last_name}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <InviteModal
                 isOpen={isInviteOpen}
                 onClose={() => setIsInviteOpen(false)}
                 inviterName={`${myProfile?.first_name || ''} ${myProfile?.last_name || ''}`}
                 villageNom={myProfile?.village_origin || 'Toa-Zéo'}
             />
+
+            {currentUserId && myProfile && <InternalMessaging currentUserRole={myProfile.role} currentUserId={currentUserId} />}
         </div>
     );
 }

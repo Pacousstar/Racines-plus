@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
+import InternalMessaging from '@/components/InternalMessaging';
 
 interface PendingProfile {
     id: string;
@@ -460,7 +461,6 @@ export default function ChoBoard() {
                     </div>
                     <div className="text-right hidden md:block">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Session Active</p>
-                        <p className="text-sm font-bold text-gray-900 italic">Antigravity Control Panel v2.0</p>
                     </div>
                 </div>
 
@@ -826,6 +826,8 @@ export default function ChoBoard() {
                 inviterName={`${myProfile?.first_name || ''} ${myProfile?.last_name || ''}`}
                 villageNom={myProfile?.village_origin || 'Toa-Zéo'}
             />
+
+            {currentUserId && myProfile && <InternalMessaging currentUserRole={myProfile.role} currentUserId={currentUserId} />}
         </div>
     );
 }

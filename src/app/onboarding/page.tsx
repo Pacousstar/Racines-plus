@@ -581,7 +581,7 @@ export default function Onboarding() {
                                 )}
 
                                 <div className="pt-4 border-t border-white/10 mt-4 space-y-4">
-                                    <h3 className="text-white font-bold text-sm">Contacts (Optionnel)</h3>
+                                    <h3 className="text-white font-bold text-sm">Contacts (Obligatoire)</h3>
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div>
@@ -610,7 +610,7 @@ export default function Onboarding() {
                                     </div>
                                 </div>
                             </div>
-                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin || !formData.quartierNom || (formData.residenceCountry === 'OTHER' && !formData.residenceCountryCustom)}
+                            <button type="button" onClick={() => setStep(3)} disabled={!formData.villageOrigin || !formData.quartierNom || !formData.residenceCity || !formData.phone1 || (formData.residenceCountry === 'OTHER' && !formData.residenceCountryCustom)}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Continuer <ArrowRight className="w-5 h-5" />
                             </button>
@@ -704,7 +704,8 @@ export default function Onboarding() {
                                 </div>
                             </div>
                             <button type="button" onClick={() => setStep(4)}
-                                className="w-full mt-6 bg-white hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                                disabled={!formData.fatherFirstName || !formData.fatherLastName || !formData.fatherStatus || !formData.motherFirstName || !formData.motherLastName || !formData.motherStatus}
+                                className="w-full mt-6 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Étape finale <ArrowRight className="w-5 h-5" />
                             </button>
                         </form>
