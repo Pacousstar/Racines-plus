@@ -16,6 +16,8 @@ import TreeSpecimens from '@/components/TreeSpecimens';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import PersonalLineageTree from '@/components/PersonalLineageTree';
 import MigrationMap from '@/components/MigrationMap';
+import DocumentManager from '@/components/DocumentManager';
+import MediaGallery from '@/components/MediaGallery';
 import { createClient } from '@/lib/supabase';
 
 interface ProfileData {
@@ -37,7 +39,7 @@ interface UserDashboardContentProps {
 
 export default function UserDashboardContent({ userId, activeSection = 'arbre' }: UserDashboardContentProps) {
     const supabase = createClient();
-    const [activeTab, setActiveTab] = useState<'arbre' | 'specimens' | 'notifications'>(activeSection === 'migration' ? 'arbre' : 'arbre');
+    const [activeTab, setActiveTab] = useState<'arbre' | 'specimens' | 'archives' | 'medias' | 'notifications'>(activeSection === 'migration' ? 'arbre' : 'arbre');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isChooseAncetreOpen, setIsChooseAncetreOpen] = useState(false);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -270,6 +272,18 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         Spécimens Validés
                     </button>
                     <button
+                        onClick={() => setActiveTab('archives')}
+                        className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'archives' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
+                    >
+                        Archives
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('medias')}
+                        className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'medias' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
+                    >
+                        Souvenirs Vidéo/Photo
+                    </button>
+                    <button
                         onClick={() => setActiveTab('notifications')}
                         className={`pb-2 text-sm font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'notifications' ? 'text-[#FF6600] border-b-2 border-[#FF6600]' : 'text-gray-600 hover:text-gray-800'}`}
                     >
@@ -322,6 +336,18 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                             userStatus={profileData?.status || 'pending'}
                             userRole={profileData?.role}
                         />
+                    </div>
+                )}
+
+                {activeTab === 'archives' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <DocumentManager userId={userId} />
+                    </div>
+                )}
+
+                {activeTab === 'medias' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <MediaGallery />
                     </div>
                 )}
 
