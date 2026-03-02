@@ -12,7 +12,7 @@ export interface MigrationMarker {
     country: string;
     city: string;
     count: number;
-    members: string[];
+    members: { name: string; avatarUrl: string | null }[];
     lat?: number;
     lng?: number;
 }
@@ -35,6 +35,43 @@ export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; flag: st
     'GH': { lat: 7.9465, lng: -1.0232, flag: '🇬🇭', name: 'Ghana' },
 };
 
+export const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+    'ABIDJAN': { lat: 5.359951, lng: -4.008256 },
+    'PARIS': { lat: 48.856614, lng: 2.352221 },
+    'LYON': { lat: 45.764043, lng: 4.835659 },
+    'MARSEILLE': { lat: 43.296482, lng: 5.36978 },
+    'BOUAFLÉ': { lat: 6.9904, lng: -5.7442 },
+    'BOUAFLE': { lat: 6.9904, lng: -5.7442 },
+    'DABOU': { lat: 5.32556, lng: -4.37685 },
+    'DALOA': { lat: 6.87739, lng: -6.45022 },
+    'SAN PEDRO': { lat: 4.7485, lng: -6.6363 },
+    'YAMOUSSOUKRO': { lat: 6.8276, lng: -5.2775 },
+    'KORHOGO': { lat: 9.4580, lng: -5.6296 },
+    'NEW YORK': { lat: 40.712775, lng: -74.005973 },
+    'WASHINGTON': { lat: 38.907192, lng: -77.036871 },
+    'MONTREAL': { lat: 45.501689, lng: -73.567256 },
+    'MONTRÉAL': { lat: 45.501689, lng: -73.567256 },
+    'QUÉBEC': { lat: 46.813878, lng: -71.207981 },
+    'QUEBEC': { lat: 46.813878, lng: -71.207981 },
+    'DAKAR': { lat: 14.716677, lng: -17.467686 },
+    'BRUXELLES': { lat: 50.850346, lng: 4.351721 },
+    'LONDRES': { lat: 51.507351, lng: -0.127758 },
+    'BERLIN': { lat: 52.520007, lng: 13.404954 },
+    'DOUALA': { lat: 4.051056, lng: 9.767869 },
+    'YAOUNDÉ': { lat: 3.848032, lng: 11.502075 },
+    'YAOUNDE': { lat: 3.848032, lng: 11.502075 },
+    'CASABLANCA': { lat: 33.57311, lng: -7.589843 },
+    'RABAT': { lat: 34.020882, lng: -6.84165 },
+    'CONAKRY': { lat: 9.509167, lng: -13.712222 },
+    'OUAGADOUGOU': { lat: 12.36566, lng: -1.53388 },
+    'BAMAKO': { lat: 12.639232, lng: -8.002889 },
+    'ACCRA': { lat: 5.603717, lng: -0.186964 },
+    'LOMÉ': { lat: 6.137482, lng: 1.212451 },
+    'LOME': { lat: 6.137482, lng: 1.212451 },
+    'TOA-ZÉO': { lat: 6.805080, lng: -7.329396 },
+    'TOA-ZEO': { lat: 6.805080, lng: -7.329396 }
+};
+
 export default function MigrationMap() {
     const [stats, setStats] = useState<MigrationMarker[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +87,7 @@ export default function MigrationMap() {
             // Récupérer UNIQUEMENT les membres validés (confirmed) avec leur localisation réelle
             const { data, error } = await supabase
                 .from('profiles')
-                .select('residence_country, residence_city, first_name, last_name')
+                .select('residence_country, residence_city, first_name, last_name, avatar_url')
                 .eq('status', 'confirmed');
 
             if (error) throw error;
@@ -63,19 +100,41 @@ export default function MigrationMap() {
                 const key = `${countryCode}-${cityKey}`;
 
                 if (!groups[key]) {
-                    const coords = COUNTRY_COORDS[countryCode];
+                    const cityUpper = cityKey.toUpperCase().trim();
+                    let lat = COUNTRY_COORDS[countryCode]?.lat;
+                    let lng = COUNTRY_COORDS[countryCode]?.lng;
+
+                    // Chercher la ville exacte en priorité
+                    if (CITY_COORDS[cityUpper]) {
+                        lat = CITY_COORDS[cityUpper].lat;
+                        lng = CITY_COORDS[cityUpper].lng;
+                    } else if (lat !== undefined && lng !== undefined && countryCode !== 'CI') {
+                        // Offset pseudo-aléatoire basé sur le nom de la ville pour éviter l'empilement
+                        let hash = 0;
+                        for (let i = 0; i < cityUpper.length; i++) {
+                            hash = cityUpper.charCodeAt(i) + ((hash << 5) - hash);
+                        }
+                        // Eparpiller légèrement autour du centre du pays (± 1 degré)
+                        const rand1 = Math.sin(hash) * 10000;
+                        const rand2 = Math.cos(hash) * 10000;
+                        lat += (rand1 - Math.floor(rand1)) * 2 - 1;
+                        lng += (rand2 - Math.floor(rand2)) * 2 - 1;
+                    }
+
                     groups[key] = {
                         country: countryCode,
                         city: cityKey,
                         count: 0,
                         members: [],
-                        // Coordonnées GPS réelles du pays/ville
-                        lat: coords?.lat,
-                        lng: coords?.lng,
+                        lat,
+                        lng,
                     };
                 }
                 groups[key].count += 1;
-                groups[key].members.push(`${p.first_name || ''} ${p.last_name || ''}`.trim());
+                groups[key].members.push({
+                    name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+                    avatarUrl: p.avatar_url || null
+                });
             });
 
             let result = Object.values(groups).sort((a, b) => b.count - a.count);

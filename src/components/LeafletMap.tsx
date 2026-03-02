@@ -137,13 +137,45 @@ export default function LeafletMap({ markers }: LeafletMapProps) {
                                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#FF6600' }}>membre{item.count > 1 ? 's' : ''} certifié{item.count > 1 ? 's' : ''}</span>
                                 </div>
                                 {item.members.length > 0 && (
-                                    <div style={{ marginTop: '6px' }}>
-                                        {item.members.slice(0, 3).map((name, i) => (
-                                            <p key={i} style={{ fontSize: '10px', color: '#888', margin: '2px 0' }}>• {name}</p>
-                                        ))}
-                                        {item.members.length > 3 && (
-                                            <p style={{ fontSize: '10px', color: '#FF6600', fontWeight: 700, margin: '2px 0' }}>+{item.members.length - 3} autres</p>
-                                        )}
+                                    <div style={{ marginTop: '8px', borderTop: '1px solid #f0f0f0', paddingTop: '8px' }}>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                                            {item.members.slice(0, 6).map((member, i) => (
+                                                <div
+                                                    key={i}
+                                                    title={member.name}
+                                                    style={{
+                                                        width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden',
+                                                        border: '2px solid white', boxShadow: '0 2px 5px rgba(0,0,0,0.15)',
+                                                        flexShrink: 0, marginLeft: i > 0 ? '-10px' : '0', zIndex: 10 - i, position: 'relative'
+                                                    }}
+                                                >
+                                                    {member.avatarUrl ? (
+                                                        <img src={member.avatarUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        <div style={{ width: '100%', height: '100%', backgroundColor: '#FFEBCC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900, color: '#FF6600' }}>
+                                                            {member.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            {item.members.length > 6 && (
+                                                <div style={{
+                                                    width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#FF6600',
+                                                    color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontSize: '10px', fontWeight: 'bold', border: '2px solid white',
+                                                    boxShadow: '0 2px 5px rgba(0,0,0,0.15)', flexShrink: 0, marginLeft: '-10px', zIndex: 11, position: 'relative'
+                                                }}>
+                                                    +{item.members.length - 6}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div style={{ maxHeight: '60px', overflowY: 'auto', paddingRight: '4px' }}>
+                                            {item.members.slice(0, 3).map((member, i) => (
+                                                <p key={i} style={{ fontSize: '10px', color: '#555', margin: '3px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
+                                                    • {member.name}
+                                                </p>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
