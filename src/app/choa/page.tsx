@@ -57,7 +57,7 @@ export default function ChoBoard() {
     const supabase = createClient();
     // Double protection côté client
     useRoleRedirect(['choa']);
-    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected'>('tasks');
+    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected' | 'quartier'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
@@ -74,12 +74,26 @@ export default function ChoBoard() {
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);
-    // États formulaire ancêtre
     const [ancestreNom, setAncetreNom] = useState('');
     const [ancestrePeriode, setAncretrePeriode] = useState('');
     const [ancestreSource, setAncetreSource] = useState('');
     const [isSavingAncetre, setIsSavingAncetre] = useState(false);
     const [ancestreSaved, setAncretreSaved] = useState(false);
+
+    // Onglet activité quartier
+    interface QuartierActivity {
+        id: string;
+        created_at: string;
+        statut: string;
+        role_validateur: string;
+        validator_name: string;
+        validator_quartier: string;
+        cible_first_name: string;
+        cible_last_name: string;
+        cible_status: string;
+    }
+    const [quartierActivity, setQuartierActivity] = useState<QuartierActivity[]>([]);
+    const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
     // Pagination States
     const [pendingPage, setPendingPage] = useState(1);
@@ -115,11 +129,17 @@ export default function ChoBoard() {
             if (usersErr) console.error('[choa] Error fetching users:', usersErr);
 
             if (allUsers) {
-                // Le CHOa voit les pending, et les probable/pre_approved pour ne pas les perdre
+                // Statuts visibles par le CHOa :
+                //  - pending_choa  : nouvel inscrit (workflow standard)
+                //  - pending       : ancien statut (compatibilité)
+                //  - pre_approved  : approuvé par 1 CHOa, attend le 2e
+                //  - probable      : 2 CHOa ont validé, attend le CHO
+                const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved', 'probable'];
+
                 const myPending = allUsers.filter(u =>
                     u.village_origin === profile.village_origin &&
                     u.quartier_nom === profile.quartier_nom &&
-                    (u.status === 'pending' || !u.status || u.status === 'probable' || u.status === 'pre_approved')
+                    CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa')
                 );
 
                 setPendingProfiles(myPending);
@@ -193,15 +213,14 @@ export default function ChoBoard() {
         document.body.removeChild(link);
     };
 
-    const handleStatusChange = async (profileId: string, newStatus: string, isFinal: boolean = false) => {
+    const handleStatusChange = async (profileId: string, newStatus: string) => {
         if (!motifModal && newStatus === 'rejected') {
             setMotifModal({ id: profileId, action: 'rejected' });
             return;
         }
 
         const updateData: Record<string, unknown> = { status: newStatus };
-        if (newStatus === 'rejected' && motifText) updateData.rejection_motif = motifText;
-        if (observations) updateData.rejection_observations = observations;
+        let finalStatus = newStatus;
 
         if (newStatus === 'probable' || newStatus === 'pre_approved') {
             const profile = pendingProfiles.find(p => p.id === profileId);
@@ -209,37 +228,40 @@ export default function ChoBoard() {
             if (!currentApprovals.includes(currentUserId!)) {
                 const newApprovals = [...currentApprovals, currentUserId!];
                 updateData.choa_approvals = newApprovals;
-                if (newApprovals.length >= 2) {
-                    updateData.status = 'probable';
-                } else {
-                    updateData.status = 'pre_approved';
-                }
+                finalStatus = newApprovals.length >= 2 ? 'probable' : 'pre_approved';
+                updateData.status = finalStatus;
             } else {
                 // Déjà approuvé par ce CHOa
-                updateData.status = profile?.status || 'pending';
+                updateData.status = profile?.status || 'pending_choa';
+                finalStatus = updateData.status as string;
                 delete updateData.choa_approvals;
             }
         }
 
-        await supabase.from('profiles').update(updateData).eq('id', profileId);
+        // Mettre à jour le profil
+        const { error: updateErr } = await supabase.from('profiles').update(updateData).eq('id', profileId);
+        if (updateErr) {
+            alert('❌ Erreur lors de la mise à jour : ' + updateErr.message);
+            return;
+        }
 
-        // Historiser l'action du CHOa dans la table validations
-        if (newStatus === 'probable' || newStatus === 'rejected') {
-            const { data: { user } } = await supabase.auth.getUser();
-            await supabase.from('validations').insert({
-                profile_id: profileId,
-                validator_id: user?.id,
-                role_validateur: myProfile?.role,
-                statut: newStatus,
-                decision_finale: false,
-                motif: motifText || null,
-                observations: observations || (newStatus === 'probable' ? 'Pré-validation' : null)
+        // Enregistrer la validation enrichie via la fonction SQL
+        if (finalStatus === 'probable' || finalStatus === 'pre_approved' || finalStatus === 'rejected') {
+            await supabase.rpc('record_validation', {
+                p_profile_id: profileId,
+                p_new_status: finalStatus,
+                p_final: finalStatus === 'probable',
+                p_motif: motifText || null,
+                p_observations: observations || null
             });
         }
 
-        // Rafraîchir
-        if (updateData.status === 'probable' || updateData.status === 'pre_approved') {
-            setPendingProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: updateData.status as string, choa_approvals: updateData.choa_approvals as string[] || p.choa_approvals } : p));
+        // Rafraîchir l'UI
+        if (finalStatus === 'probable' || finalStatus === 'pre_approved') {
+            setPendingProfiles(prev => prev.map(p => p.id === profileId
+                ? { ...p, status: finalStatus, choa_approvals: updateData.choa_approvals as string[] || p.choa_approvals }
+                : p
+            ));
         } else {
             const profileToMove = pendingProfiles.find(p => p.id === profileId);
             setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
@@ -248,17 +270,22 @@ export default function ChoBoard() {
             }
         }
 
-        setMotifModal(null);
-        setMotifText('');
-        setObservations('');
+        setMotifModal(null); setMotifText(''); setObservations('');
 
-        if (updateData.status === 'probable') {
-            alert("🟠 Dossier pré-validé définitivement ! Il est maintenant transmis au Chef de Village (CHO) pour validation finale.");
-        } else if (updateData.status === 'pre_approved') {
-            alert("👍 Votre approbation a été enregistrée. En attente d'un second Assistant (CHOa).");
-        } else if (newStatus === 'rejected') {
-            alert("❌ Le dossier a été rejeté.");
-        }
+        if (finalStatus === 'probable') alert('🟠 Dossier pré-validé ! Transmis au CHO pour confirmation finale.');
+        else if (finalStatus === 'pre_approved') alert('👍 Approbation enregistrée. En attente d\'un second CHOa.');
+        else if (newStatus === 'rejected') alert('❌ Dossier rejeté.');
+    };
+
+    const loadQuartierActivity = async () => {
+        if (!myProfile) return;
+        setIsLoadingActivity(true);
+        const { data, error } = await supabase
+            .from('v_validations_quartier')
+            .select('*')
+            .limit(50);
+        if (!error && data) setQuartierActivity(data as QuartierActivity[]);
+        setIsLoadingActivity(false);
     };
 
     const loadComments = async (profileId: string) => {
@@ -313,12 +340,14 @@ export default function ChoBoard() {
         { key: 'tasks', label: 'À valider', icon: Clock, count: pendingProfiles.length, countColor: 'bg-orange-500' },
         { key: 'confirmed', label: 'Confirmés', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
         { key: 'rejected', label: 'Rejetés', icon: XCircle, count: rejectedProfiles.length, countColor: 'bg-red-500' },
+        { key: 'quartier', label: 'Activité Quartier', icon: Users, count: 0, countColor: '' },
     ];
 
     const StatusBadge = ({ status }: { status: string }) => {
         const map: Record<string, { color: string; bg: string; label: string }> = {
             confirmed: { color: 'text-green-700', bg: 'bg-green-50 border-green-200', label: 'CERTIFIÉ ✅' },
             pending: { color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'EN ATTENTE ⚫' },
+            pending_choa: { color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', label: 'ATT. CHOA ⏳' },
             rejected: { color: 'text-red-600', bg: 'bg-red-50 border-red-200', label: 'REJETÉ 🔴' },
             probable: { color: 'text-orange-600', bg: 'bg-orange-50 border-orange-200', label: 'PRÊT POUR CHO 🟠' },
             pre_approved: { color: 'text-blue-600', bg: 'bg-blue-50 border-blue-200', label: '1 APPROBATION 🔵' },
@@ -573,6 +602,71 @@ export default function ChoBoard() {
                                 </>
                             );
                         })()}
+                    </div>
+                )}
+
+                {/* Activité Quartier — Ce que les CHOa du quartier ont fait */}
+                {activeTab === 'quartier' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
+                                <Users className="w-3 h-3" /> Activité du Quartier {myProfile?.quartier_nom}
+                            </h2>
+                            <button
+                                onClick={loadQuartierActivity}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-[#FF6600] text-white rounded-xl text-[10px] font-bold hover:bg-[#e55c00] transition-all active:scale-95"
+                            >
+                                {isLoadingActivity ? '⏳ Chargement...' : '🔄 Actualiser'}
+                            </button>
+                        </div>
+
+                        {quartierActivity.length === 0 && !isLoadingActivity && (
+                            <div className="bg-white rounded-3xl p-10 text-center border border-gray-100">
+                                <Users className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                                <p className="font-semibold text-gray-700">Aucune activité enregistrée</p>
+                                <p className="text-sm text-gray-500 mt-1">Cliquez sur Actualiser pour charger les validations de votre quartier.</p>
+                            </div>
+                        )}
+
+                        {quartierActivity.map(act => {
+                            const statusColors: Record<string, string> = {
+                                confirmed: 'bg-green-50 text-green-700 border-green-200',
+                                probable: 'bg-orange-50 text-orange-600 border-orange-200',
+                                pre_approved: 'bg-blue-50 text-blue-600 border-blue-200',
+                                rejected: 'bg-red-50 text-red-600 border-red-200',
+                                pending_choa: 'bg-gray-50 text-gray-500 border-gray-200',
+                            };
+                            const statusLabel: Record<string, string> = {
+                                confirmed: 'Confirmé ✅', probable: 'Pré-validé 🟠',
+                                pre_approved: '1 Approbation 🔵', rejected: 'Rejeté ❌',
+                                pending_choa: 'En attente ⏳',
+                            };
+                            return (
+                                <div key={act.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center font-black text-sm flex-shrink-0">
+                                            {act.validator_name?.[0] || '?'}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm text-gray-900">{act.validator_name || '—'}</p>
+                                            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{act.role_validateur?.toUpperCase()} · {act.validator_quartier}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center hidden md:block">
+                                        <p className="text-xs text-gray-500">A traité</p>
+                                        <p className="font-bold text-sm text-gray-900">{act.cible_first_name} {act.cible_last_name}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${statusColors[act.statut] || statusColors['pending_choa']}`}>
+                                            {statusLabel[act.statut] || act.statut}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400 font-bold">
+                                            {new Date(act.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
 

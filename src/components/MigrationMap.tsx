@@ -104,21 +104,19 @@ export default function MigrationMap() {
                     let lat = COUNTRY_COORDS[countryCode]?.lat;
                     let lng = COUNTRY_COORDS[countryCode]?.lng;
 
-                    // Chercher la ville exacte en priorité
                     if (CITY_COORDS[cityUpper]) {
                         lat = CITY_COORDS[cityUpper].lat;
                         lng = CITY_COORDS[cityUpper].lng;
-                    } else if (lat !== undefined && lng !== undefined && countryCode !== 'CI') {
-                        // Offset pseudo-aléatoire basé sur le nom de la ville pour éviter l'empilement
+                    } else if (lat !== undefined && lng !== undefined) {
+                        // Offset pseudo-aléatoire pour éviter l'empilement (pour TOUS les pays, y compris CI)
                         let hash = 0;
                         for (let i = 0; i < cityUpper.length; i++) {
                             hash = cityUpper.charCodeAt(i) + ((hash << 5) - hash);
                         }
-                        // Eparpiller légèrement autour du centre du pays (± 1 degré)
                         const rand1 = Math.sin(hash) * 10000;
                         const rand2 = Math.cos(hash) * 10000;
-                        lat += (rand1 - Math.floor(rand1)) * 2 - 1;
-                        lng += (rand2 - Math.floor(rand2)) * 2 - 1;
+                        lat += (rand1 - Math.floor(rand1)) * 1.5 - 0.75;
+                        lng += (rand2 - Math.floor(rand2)) * 1.5 - 0.75;
                     }
 
                     groups[key] = {
@@ -154,6 +152,7 @@ export default function MigrationMap() {
 
     return (
         <section className="py-12 bg-white dark:bg-black rounded-3xl border border-gray-100 dark:border-white/10 overflow-hidden shadow-sm">
+            {/* En-tête */}
             <div className="px-6 mb-6">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 bg-[#FF6600]/10 text-[#FF6600] rounded-xl flex items-center justify-center">
@@ -164,16 +163,31 @@ export default function MigrationMap() {
                         <p className="text-sm text-gray-600 font-medium">Rayonnement de Toa-Zéo à travers le monde</p>
                     </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                    Seuls les membres certifiés par le CHO sont affichés. Les données sont basées sur la localisation déclarée lors de l'inscription.
+                {/* Légende couleurs */}
+                <div className="flex flex-wrap items-center gap-4 mt-3">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-[#124E35]" />
+                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Toa-Zéo (Foyer)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-[#1f6b4a]" />
+                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Côte d&apos;Ivoire</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-[#FF6600]" />
+                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Diaspora internationale</span>
+                    </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                    Seuls les membres certifiés par le CHO sont affichés.
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 px-6">
-                {/* ─── Carte Leaflet OpenStreetMap (vraie carte monde) ─── */}
-                <div className="lg:col-span-2 relative rounded-[2rem] overflow-hidden min-h-[450px] border border-gray-200 shadow-xl">
+            {/* ─── CARTE PLEINE LARGEUR ─── */}
+            <div className="px-6 mb-8">
+                <div className="relative rounded-[2rem] overflow-hidden border border-gray-200 shadow-xl">
                     {isLoading ? (
-                        <div className="w-full h-[450px] bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
+                        <div className="w-full h-[520px] bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
                             <div className="flex flex-col items-center gap-3">
                                 <div className="w-10 h-10 border-2 border-[#FF6600] border-t-transparent rounded-full animate-spin" />
                                 <p className="text-sm font-medium text-white/60">Chargement de la carte…</p>
@@ -182,66 +196,64 @@ export default function MigrationMap() {
                     ) : (
                         <LeafletMap markers={stats} />
                     )}
-
-                    {/* Légende superposée */}
-                    <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-[500]">
-                        <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-gray-100 shadow-lg">
-                            <div className="w-3 h-3 rounded-full bg-[#124E35]" />
-                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Toa-Zéo (Foyer)</span>
-                        </div>
-                        <div className="flex items-center gap-2 bg-white/95 backdrop-blur-xl px-3 py-1.5 rounded-full border border-gray-100 shadow-lg">
-                            <div className="w-3 h-3 rounded-full bg-[#FF6600]" />
-                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Diaspora confirmée</span>
-                        </div>
-                    </div>
                 </div>
+            </div>
 
-                {/* ─── Liste des destinations ─── */}
-                <div className="space-y-3">
-                    <h3 className="font-black text-sm uppercase tracking-widest text-gray-700 flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-[#FF6600]" /> Top Destinations
-                    </h3>
-                    {isLoading ? (
-                        <div className="space-y-3">
-                            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-2xl animate-pulse" />)}
-                        </div>
-                    ) : stats.length === 1 && stats[0].count === 0 ? (
-                        <div className="p-5 text-center bg-orange-50 rounded-2xl border border-orange-100">
-                            <p className="text-sm font-bold text-[#FF6600]">Aucun membre certifié pour l'instant.</p>
-                            <p className="text-xs text-gray-600 mt-1">Les membres validés par le CHO apparaîtront ici.</p>
-                        </div>
-                    ) : (
-                        stats.map((item, idx) => {
+            {/* ─── TOP DESTINATIONS (grille en dessous) ─── */}
+            <div className="px-6">
+                <h3 className="font-black text-sm uppercase tracking-widest text-gray-700 flex items-center gap-2 mb-4">
+                    <MapPin className="w-4 h-4 text-[#FF6600]" /> Top Destinations
+                </h3>
+                {isLoading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-gray-50 rounded-2xl animate-pulse" />)}
+                    </div>
+                ) : stats.length === 1 && stats[0].count === 0 ? (
+                    <div className="p-5 text-center bg-orange-50 rounded-2xl border border-orange-100">
+                        <p className="text-sm font-bold text-[#FF6600]">Aucun membre certifié pour l’instant.</p>
+                        <p className="text-xs text-gray-600 mt-1">Les membres validés par le CHO apparaîtront ici.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {stats.map((item, idx) => {
                             const meta = COUNTRY_COORDS[item.country];
+                            const isCI = item.country === 'CI';
                             return (
                                 <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 hover:bg-white border border-transparent hover:border-[#FF6600]/20 rounded-2xl transition-all group overflow-hidden relative cursor-default">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-lg shadow-sm border border-gray-100 flex-shrink-0">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-base shadow-sm border border-gray-100 flex-shrink-0">
                                             {meta?.flag || '🌍'}
                                         </div>
-                                        <div>
-                                            <p className="font-black text-sm text-gray-900 leading-tight">{item.city}</p>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{meta?.name || item.country}</p>
+                                        <div className="min-w-0">
+                                            <p className="font-black text-sm text-gray-900 leading-tight truncate">{item.city}</p>
+                                            <p className="text-[10px] font-bold uppercase tracking-tighter truncate" style={{ color: isCI ? '#1f6b4a' : '#9ca3af' }}>
+                                                {meta?.name || item.country}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="text-right flex-shrink-0">
+                                    <div className="text-right flex-shrink-0 ml-2">
                                         <div className="flex items-center gap-1 justify-end">
-                                            <span className="text-base font-black text-[#FF6600]">{item.count}</span>
+                                            <span className="text-base font-black" style={{ color: isCI ? '#1f6b4a' : '#FF6600' }}>{item.count}</span>
                                             <ArrowUpRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#FF6600] transition-colors" />
                                         </div>
                                         <p className="text-[9px] font-bold text-gray-400 uppercase">Membres</p>
                                     </div>
                                     {stats[0]?.count > 0 && (
                                         <div
-                                            className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#FF6600]/30 to-[#FF6600]/5 transition-all duration-1000"
-                                            style={{ width: `${(item.count / stats[0].count) * 100}%` }}
+                                            className="absolute bottom-0 left-0 h-0.5 transition-all duration-1000"
+                                            style={{
+                                                width: `${(item.count / stats[0].count) * 100}%`,
+                                                background: isCI
+                                                    ? 'linear-gradient(to right, rgba(18,78,53,0.3), rgba(18,78,53,0.05))'
+                                                    : 'linear-gradient(to right, rgba(255,102,0,0.3), rgba(255,102,0,0.05))'
+                                            }}
                                         />
                                     )}
                                 </div>
                             );
-                        })
-                    )}
-                </div>
+                        })}
+                    </div>
+                )}
             </div>
         </section>
     );

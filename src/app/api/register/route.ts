@@ -106,10 +106,10 @@ export async function POST(request: NextRequest) {
         let isNewUser = true;
 
         // ── 1. Tenter de créer le compte ──────────────────────────────────────
+        // email_confirm est intentionnellement OMIS : Supabase enverra un email de vérification (double opt-in)
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: true,
         });
 
         if (authError) {
@@ -130,11 +130,8 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Email déjà utilisé mais compte introuvable. Essayez de vous connecter.' }, { status: 409 });
                 }
 
-                // Mettre à jour le mot de passe si différent (l'utilisateur veut recommencer)
-                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
-                    password,
-                    email_confirm: true,
-                });
+                // Mettre à jour le mot de passe uniquement
+                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, { password });
 
                 userId = existingUser.id;
                 isNewUser = false;

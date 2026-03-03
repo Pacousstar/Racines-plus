@@ -57,7 +57,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
         if (!profileData) setIsLoading(true);
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id')
+            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, residence_country, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id')
             .eq('id', userId)
             .single();
 
@@ -96,6 +96,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     consentementEnfants: data.consentement_enfants || false,
                     adresseResidence: data.adresse_residence || '',
                     residenceCity: data.residence_city || '',
+                    residenceCountry: data.residence_country || 'CI',
                     phone1: data.phone_1 || '',
                     phone2: data.phone_2 || '',
                     whatsapp1: data.whatsapp_1 || '',
@@ -193,7 +194,13 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         </div>
                         <div className="text-center">
                             <h2 className="text-lg font-bold leading-tight">
-                                {isLoading ? <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" /> : (profileData?.firstName || profileData?.lastName ? `${profileData.firstName} ${profileData.lastName}`.trim() : 'Mon Profil')}
+                                {isLoading
+                                    ? <span className="inline-block w-32 h-5 bg-gray-200 rounded animate-pulse" />
+                                    : (profileData?.firstName || profileData?.lastName
+                                        ? `${profileData.firstName} ${profileData.lastName}`.trim()
+                                        : <span className="text-gray-400 italic text-sm">Profil incomplet</span>
+                                    )
+                                }
                             </h2>
                             <p className="text-sm text-gray-600 flex items-center gap-1 justify-center mt-1">
                                 <MapPin className="w-3 h-3" />
@@ -203,7 +210,12 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                                 {isLoading ? <span className="inline-block w-28 h-6 bg-gray-200 rounded-full animate-pulse" /> : <StatusBadge status={profileData?.status || 'pending'} />}
                             </div>
                             <div className="mt-3 flex justify-center">
-                                <span className="bg-[#FF6600]/10 text-[#FF6600] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">Nœud Fondateur</span>
+                                {/* Badge 'NŒUD FONDATEUR' uniquement pour les is_founder=true ou rôles spéciaux */}
+                                {(profileData?.role === 'admin' || profileData?.role === 'cho' || profileData?.role === 'choa') && (
+                                    <span className="bg-[#FF6600]/10 text-[#FF6600] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                                        {profileData.role === 'admin' ? '👑 Administrateur' : profileData.role === 'cho' ? '🌳 Chef Héritage' : '🛡️ Assistant CHO'}
+                                    </span>
+                                )}
                             </div>
                             <button
                                 onClick={() => setIsEditProfileOpen(true)}

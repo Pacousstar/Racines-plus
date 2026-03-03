@@ -145,10 +145,13 @@ export default function ChoBoard() {
                     pre_validated_by: validationsMap[u.id] || null
                 }));
 
-                // ─── Flux de validation obligatoire : pending → CHOa → probable → CHO ───
-                // Le CHO ne voit QUE les dossiers pré-validés par un CHOa (status='probable')
-                // Les nouveaux inscrits (status='pending') restent côté CHOa jusqu'à leur pré-validation
-                setPendingProfiles(enhancedUsers.filter(u => u.status === 'probable'));
+                // ─── Flux de validation obligatoire : pending_choa → CHOa → probable → CHO ───
+                // Le CHO voit :
+                //   1. Les dossiers pré-validés par les 2 CHOa (status='probable') → à confirmer
+                //   2. Les dossiers bloqués sans CHOa (status='pending_choa' sans quartier assigné) → cas exceptionnel
+                setPendingProfiles(enhancedUsers.filter(u =>
+                    u.status === 'probable' || u.status === 'pending_choa'
+                ));
                 setConfirmedProfiles(enhancedUsers.filter(u => u.status === 'confirmed'));
                 setRejectedProfiles(enhancedUsers.filter(u => u.status === 'rejected'));
 
@@ -232,16 +235,17 @@ export default function ChoBoard() {
         if (newStatus === 'rejected' && motifText) updateData.rejection_motif = motifText;
         if (observations) updateData.rejection_observations = observations;
 
-        await supabase.from('profiles').update(updateData).eq('id', profileId);
+        const { error: updateErr } = await supabase.from('profiles').update(updateData).eq('id', profileId);
+        if (updateErr) { alert('Erreur mise à jour : ' + updateErr.message); return; }
 
-        if (isFinal && newStatus === 'confirmed') {
-            await supabase.from('validations').insert({
-                profile_id: profileId,
-                validator_id: (await supabase.auth.getUser()).data.user?.id,
-                role_validateur: myProfile?.role,
-                statut: 'confirme',
-                decision_finale: true,
-                observations: 'Bascule Patrimoniale déclenchée par le CHO'
+        // Enregistrement détaillé de la validation CHO via la fonction SQL
+        if (newStatus === 'confirmed' || newStatus === 'rejected') {
+            await supabase.rpc('record_validation', {
+                p_profile_id: profileId,
+                p_new_status: newStatus,
+                p_final: isFinal || newStatus === 'confirmed',
+                p_motif: motifText || null,
+                p_observations: observations || (newStatus === 'confirmed' ? 'Validation finale CHO' : null)
             });
         }
 

@@ -47,10 +47,11 @@ export default function AnnuairePage() {
             .from('profiles')
             .select(`
                 id, first_name, last_name, avatar_url, emploi, fonction, 
-                niveau_etudes, residence_city, address_country, quartier_nom, 
+                niveau_etudes, residence_city, residence_country, quartier_nom, 
                 whatsapp_1, is_deceased, disease_type, status, role
             `)
-            .in('status', ['confirmed', 'cho', 'admin'])
+            .in('status', ['confirmed'])
+            .or('role.eq.cho,role.eq.admin')
             .order('last_name', { ascending: true });
 
         if (error) {
@@ -78,10 +79,11 @@ export default function AnnuairePage() {
         }
 
         // 2. Filtrage Rapide (Pastilles)
+        // residence_country est un code pays (CI, FR, US, ...) sauvegardé à l'inscription
         if (activeFilter === 'Diaspora') {
-            result = result.filter(m => m.address_country && m.address_country !== "Côte d'Ivoire");
+            result = result.filter(m => m.residence_country && m.residence_country !== 'CI');
         } else if (activeFilter === 'Local') {
-            result = result.filter(m => m.address_country === "Côte d'Ivoire");
+            result = result.filter(m => !m.residence_country || m.residence_country === 'CI');
         } else if (activeFilter === 'Gbeya') {
             result = result.filter(m => m.quartier_nom === 'Gbéya');
         } else if (activeFilter === 'Bonye') {

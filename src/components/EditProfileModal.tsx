@@ -17,6 +17,7 @@ export interface ExtendedProfileData {
     nombreEnfants: number;
     adresseResidence: string;
     residenceCity: string;
+    residenceCountry: string;
     phone1?: string;
     phone2?: string;
     whatsapp1?: string;
@@ -59,6 +60,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
         nombreEnfants: 0,
         adresseResidence: '',
         residenceCity: '',
+        residenceCountry: 'CI',
         phone1: '',
         phone2: '',
         whatsapp1: '',
@@ -94,6 +96,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     nombre_enfants: formData.nombreEnfants,
                     adresse_residence: formData.adresseResidence,
                     residence_city: formData.residenceCity,
+                    residence_country: formData.residenceCountry,
                     phone_1: formData.phone1,
                     phone_2: formData.phone2,
                     whatsapp_1: formData.whatsapp1,
@@ -210,6 +213,28 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Nombre d&apos;enfants (total enregistré)</label>
                                     <input type="number" min="0" value={formData.nombreEnfants} onChange={e => setFormData({ ...formData, nombreEnfants: parseInt(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Pays de résidence</label>
+                                    <select
+                                        value={formData.residenceCountry}
+                                        onChange={e => setFormData({ ...formData, residenceCountry: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white"
+                                    >
+                                        <option value="CI">🇨🇮 Côte d&apos;Ivoire</option>
+                                        <option value="FR">🇫🇷 France</option>
+                                        <option value="BE">🇧🇪 Belgique</option>
+                                        <option value="CH">🇨🇭 Suisse</option>
+                                        <option value="CA">🇨🇦 Canada</option>
+                                        <option value="US">🇺🇸 États-Unis</option>
+                                        <option value="GB">🇬🇧 Royaume-Uni</option>
+                                        <option value="SN">🇸🇳 Sénégal</option>
+                                        <option value="ML">🇲🇱 Mali</option>
+                                        <option value="BF">🇧🇫 Burkina Faso</option>
+                                        <option value="GH">🇬🇭 Ghana</option>
+                                        <option value="CM">🇨🇲 Cameroun</option>
+                                        <option value="OTHER">🌍 Autre pays</option>
+                                    </select>
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Ville de résidence (pour la carte)</label>

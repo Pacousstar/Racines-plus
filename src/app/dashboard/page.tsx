@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from "next/image";
 import Link from "next/link";
-import { User, Bell, LogOut } from 'lucide-react';
+import { User, Bell, LogOut, Mail, AlertCircle, X } from 'lucide-react';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import MemorialView from '@/components/MemorialView';
 import CertificateView from '@/components/CertificateView';
@@ -22,11 +22,17 @@ export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [showCertificate, setShowCertificate] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [emailVerified, setEmailVerified] = useState(true);
+    const [emailResent, setEmailResent] = useState(false);
 
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { router.push('/login'); return; }
         setCurrentUserId(user.id);
+
+        // Vérification email
+        setEmailVerified(!!user.email_confirmed_at);
 
         const { data, error } = await supabase
             .from('profiles')
@@ -39,32 +45,49 @@ export default function Dashboard() {
         }
 
         if (data) {
-            console.log('[dashboard] Profile data found:', data);
-            if (data.role === 'admin') {
-                router.push('/admin');
-                return;
-            } else if (data.role === 'cho') {
-                router.push('/cho');
-                return;
-            } else if (data.role === 'choa') {
-                router.push('/choa');
-                return;
-            }
+            if (data.role === 'admin') { router.push('/admin'); return; }
+            else if (data.role === 'cho') { router.push('/cho'); return; }
+            else if (data.role === 'choa') { router.push('/choa'); return; }
 
             const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
-            // Fallback sur metadata ou email
             const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
             setProfileName(fullName || fallbackName);
             setAvatarUrl(data.avatar_url || user.user_metadata?.avatar_url || null);
             setUserProfile(data);
+
+            // Charger le nombre de notifications non lues
+            const { count } = await supabase
+                .from('notifications')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('is_read', false);
+            setUnreadCount(count || 0);
+
+            // ── Abonnement Realtime aux nouvelles notifications ──────────────
+            supabase
+                .channel(`notifs-${user.id}`)
+                .on(
+                    'postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+                    () => {
+                        setUnreadCount(prev => prev + 1);
+                    }
+                )
+                .subscribe();
         } else {
-            console.warn('[dashboard] No profile data returned for user:', user.id);
-            // On affiche quand même quelque chose
             setProfileName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur');
             setAvatarUrl(user.user_metadata?.avatar_url || null);
         }
         setIsLoading(false);
+    }, [supabase, router]);
+
+    const handleResendVerification = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user?.email) return;
+        await supabase.auth.resend({ type: 'signup', email: user.email });
+        setEmailResent(true);
     };
+
 
     useEffect(() => {
         fetchProfile();
@@ -138,11 +161,15 @@ export default function Dashboard() {
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => alert("Notifications : la vue est reportée au composant interne")}
+                        onClick={() => { }}
                         className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
                     >
                         <Bell className="w-5 h-5" />
-                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-white text-[9px] font-bold flex items-center justify-center">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                            </span>
+                        )}
                     </button>
                     <div className="w-px h-6 bg-gray-200"></div>
                     <div className="flex items-center gap-2">
@@ -166,6 +193,26 @@ export default function Dashboard() {
                     </button>
                 </div>
             </header>
+
+            {/* Bannière email non-vérifié */}
+            {!emailVerified && (
+                <div className="fixed top-[60px] left-0 right-0 z-40 bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 text-amber-800 text-sm font-semibold">
+                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                        {emailResent
+                            ? '✅ Email de vérification renvoyé ! Vérifiez votre boîte mail.'
+                            : '⚠️ Votre email n\'est pas encore vérifié. Certaines fonctionnalités sont limitées.'}
+                    </div>
+                    {!emailResent && (
+                        <button
+                            onClick={handleResendVerification}
+                            className="flex items-center gap-1.5 text-xs font-bold bg-amber-600 text-white px-3 py-1.5 rounded-lg hover:bg-amber-700 transition-colors whitespace-nowrap"
+                        >
+                            <Mail className="w-3.5 h-3.5" /> Renvoyer l'email
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Main Content encapsulé dans le composant centralisé */}
             <main className="pt-20">

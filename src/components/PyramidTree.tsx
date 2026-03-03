@@ -229,8 +229,12 @@ export default function PyramidTree() {
     const fetchTree = async () => {
         setIsLoading(true);
         try {
-            // 1. Essayer Neo4j d'abord
-            const res = await fetch('/api/tree');
+            // 1. Essayer Neo4j avec timeout de 5s pour ne pas bloquer
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            const res = await fetch('/api/tree', { signal: controller.signal });
+            clearTimeout(timeoutId);
+
             if (res.ok) {
                 const data = await res.json();
                 if (data.nodes && data.nodes.length > 0) {
@@ -244,36 +248,35 @@ export default function PyramidTree() {
                 }
             }
         } catch {
-            // Neo4j non disponible → fallback Supabase
+            // Neo4j non disponible ou timeout → fallback Supabase
         }
 
-        // 2. Fallback Supabase : charger l'ancêtre réel validé par le CHO + membres du village
+        // 2. Fallback Supabase : charger uniquement les VRAIS ancêtres de la table ancestres
         try {
-            // ----------------------------------------------------------------
-            // RÈGLE MÉTIER — Ancêtre fondateur :
-            // Ici on charge le VRAI ancêtre enregistré et validé par le CHO
-            // (is_certified = true). On ne filtre PAS par nom.
-            // Le vrai ancêtre du village est celui que le CHO a officiellement certifié.
-            // ----------------------------------------------------------------
+            // Ancêtres certifiés CHO du village Toa-Zéo (table ancestres, pas profiles)
             const { data: ancestres } = await supabase
                 .from('ancestres')
-                .select('id, nom_complet, periode, is_certified')
+                .select('id, nom_complet, periode, is_certified, village_nom')
                 .eq('is_certified', true)
-                .order('created_at', { ascending: true }) // Le premier ancêtre enregistré = fondateur
-                .limit(3); // On prend les 3 premiers au cas où il y en a plusieurs
+                .ilike('village_nom', '%Toa%') // filtre par village pour éviter les ancêtres d'autres villages
+                .order('created_at', { ascending: true })
+                .limit(3);
 
-            // Charger les membres du village (confirmés et probables, pas pending/rejected)
+            // Membres du village (confirmés et probables, with names)
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, first_name, last_name, status, quartier_nom, village_origin')
                 .in('status', ['confirmed', 'probable'])
-                .order('status', { ascending: true }) // confirmed d'abord
+                .not('first_name', 'is', null)  // exclure profils sans nom
+                .not('last_name', 'is', null)
+                .order('status', { ascending: true })
                 .limit(8);
 
             const members: PersonData[] = [];
 
-            // Ajouter les ancêtres fondateurs en tête
+            // Ancêtres fondateurs (table ancestres uniquement)
             (ancestres || []).forEach(a => {
+                if (!a.nom_complet) return; // skip si nom vide
                 members.push({
                     id: a.id,
                     name: a.nom_complet,
@@ -281,14 +284,14 @@ export default function PyramidTree() {
                     birthYear: a.periode ? a.periode.match(/\d{4}/)?.[0] || 'Inconnue' : 'Inconnue',
                     status: 'confirmed',
                     isDeceased: false,
-                    village: 'Toa-Zéo',
+                    village: a.village_nom || 'Toa-Zéo',
                 });
             });
 
-            // Ajouter les membres
+            // Membres inscrits (profiles avec noms réels)
             (profiles || []).forEach(p => {
                 const nom = `${p.first_name || ''} ${p.last_name || ''}`.trim();
-                if (!nom) return;
+                if (!nom || nom.length < 3) return; // skip si nom vide ou trop court
                 members.push({
                     id: p.id,
                     name: nom,

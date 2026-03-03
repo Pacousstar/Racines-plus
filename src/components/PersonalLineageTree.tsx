@@ -154,7 +154,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 // 1. Profil utilisateur courant
                 const { data: profil } = await supabase
                     .from('profiles')
-                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom, role')
+                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom, role, village_origin')
                     .eq('id', userId)
                     .single();
 
@@ -164,9 +164,10 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 // 2. Ancêtre fondateur certifié CHO
                 let ancestreNode: LineageNode | null = null;
                 if (profil.ancestral_root_id) {
+                    // L'utilisateur a choisi son ancêtre fondateur
                     const { data: a } = await supabase
                         .from('ancestres')
-                        .select('id, nom_complet, periode, is_certified')
+                        .select('id, nom_complet, periode, is_certified, village_nom')
                         .eq('id', profil.ancestral_root_id)
                         .single();
 
@@ -182,11 +183,12 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         };
                     }
                 } else {
-                    // Chercher le premier ancêtre certifié du village
+                    // Chercher l'ancêtre certifié du VILLAGE de l'utilisateur (pas n'importe quel ancêtre)
                     const { data: a } = await supabase
                         .from('ancestres')
-                        .select('id, nom_complet, periode, is_certified')
+                        .select('id, nom_complet, periode, is_certified, village_nom')
                         .eq('is_certified', true)
+                        .ilike('village_nom', `%${profil.village_origin || villageNom}%`)
                         .order('created_at', { ascending: true })
                         .limit(1)
                         .single();
@@ -217,7 +219,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 };
                 setCurrentUser(selfNode);
 
-                // 4. Parents et enfants via Neo4j (uniquement confirmed/probable)
+                // 4. Parents et enfants via Neo4j (batch Supabase pour performance)
                 const parentNodes: LineageNode[] = [];
                 const childNodes: LineageNode[] = [];
 
@@ -226,51 +228,64 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     if (res.ok) {
                         const treeData = await res.json();
 
-                        // Parents (liens dont la cible est l'utilisateur)
+                        // Collecter tous les IDs en une fois pour batch
                         const parentLinks = treeData.links.filter((l: any) => l.target === userId);
-                        for (const link of parentLinks) {
-                            const parent = treeData.nodes.find((n: any) => n.id === link.source);
-                            if (!parent?.id) continue;
-                            const { data: pp } = await supabase
+                        const childLinks = treeData.links.filter((l: any) => l.source === userId);
+
+                        const parentIds = parentLinks.map((l: any) => l.source).filter(Boolean);
+                        const childIds = childLinks.map((l: any) => l.target).filter(Boolean);
+
+                        // Batch : 1 seule requête pour tous les parents
+                        if (parentIds.length > 0) {
+                            const { data: parentProfiles } = await supabase
                                 .from('profiles')
-                                .select('status, first_name, last_name, avatar_url, quartier_nom')
-                                .eq('id', parent.id).single();
-                            if (!pp || (pp.status !== 'confirmed' && pp.status !== 'probable')) continue;
-                            parentNodes.push({
-                                id: parent.id,
-                                nom: `${pp.first_name} ${pp.last_name}`.trim(),
-                                type: 'parent',
-                                generation: 1,
-                                status: pp.status,
-                                avatarUrl: pp.avatar_url,
-                                quartier: pp.quartier_nom,
-                                lien: link.type === 'FATHER_OF' ? 'Père' : 'Mère',
-                            });
+                                .select('id, status, first_name, last_name, avatar_url, quartier_nom')
+                                .in('id', parentIds)
+                                .in('status', ['confirmed', 'probable']);
+
+                            if (parentProfiles) {
+                                for (const pp of parentProfiles) {
+                                    const link = parentLinks.find((l: any) => l.source === pp.id);
+                                    parentNodes.push({
+                                        id: pp.id,
+                                        nom: `${pp.first_name || ''} ${pp.last_name || ''}`.trim() || 'Parent',
+                                        type: 'parent',
+                                        generation: 1,
+                                        status: pp.status,
+                                        avatarUrl: pp.avatar_url,
+                                        quartier: pp.quartier_nom,
+                                        lien: link?.type === 'FATHER_OF' ? 'Père' :
+                                            link?.type === 'MOTHER_OF' ? 'Mère' : 'Parent',
+                                    });
+                                }
+                            }
                         }
 
-                        // Enfants (liens dont la source est l'utilisateur)
-                        const childLinks = treeData.links.filter((l: any) => l.source === userId);
-                        for (const link of childLinks) {
-                            const child = treeData.nodes.find((n: any) => n.id === link.target);
-                            if (!child?.id) continue;
-                            const { data: cp } = await supabase
+                        // Batch : 1 seule requête pour tous les enfants
+                        if (childIds.length > 0) {
+                            const { data: childProfiles } = await supabase
                                 .from('profiles')
-                                .select('status, first_name, last_name, avatar_url, quartier_nom')
-                                .eq('id', child.id).single();
-                            if (!cp || (cp.status !== 'confirmed' && cp.status !== 'probable')) continue;
-                            childNodes.push({
-                                id: child.id,
-                                nom: `${cp.first_name} ${cp.last_name}`.trim(),
-                                type: 'child',
-                                generation: 3,
-                                status: cp.status,
-                                avatarUrl: cp.avatar_url,
-                                quartier: cp.quartier_nom,
-                                lien: 'Enfant',
-                            });
+                                .select('id, status, first_name, last_name, avatar_url, quartier_nom')
+                                .in('id', childIds)
+                                .in('status', ['confirmed', 'probable']);
+
+                            if (childProfiles) {
+                                for (const cp of childProfiles) {
+                                    childNodes.push({
+                                        id: cp.id,
+                                        nom: `${cp.first_name || ''} ${cp.last_name || ''}`.trim() || 'Enfant',
+                                        type: 'child',
+                                        generation: 3,
+                                        status: cp.status,
+                                        avatarUrl: cp.avatar_url,
+                                        quartier: cp.quartier_nom,
+                                        lien: 'Enfant',
+                                    });
+                                }
+                            }
                         }
                     }
-                } catch { /* Neo4j non disponible */ }
+                } catch { /* Neo4j non disponible - arbre partiel */ }
 
                 setParents(parentNodes);
                 setChildren(childNodes);

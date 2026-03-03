@@ -195,6 +195,7 @@ export default function AdminDashboard() {
                 consentementEnfants: data.consentement_enfants || false,
                 adresseResidence: data.adresse_residence || '',
                 residenceCity: data.residence_city || '',
+                residenceCountry: data.residence_country || 'CI',
                 phone1: data.phone_1 || '',
                 phone2: data.phone_2 || '',
                 whatsapp1: data.whatsapp_1 || '',
@@ -256,7 +257,14 @@ export default function AdminDashboard() {
                 setStats({
                     totalUsers: profilesRes.data.length,
                     confirmedUsers: profilesRes.data.filter(p => p.status === 'confirmed').length,
-                    pendingUsers: profilesRes.data.filter(p => p.status === 'pending' || !p.status).length,
+                    // pending_choa = nouveau workflow, pending = ancien, pre_approved/probable = en cours
+                    pendingUsers: profilesRes.data.filter(p =>
+                        !p.status ||
+                        p.status === 'pending' ||
+                        p.status === 'pending_choa' ||
+                        p.status === 'pre_approved' ||
+                        p.status === 'probable'
+                    ).length,
                     rejectedUsers: profilesRes.data.filter(p => p.status === 'rejected').length,
                     genderStats: {
                         male: profilesRes.data.filter(p => p.gender === 'Homme').length,
@@ -296,18 +304,19 @@ export default function AdminDashboard() {
                 setMemorialVictims(memorialRes.data);
             }
 
-            // Charger les permissions et logs si c'est l'admin principal
-            if (user.email === 'Pacous2000@gmail.com') {
-                const [permsRes, logsRes] = await Promise.all([
-                    supabase.from('admin_permissions').select('*'),
-                    supabase.from('activity_logs').select('*, user_details:profiles(first_name, last_name)').order('timestamp', { ascending: false }).limit(50)
-                ]);
-                if (permsRes.data) {
-                    const permsMap = permsRes.data.reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
-                    setAssistantPermissions(permsMap);
-                }
-                if (logsRes.data) setAuditLogs(logsRes.data as any);
+            // Charger les permissions et logs pour TOUS les admins (pas uniquement un email hardcodé)
+            const [permsRes, logsRes] = await Promise.all([
+                supabase.from('admin_permissions').select('*'),
+                supabase.from('activity_logs')
+                    .select('*, user_details:profiles(first_name, last_name)')
+                    .order('timestamp', { ascending: false })
+                    .limit(50)
+            ]);
+            if (permsRes.data) {
+                const permsMap = permsRes.data.reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
+                setAssistantPermissions(permsMap);
             }
+            if (logsRes.data) setAuditLogs(logsRes.data as any);
 
             setIsLoading(false);
         };

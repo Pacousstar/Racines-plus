@@ -78,3 +78,24 @@
 - **Sécurisation des Données** : La page restreint fermement son accès. Seuls les Membres Confirmés, les CHO et l'Admin peuvent consulter l'annuaire familial.
 - **Intégration Dashboard** : Ajout du portail "L'Annuaire Intelligent" sur l'espace privé de l'utilisateur.
 - **Performance** : Build Next.js validé (Exit 0) avec optimisation statique de la page.
+
+## 11. 🛠️ Phase 8 : Fiabilisation Arbre, Carte Mondiale & Audit Trail (03 Mars 2026)
+> [!NOTE]
+> Cette session s'est concentrée sur la résolution des bugs critiques liés à l'affichage des généalogies, à la géolocalisation et à la persistance des actions de modération.
+
+- **Arbre Généalogique & Dashboard** :
+  - **Correction du Fondateur** : Filtrage dynamique de l'ancêtre fondateur associé explicitement au village de l'utilisateur (ex: Toa-Zéo) via la table `ancestres`, éliminant les faux positifs (comme l'affichage de "Pacous STAR").
+  - **Optimisation massive (Supabase & Neo4j)** : Regroupement (`batching` avec `.in()`) des requêtes Supabase pour parents/enfants et ajout d'un timeout (5s) sur Neo4j. Les arbres se chargent désormais instantanément sans boucle infinie.
+  - **UI Dashboard** : Mention propre "Profil incomplet" introduite pour remplacer le nom générique vide d'un utilisateur dont le first_name est manquant.
+- **Carte Mondiale (Diaspora)** :
+  - **Villes de Côte d'Ivoire (CI)** : Levée du filtre restrictif bloquant la répartition géographique en CI. Abidjan, Bouaflé, Daloa etc., bénéficient d'un décalage aléatoire optimal (offset) empêchant l'empilement. Pin vert clair attribué aux villes ivoiriennes.
+  - **Cartographie CartoDB Voyager** : Transition vers une tuile `Leaflet` de haute qualité affichant tous les noms mondiaux (Maroc, Egypte, Asie...) en caractères latins / français, remplaçant la langue locale d'OpenStreetMap.
+  - **Refonte Layout** : Migration vers une architecture visuelle plus épurée : Carte panoramique pleine largeur en haut (`col-span-12`), avec une grille "Top Destinations" alignée nativement en dessous, incluant une légende chromatique élégante.
+- **Audit Trail & Persistance (Cho/Choa/Admin)** :
+  - **Système d'Audit Complet (v2)** : Centralisation traçable de tous les événements avec historisation via `v_audit_trail_admin`, `v_validations_cho` et `v_validations_quartier`.
+  - Implémentation de fonctions PostgreSQL intelligentes (`record_validation`, `log_activity`) stockant durablement les actions.
+  - Sécurisation absolue : RLS basés sur les rôles stricts et fin de la perte d'informations lors des reconnexions des chefs.
+- **Correctifs Systèmes (Next.js)** :
+  - Élimination de `middleware.ts` devenu conflictuel. 
+  - Restructuration propre avec création de `proxy.ts` supportant l'App Router Turbo de Next.js.
+  - Build validé avec succès sans aucune erreur de routing.
