@@ -1,0 +1,66 @@
+=== IDENTIFIANTS RACINES+ (60 UTILISATEURS) ===
+Mot de passe unique pour TOUS les comptes : Racines2026!
+
+--- LES 15 DE BASE ---
+Kwame GBÉYA [ADMIN] : kwame.gbeya@test-racines.com
+Kofi GBÉYA [CHO] : kofi.gbeya.pere@test-racines.com
+Ama ASSI [USER] : ama.gbeya.mere@test-racines.com
+Yao GBÉYA [USER] : yao.gbeya1@test-racines.com
+Koffi GBÉYA [USER] : koffi.gbeya2@test-racines.com
+Ekra GBÉYA [USER] : ekra.gbeya3@test-racines.com
+Akissi GBÉYA [USER] : akissi.gbeya1@test-racines.com
+Adjoua GBÉYA [USER] : adjoua.gbeya2@test-racines.com
+Bintou GBÉYA [USER] : bintou.gbeya3@test-racines.com
+Mariama GBÉYA [USER] : mariama.gbeya4@test-racines.com
+Soro GBÉKA [USER] : soro.gbeka.abidjan@test-racines.com
+Gnagne BONYÉ [USER] : gnagne.bonye.bouake@test-racines.com
+Kouamé ZOUHAÉ [USER] : kouame.zouhae.daloa@test-racines.com
+N'Da GAHO [USER] : n_da.gaho.duekoue@test-racines.com
+Ahou GBÉKA [USER] : ahou.gbeka.grandbassam@test-racines.com
+
+--- NOUVEAUX 45 (GBÉYA & BONYÉ) ---
+Kwassi GBÉYA (Gbéya - Père) : kwassi.gbéya0@test-racines.com
+Ahou ZOGBO (Gbéya - Mère) : ahou.zogbo1@test-racines.com
+Michel GBÉYA (Gbéya - Enfant) : michel.gbéya2@test-racines.com
+Serge GBÉYA (Gbéya - Enfant) : serge.gbéya3@test-racines.com
+Alain GBÉYA (Gbéya - Enfant) : alain.gbéya4@test-racines.com
+Marie GBÉYA (Gbéya - Enfant) : marie.gbéya5@test-racines.com
+Paul GBÉYA (Gbéya - Enfant) : paul.gbéya6@test-racines.com
+Petit-enfant 1 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya7@test-racines.com
+Petit-enfant 2 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya8@test-racines.com
+Petit-enfant 3 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya9@test-racines.com
+Petit-enfant 4 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya10@test-racines.com
+Petit-enfant 5 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya11@test-racines.com
+Petit-enfant 6 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya12@test-racines.com
+Petit-enfant 7 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya13@test-racines.com
+Petit-enfant 8 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya14@test-racines.com
+Petit-enfant 9 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya15@test-racines.com
+Petit-enfant 10 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya16@test-racines.com
+Petit-enfant 11 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya17@test-racines.com
+Petit-enfant 12 GBÉYA (Gbéya - Petit-enfant) : petitenfant.gbéya18@test-racines.com
+Arrière-petit-enfant 1 GBÉYA (Gbéya - Arrière) : arrirepetitenfant.gbéya19@test-racines.com
+Arrière-petit-enfant 2 GBÉYA (Gbéya - Arrière) : arrirepetitenfant.gbéya20@test-racines.com
+Arrière-petit-enfant 3 GBÉYA (Gbéya - Arrière) : arrirepetitenfant.gbéya21@test-racines.com
+Arrière-petit-enfant 4 GBÉYA (Gbéya - Arrière) : arrirepetitenfant.gbéya22@test-racines.com
+Arrière-petit-enfant 5 GBÉYA (Gbéya - Arrière) : arrirepetitenfant.gbéya23@test-racines.com
+Arrière-petit-enfant 6 GBÉYA (Gbéya - Arrière) : arrirepetitenfant.gbéya24@test-racines.com
+Zadi BONYÉ (Bonyé - Père) : zadi.bonyé25@test-racines.com
+Gisèle TOHOURI (Bonyé - Mère) : gisle.tohouri26@test-racines.com
+Koudou BONYÉ (Bonyé - Enfant) : koudou.bonyé27@test-racines.com
+Brigitte BONYÉ (Bonyé - Enfant) : brigitte.bonyé28@test-racines.com
+Marcel BONYÉ (Bonyé - Enfant) : marcel.bonyé29@test-racines.com
+Lucie BONYÉ (Bonyé - Enfant) : lucie.bonyé30@test-racines.com
+Yves BONYÉ (Bonyé - Enfant) : yves.bonyé31@test-racines.com
+Jean BONYÉ (Bonyé - Enfant) : jean.bonyé32@test-racines.com
+Petit-enfant 1 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé33@test-racines.com
+Petit-enfant 2 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé34@test-racines.com
+Petit-enfant 3 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé35@test-racines.com
+Petit-enfant 4 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé36@test-racines.com
+Petit-enfant 5 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé37@test-racines.com
+Petit-enfant 6 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé38@test-racines.com
+Petit-enfant 7 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé39@test-racines.com
+Petit-enfant 8 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé40@test-racines.com
+Petit-enfant 9 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé41@test-racines.com
+Petit-enfant 10 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé42@test-racines.com
+Petit-enfant 11 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé43@test-racines.com
+Petit-enfant 12 BONYÉ (Bonyé - Petit-enfant) : petitenfant.bonyé44@test-racines.com

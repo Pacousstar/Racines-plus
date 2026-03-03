@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     User, Bell, Share2, ShieldCheck, MapPin, Plus, CheckCircle,
-    AlertTriangle, Camera, Clock, XCircle, Users, Search
+    AlertTriangle, Camera, Clock, XCircle, Users, Search, Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import AddAncestorModal from '@/components/AddAncestorModal';
@@ -247,6 +247,21 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         <p className="text-[11px] text-gray-600 mb-4 leading-relaxed">Recherchez des talents, des métiers ou des contacts dans la Diaspora.</p>
                         <Link href="/annuaire" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-600/20">
                             <Search className="w-3.5 h-3.5" /> Ouvrir l&apos;Annuaire
+                        </Link>
+                    </div>
+
+                    {/* Section Agenda & Événements */}
+                    <div className="bg-white border text-center border-emerald-200 hover:border-emerald-400 rounded-3xl p-5 shadow-sm transition-all group overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 group-hover:scale-110 transition-transform">
+                            <Calendar className="w-12 h-12 text-emerald-600" />
+                        </div>
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">Communauté</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-gray-900 mb-2">Agenda & Événements</h4>
+                        <p className="text-[11px] text-gray-600 mb-4 leading-relaxed">Suivez les réunions, mariages, obsèques et grands moments de la famille.</p>
+                        <Link href="/evenements" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20">
+                            <Calendar className="w-3.5 h-3.5" /> Voir l&apos;Agenda
                         </Link>
                     </div>
                 </div>
