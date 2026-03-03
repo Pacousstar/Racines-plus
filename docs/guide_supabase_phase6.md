@@ -55,4 +55,7 @@ Puisque vous préférez procéder à la main pour garder le contrôle total sur 
 
 **C'est tout ! Confirmez-moi quand vous aurez cliqué partout et que les tables/buckets sont prêts dans Supabase !**
 
-oui c'est prêt et en mode privé.
+oui c'est prêt et en mode privé pour les buckets
+aussi j'ai utilisé  CRÉATION DE LA TABLE `documents` de phase6_documents.sql uniquement. est ce bon? vérifie donc.
+
+à l'avenir pour les backets montre moi pas à pas mais pour les autres donne moi le sql directement. n'oublies pas les rls pour tous.

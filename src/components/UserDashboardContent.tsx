@@ -347,7 +347,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
 
                 {activeTab === 'medias' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <MediaGallery />
+                        <MediaGallery userId={userId} />
                     </div>
                 )}
 

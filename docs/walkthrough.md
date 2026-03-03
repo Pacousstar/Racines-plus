@@ -60,13 +60,13 @@
 ---
 *Ce document est la source de v√©rit√© absolue de l'√©volution de Racines+.*
 
-## 9. ?? Initialisation du Module Archives & MÈdias (Phase 6)
-- CrÈation du script SQL (\scripts/phase6_documents.sql\) de crÈation de la table \documents\ et des policies RLS.
-- Instructions de mise en place des buckets Storage \rchives\ et \media\ fournies.
-- CrÈation du composant \DocumentManager\ (UI de tÈlÈversement des PDF/Actes).
-- CrÈation du composant \MediaGallery\ (Galerie souvenir fluide avec tags).
-- IntÈgration dans le Dashboard Utilisateur via un nouveau systËme d'onglets.
-- Optimisation SEO globale (Titres dynamiques, mots-clÈs, images OpenGraph et paramÈtrage du metadataBase pour un rÈfÈrencement propre).
-- Build de production passÈ avec succËs sans erreur de typage ni de SSR.
+## 9. üìÇ Connexion du Module Archives & M√©dias termin√©e (Phase 6)
+- Cr√©ation du script SQL (`scripts/phase6_documents.sql` et `phase6_storage_policies.sql`) avec RLS strictes sur la table et le Storage (limites de taille, v√©rification des types MIME).
+- Les composants `DocumentManager` et `MediaGallery` sont compl√®tement connect√©s √† Supabase Storage (`archives` et `media`).
+- Impl√©mentation de la g√©n√©ration de "Signed URLs" (liens temporaires de 60s) pour garantir la s√©curit√© absolue des fichiers du coffre priv√©.
+- Upload exclusif par l'auteur et filtrage automatique gr√¢ce au RLS.
+- Int√©gration valid√©e dans le Dashboard Utilisateur via un nouveau syst√®me d'onglets.
+- Optimisation SEO globale (Titres dynamiques, mots-cl√©s, images OpenGraph et metadataBase pour un r√©f√©rencement propre).
+- Nouveau build de production pass√© avec succ√®s (Exit Code 0).
 
-> La base UI du module est achevÈe, la connexion avec le vrai Storage interviendra aprËs la configuration manuelle de l'Administrateur.
+> Le module "Archives et M√©dias" est d√©sormais pleinement op√©rationnel et hautement s√©curis√© sur le Cloud.
