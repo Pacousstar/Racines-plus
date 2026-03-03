@@ -238,7 +238,7 @@ export default function AdminDashboard() {
             const [profilesRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
                 supabase
                     .from('profiles')
-                    .select('id, first_name, last_name, role, status, village_origin, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email')
+                    .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('villages')
@@ -312,9 +312,17 @@ export default function AdminDashboard() {
                     .order('timestamp', { ascending: false })
                     .limit(50)
             ]);
+            if (permsRes.error) {
+                console.error('[admin] ERREUR RLS admin_permissions:', permsRes.error);
+                alert("Impossible de charger les permissions admin. RLS bloque sûrement l'accès : " + permsRes.error.message);
+            }
             if (permsRes.data) {
+                console.log("[admin] admin_permissions chargés :", permsRes.data.length);
                 const permsMap = permsRes.data.reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
                 setAssistantPermissions(permsMap);
+            }
+            if (logsRes.error) {
+                console.error('[admin] ERREUR RLS activity_logs:', logsRes.error);
             }
             if (logsRes.data) setAuditLogs(logsRes.data as any);
 
