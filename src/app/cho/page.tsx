@@ -150,7 +150,7 @@ export default function ChoBoard() {
                 //   1. Les dossiers pré-validés par les 2 CHOa (status='probable') → à confirmer
                 //   2. Les dossiers bloqués sans CHOa (status='pending_choa' sans quartier assigné) → cas exceptionnel
                 setPendingProfiles(enhancedUsers.filter(u =>
-                    u.status === 'probable' || u.status === 'pending_choa'
+                    u.status === 'probable' || (u.status === 'pending_choa' && !u.quartier_nom)
                 ));
                 setConfirmedProfiles(enhancedUsers.filter(u => u.status === 'confirmed'));
                 setRejectedProfiles(enhancedUsers.filter(u => u.status === 'rejected'));

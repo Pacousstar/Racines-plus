@@ -508,7 +508,7 @@ export default function Onboarding() {
                                 </div>
                             </div>
 
-                            <button type="button" onClick={() => setStep(2)} disabled={!formData.firstName || !formData.lastName}
+                            <button type="button" onClick={() => setStep(2)} disabled={!formData.firstName || !formData.lastName || !formData.birthDate || !formData.gender}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Continuer <ArrowRight className="w-5 h-5" />
                             </button>
@@ -549,7 +549,7 @@ export default function Onboarding() {
                                 <div>
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Quartier</label>
                                     <select value={formData.quartierNom} onChange={(e) => updateFormData('quartierNom', e.target.value)}
-                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 appearance-none">
+                                        className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-900 appearance-none" required>
                                         <option value="">-- Sélectionnez un quartier --</option>
                                         {quartiers.map(q => (<option key={q.id} value={q.nom}>{q.nom}</option>))}
                                         {quartiers.length === 0 && <option value="" disabled>Chargement...</option>}
@@ -704,7 +704,7 @@ export default function Onboarding() {
                                 </div>
                             </div>
                             <button type="button" onClick={() => setStep(4)}
-                                disabled={!formData.fatherFirstName || !formData.fatherLastName || !formData.fatherStatus || !formData.motherFirstName || !formData.motherLastName || !formData.motherStatus}
+                                disabled={!formData.fatherFirstName || !formData.fatherLastName || !formData.fatherStatus || !formData.fatherBirthDate || !formData.motherFirstName || !formData.motherLastName || !formData.motherStatus || !formData.motherBirthDate}
                                 className="w-full mt-6 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 Étape finale <ArrowRight className="w-5 h-5" />
                             </button>

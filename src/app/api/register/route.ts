@@ -106,10 +106,11 @@ export async function POST(request: NextRequest) {
         let isNewUser = true;
 
         // ── 1. Tenter de créer le compte ──────────────────────────────────────
-        // email_confirm est intentionnellement OMIS : Supabase enverra un email de vérification (double opt-in)
+        // email_confirm est activé pour permettre la connexion immédiate avec mot de passe
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
+            email_confirm: true,
         });
 
         if (authError) {
@@ -130,8 +131,8 @@ export async function POST(request: NextRequest) {
                     return NextResponse.json({ error: 'Email déjà utilisé mais compte introuvable. Essayez de vous connecter.' }, { status: 409 });
                 }
 
-                // Mettre à jour le mot de passe uniquement
-                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, { password });
+                // Mettre à jour le mot de passe uniquement et forcer la confirmation de l'email
+                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, { password, email_confirm: true });
 
                 userId = existingUser.id;
                 isNewUser = false;
@@ -166,13 +167,20 @@ export async function POST(request: NextRequest) {
             // Ne pas écraser le rôle si l'user existait et avait déjà un rôle
             ...(isNewUser && {
                 role: email === 'pacous2000@gmail.com' ? 'admin' : 'user',
-                status: email === 'pacous2000@gmail.com' ? 'confirmed' : 'pending'
+                status: email === 'pacous2000@gmail.com' ? 'confirmed' : 'pending_choa'
             }),
         };
         if (avatarUrl) profilePayload.avatar_url = avatarUrl;
 
-        await upsertProfile(userId, profilePayload);
-
+        const errorUpsert = await upsertProfile(userId, profilePayload);
+        if (errorUpsert) {
+            console.error('[register] Upsert failed, rolling back user auth creation...', errorUpsert.message);
+            // Rollback only if it was a new user cleanly created (to avoid deleting existing users on updates)
+            if (isNewUser) {
+                await supabaseAdmin.auth.admin.deleteUser(userId);
+            }
+            return NextResponse.json({ error: "L'enregistrement du profil a échoué : " + errorUpsert.message }, { status: 500 });
+        }
         // ── 4. Neo4j : Création du noeud utilisateur et ses parents ───────────
         try {
             const session = await getSession();
