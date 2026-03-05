@@ -28,8 +28,10 @@ interface PendingProfile {
     residence_city?: string;
     father_first_name?: string;
     father_last_name?: string;
+    father_birth_date?: string;
     mother_first_name?: string;
     mother_last_name?: string;
+    mother_birth_date?: string;
     choa_approvals?: string[];
 }
 
@@ -57,10 +59,11 @@ export default function ChoBoard() {
     const supabase = createClient();
     // Double protection côté client
     useRoleRedirect(['choa']);
-    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected' | 'quartier'>('tasks');
+    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'sent_cho' | 'confirmed' | 'rejected' | 'quartier'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
+    const [sentToChoProfiles, setSentToChoProfiles] = useState<PendingProfile[]>([]);
     const [confirmedProfiles, setConfirmedProfiles] = useState<PendingProfile[]>([]);
     const [rejectedProfiles, setRejectedProfiles] = useState<PendingProfile[]>([]);
     const [comments, setComments] = useState<ValidationComment[]>([]);
@@ -97,6 +100,7 @@ export default function ChoBoard() {
 
     // Pagination States
     const [pendingPage, setPendingPage] = useState(1);
+    const [sentToChoPage, setSentToChoPage] = useState(1);
     const [confirmedPage, setConfirmedPage] = useState(1);
     const [rejectedPage, setRejectedPage] = useState(1);
     const itemsPerPage = 20;
@@ -119,40 +123,29 @@ export default function ChoBoard() {
             }
             setMyProfile(profile);
 
-            // Charger les profils utilisateurs
+            // Charger les profils utilisateurs du village
             const { data: allUsers, error: usersErr } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, mother_first_name, mother_last_name, choa_approvals')
+                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
                 .eq('role', 'user')
+                .eq('village_origin', profile.village_origin)
                 .order('created_at', { ascending: false });
 
             if (usersErr) console.error('[choa] Error fetching users:', usersErr);
 
             if (allUsers) {
-                // Statuts visibles par le CHOa :
-                //  - pending_choa  : nouvel inscrit (workflow standard)
-                //  - pending       : ancien statut (compatibilité)
-                //  - pre_approved  : approuvé par 1 CHOa, attend le 2e
-                //  - probable      : 2 CHOa ont validé, attend le CHO
-                const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved', 'probable'];
+                // Workflow CHOa : le CHOa voit TOUS les inscrits du village
+                // (pas de filtre quartier — tous les CHOa du village voient tous les dossiers)
+                // À valider = pending_choa, pending (ancien), pre_approved (1 CHOa déjà OK)
+                // Envoyés au CHO = probable (2 validations CHOa → transmis au CHO)
+                const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
 
-                const myPending = allUsers.filter(u =>
-                    u.village_origin === profile.village_origin &&
-                    u.quartier_nom === profile.quartier_nom &&
+                setPendingProfiles(allUsers.filter(u =>
                     CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa')
-                );
-
-                setPendingProfiles(myPending);
-                setConfirmedProfiles(allUsers.filter(u =>
-                    u.village_origin === profile.village_origin &&
-                    u.quartier_nom === profile.quartier_nom &&
-                    u.status === 'confirmed'
                 ));
-                setRejectedProfiles(allUsers.filter(u =>
-                    u.village_origin === profile.village_origin &&
-                    u.quartier_nom === profile.quartier_nom &&
-                    u.status === 'rejected'
-                ));
+                setSentToChoProfiles(allUsers.filter(u => u.status === 'probable'));
+                setConfirmedProfiles(allUsers.filter(u => u.status === 'confirmed'));
+                setRejectedProfiles(allUsers.filter(u => u.status === 'rejected'));
             }
 
             const { count } = await supabase
@@ -256,10 +249,27 @@ export default function ChoBoard() {
             });
         }
 
+        // Notifier le user en cas de rejet
+        if (newStatus === 'rejected') {
+            await supabase.from('notifications').insert({
+                user_id: profileId,
+                title: 'Dossier refusé par un CHOa',
+                message: `Votre dossier d'inscription a été refusé. Motif : ${motifText || 'Non précisé'}. Vous pouvez contacter le village pour plus d'informations.`,
+                type: 'rejection',
+                is_read: false,
+                created_at: new Date().toISOString()
+            });
+        }
+
         // Rafraîchir l'UI
-        if (finalStatus === 'probable' || finalStatus === 'pre_approved') {
+        if (finalStatus === 'probable') {
+            // Dossier complet → déplacer vers "Envoyés au CHO"
+            const profileToMove = pendingProfiles.find(p => p.id === profileId);
+            setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
+            if (profileToMove) setSentToChoProfiles(prev => [...prev, { ...profileToMove, status: 'probable', choa_approvals: updateData.choa_approvals as string[] || profileToMove.choa_approvals }]);
+        } else if (finalStatus === 'pre_approved') {
             setPendingProfiles(prev => prev.map(p => p.id === profileId
-                ? { ...p, status: finalStatus, choa_approvals: updateData.choa_approvals as string[] || p.choa_approvals }
+                ? { ...p, status: 'pre_approved', choa_approvals: updateData.choa_approvals as string[] || p.choa_approvals }
                 : p
             ));
         } else {
@@ -272,9 +282,9 @@ export default function ChoBoard() {
 
         setMotifModal(null); setMotifText(''); setObservations('');
 
-        if (finalStatus === 'probable') alert('🟠 Dossier pré-validé ! Transmis au CHO pour confirmation finale.');
+        if (finalStatus === 'probable') alert('🟠 2 validations complètes ! Dossier transmis au CHO pour confirmation finale.');
         else if (finalStatus === 'pre_approved') alert('👍 Approbation enregistrée. En attente d\'un second CHOa.');
-        else if (newStatus === 'rejected') alert('❌ Dossier rejeté.');
+        else if (newStatus === 'rejected') alert('❌ Dossier rejeté. Le membre a été notifié.');
     };
 
     const loadQuartierActivity = async () => {
@@ -338,7 +348,8 @@ export default function ChoBoard() {
     const tabs = [
         { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine, count: 0, countColor: '' },
         { key: 'tasks', label: 'À valider', icon: Clock, count: pendingProfiles.length, countColor: 'bg-orange-500' },
-        { key: 'confirmed', label: 'Confirmés', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
+        { key: 'sent_cho', label: 'Envoyés au CHO', icon: ShieldCheck, count: sentToChoProfiles.length, countColor: 'bg-blue-500' },
+        { key: 'confirmed', label: 'Certifiés', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
         { key: 'rejected', label: 'Rejetés', icon: XCircle, count: rejectedProfiles.length, countColor: 'bg-red-500' },
         { key: 'quartier', label: 'Activité Quartier', icon: Users, count: 0, countColor: '' },
     ];
@@ -360,72 +371,90 @@ export default function ChoBoard() {
         );
     };
 
-    const ProfileCard = ({ profile, showActions = true }: { profile: PendingProfile; showActions?: boolean }) => (
-        <div className="group bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-[#FF6600]/5 hover:border-[#FF6600]/20 transition-all duration-300 relative overflow-hidden">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                    <div className="relative">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6600]/10 to-amber-50 text-[#FF6600] flex items-center justify-center text-xl font-black flex-shrink-0 overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                (profile.first_name?.[0] || '?').toUpperCase()
+    const ProfileCard = ({ profile, showActions = true }: { profile: PendingProfile; showActions?: boolean }) => {
+        const alreadyApproved = Array.isArray(profile.choa_approvals) && currentUserId ? profile.choa_approvals.includes(currentUserId) : false;
+        const approvalCount = Array.isArray(profile.choa_approvals) ? profile.choa_approvals.length : 0;
+        return (
+            <div className="group bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-[#FF6600]/5 hover:border-[#FF6600]/20 transition-all duration-300 relative overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                        <div className="relative flex-shrink-0">
+                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6600]/10 to-amber-50 text-[#FF6600] flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                    (profile.first_name?.[0] || '?').toUpperCase()
+                                )}
+                            </div>
+                            {approvalCount > 0 && (
+                                <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-white shadow">
+                                    {approvalCount}/2
+                                </div>
                             )}
                         </div>
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-black text-lg text-gray-900 leading-tight">{profile.first_name} {profile.last_name}</h3>
-                            <StatusBadge status={profile.status || 'pending'} />
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-black text-lg text-gray-900 leading-tight">{profile.first_name} {profile.last_name}</h3>
+                                <StatusBadge status={profile.status || 'pending'} />
+                            </div>
+                            <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                                {profile.village_origin || 'Village ?'} • <span className="text-gray-400 italic font-normal">{profile.quartier_nom || 'Sans quartier'}</span>
+                            </p>
+                            {profile.birth_date && (
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
+                            )}
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mt-1">
+                                <Clock className="w-3 h-3" /> Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                            </p>
                         </div>
-                        <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                            {profile.village_origin || 'Village ?'} • <span className="text-gray-400 italic font-normal">{profile.quartier_nom || 'Quartier ?'}</span>
-                        </p>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mt-2">
-                            <Clock className="w-3 h-3" /> Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
-                        </p>
                     </div>
+
+                    {showActions && (
+                        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                            {alreadyApproved ? (
+                                <div className="flex items-center gap-2 text-xs px-5 py-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 font-black">
+                                    <ShieldCheck className="w-4 h-4" /> MON SCEAU ✓
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => handleStatusChange(profile.id, 'probable')}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs px-5 py-3 rounded-2xl bg-[#FF6600] text-white hover:bg-[#e55c00] transition-all font-black shadow-lg shadow-orange-100 active:scale-95"
+                                >
+                                    <ShieldCheck className="w-4 h-4" /> APPOSER MON SCEAU 🟠
+                                </button>
+                            )}
+
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <button
+                                    onClick={() => setInfoModalProfile(profile)}
+                                    className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
+                                    title="Fiche détaillée"
+                                >
+                                    <Eye className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setViewingCommentsProfile(profile);
+                                        loadComments(profile.id);
+                                    }}
+                                    className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
+                                >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                    onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
+                                    className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
+                                >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                {showActions && (
-                    <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
-                        <button
-                            onClick={() => handleStatusChange(profile.id, 'probable')}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs px-5 py-3 rounded-2xl bg-[#FF6600] text-white hover:bg-[#e55c00] transition-all font-black shadow-lg shadow-orange-100 active:scale-95 group/btn"
-                        >
-                            <ShieldCheck className="w-4 h-4" /> PRÉ-VALIDER 🟠
-                        </button>
-
-                        <div className="flex gap-2 w-full md:w-auto">
-                            <button
-                                onClick={() => setInfoModalProfile(profile)}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
-                                title="Fiche détaillée"
-                            >
-                                <Eye className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setViewingCommentsProfile(profile);
-                                    loadComments(profile.id);
-                                }}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
-                            >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                                onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
-                            >
-                                <XCircle className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 text-foreground">
@@ -540,6 +569,46 @@ export default function ChoBoard() {
                                             <button disabled={pendingPage === 1} onClick={() => setPendingPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
                                             <span className="text-sm font-semibold text-gray-600">Page {pendingPage} sur {totalPages}</span>
                                             <button disabled={pendingPage === totalPages} onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                )}
+
+                {/* Envoyés au CHO */}
+                {activeTab === 'sent_cho' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
+                                <ShieldCheck className="w-3 h-3 text-blue-500" /> Dossiers Transmis au CHO ({sentToChoProfiles.length})
+                            </h2>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mb-4">
+                            <ShieldCheck className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-blue-700 font-medium">
+                                Ces dossiers ont été approuvés par 2 CHOa et sont maintenant en attente de validation finale par le CHO.
+                            </p>
+                        </div>
+                        {sentToChoProfiles.length === 0 && (
+                            <div className="bg-white rounded-3xl p-10 text-center border border-gray-100">
+                                <Clock className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                                <p className="font-semibold text-gray-700">Aucun dossier transmis au CHO</p>
+                                <p className="text-sm text-gray-600 mt-1">Les dossiers ayant reçu 2 approbations CHOa apparaîtront ici.</p>
+                            </div>
+                        )}
+                        {(() => {
+                            const paginated = sentToChoProfiles.slice((sentToChoPage - 1) * itemsPerPage, sentToChoPage * itemsPerPage);
+                            const totalPages = Math.ceil(sentToChoProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginated.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={sentToChoPage === 1} onClick={() => setSentToChoPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {sentToChoPage} sur {totalPages}</span>
+                                            <button disabled={sentToChoPage === totalPages} onClick={() => setSentToChoPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
                                         </div>
                                     )}
                                 </>
@@ -792,43 +861,149 @@ export default function ChoBoard() {
                 </div>
             )}
 
-            {/* Modale Infos Complètes */}
+            {/* Modale Infos Complètes — Dossier officiel */}
             {infoModalProfile && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh]">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-                            <h3 className="font-bold text-lg flex items-center gap-2">
-                                <Eye className="w-5 h-5 text-blue-500" /> Fiche d'évaluation
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 className="font-black text-lg flex items-center gap-2">
+                                <Eye className="w-5 h-5 text-[#FF6600]" /> Dossier Officiel
                             </h3>
                             <button onClick={() => setInfoModalProfile(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
                                 <XCircle className="w-5 h-5 text-gray-600" />
                             </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            <div className="space-y-4">
-                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                                    <h4 className="text-[10px] font-black uppercase text-gray-400 mb-2">Demandeur</h4>
-                                    <p className="font-bold text-gray-800">{infoModalProfile.first_name} {infoModalProfile.last_name}</p>
-                                    <p className="text-sm text-gray-600">Né(e) le : {infoModalProfile.birth_date ? new Date(infoModalProfile.birth_date).toLocaleDateString('fr-FR') : 'Non renseigné'}</p>
+                        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                            {/* Photo + Identité */}
+                            <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#FF6600]/10 to-amber-50 text-[#FF6600] flex items-center justify-center text-3xl font-black overflow-hidden border-2 border-white shadow-md flex-shrink-0">
+                                    {infoModalProfile.avatar_url ? (
+                                        <img src={infoModalProfile.avatar_url} alt="Photo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        (infoModalProfile.first_name?.[0] || '?').toUpperCase()
+                                    )}
                                 </div>
-                                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                                    <h4 className="text-[10px] font-black uppercase text-blue-400 mb-2">Résidence actuelle</h4>
-                                    <p className="font-bold text-blue-900">{infoModalProfile.residence_city || 'Ville ?'}, {infoModalProfile.residence_country || 'Pays ?'}</p>
+                                <div>
+                                    <p className="font-black text-xl text-gray-900">{infoModalProfile.first_name} {infoModalProfile.last_name}</p>
+                                    <StatusBadge status={infoModalProfile.status || 'pending'} />
+                                    <p className="text-xs text-gray-500 mt-1 font-medium">
+                                        Inscrit le {new Date(infoModalProfile.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </p>
                                 </div>
-                                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                                    <h4 className="text-[10px] font-black uppercase text-amber-500 mb-2">Filiation déclarée</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <p className="text-xs font-bold text-amber-900">Père</p>
-                                            <p className="text-sm text-amber-800">{infoModalProfile.father_first_name} {infoModalProfile.father_last_name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-amber-900">Mère</p>
-                                            <p className="text-sm text-amber-800">{infoModalProfile.mother_first_name} {infoModalProfile.mother_last_name}</p>
-                                        </div>
+                            </div>
+
+                            {/* Infos personnelles */}
+                            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                                <h4 className="text-[10px] font-black uppercase text-[#FF6600] mb-3 tracking-widest">Identité du Demandeur</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Nom</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.last_name || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Prénoms</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.first_name || '—'}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.birth_date ? new Date(infoModalProfile.birth_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '— Non renseignée'}</p>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Village & Quartier */}
+                            <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                                <h4 className="text-[10px] font-black uppercase text-green-600 mb-3 tracking-widest">Village & Quartier</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Village</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.village_origin || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Quartier</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.quartier_nom || 'Non assigné'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Père */}
+                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                <h4 className="text-[10px] font-black uppercase text-blue-500 mb-3 tracking-widest">Père</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Nom & Prénoms</p>
+                                        <p className="font-bold text-gray-900">
+                                            {(infoModalProfile.father_first_name || infoModalProfile.father_last_name)
+                                                ? `${infoModalProfile.father_first_name || ''} ${infoModalProfile.father_last_name || ''}`.trim()
+                                                : '— Non renseigné'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
+                                        <p className="font-bold text-gray-900">
+                                            {infoModalProfile.father_birth_date
+                                                ? new Date(infoModalProfile.father_birth_date).toLocaleDateString('fr-FR')
+                                                : '— N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Mère */}
+                            <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100">
+                                <h4 className="text-[10px] font-black uppercase text-pink-500 mb-3 tracking-widest">Mère</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Nom & Prénoms</p>
+                                        <p className="font-bold text-gray-900">
+                                            {(infoModalProfile.mother_first_name || infoModalProfile.mother_last_name)
+                                                ? `${infoModalProfile.mother_first_name || ''} ${infoModalProfile.mother_last_name || ''}`.trim()
+                                                : '— Non renseigné'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
+                                        <p className="font-bold text-gray-900">
+                                            {infoModalProfile.mother_birth_date
+                                                ? new Date(infoModalProfile.mother_birth_date).toLocaleDateString('fr-FR')
+                                                : '— N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Résidence */}
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <h4 className="text-[10px] font-black uppercase text-gray-500 mb-2 tracking-widest">Résidence actuelle</h4>
+                                <p className="font-bold text-gray-900">{infoModalProfile.residence_city || '—'}, {infoModalProfile.residence_country || '—'}</p>
+                            </div>
+
+                            {/* Sceaux */}
+                            {Array.isArray(infoModalProfile.choa_approvals) && infoModalProfile.choa_approvals.length > 0 && (
+                                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center gap-3">
+                                    <ShieldCheck className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-amber-800">
+                                        {infoModalProfile.choa_approvals.length}/2 sceau(x) CHOa apposé(s)
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+                            <button
+                                onClick={() => { setInfoModalProfile(null); setMotifModal({ id: infoModalProfile.id, action: 'rejected' }); }}
+                                className="flex-1 py-3 rounded-xl bg-red-50 text-red-500 text-sm font-bold hover:bg-red-100 transition-colors border border-red-100"
+                            >
+                                Rejeter ✗
+                            </button>
+                            <button
+                                onClick={() => { setInfoModalProfile(null); handleStatusChange(infoModalProfile.id, 'probable'); }}
+                                disabled={Array.isArray(infoModalProfile.choa_approvals) && currentUserId ? infoModalProfile.choa_approvals.includes(currentUserId) : false}
+                                className="flex-1 py-3 rounded-xl bg-[#FF6600] disabled:bg-gray-100 disabled:text-gray-400 text-white text-sm font-bold hover:bg-[#e55c00] transition-colors shadow-lg shadow-orange-100"
+                            >
+                                {Array.isArray(infoModalProfile.choa_approvals) && currentUserId && infoModalProfile.choa_approvals.includes(currentUserId)
+                                    ? 'Déjà approuvé ✓'
+                                    : 'Apposer mon sceau 🟠'}
+                            </button>
                         </div>
                     </div>
                 </div>

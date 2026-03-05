@@ -1522,25 +1522,68 @@ export default function AdminDashboard() {
                                     <tbody className="divide-y divide-gray-50">
                                         {(() => {
                                             const paginatedLogs = auditLogs.slice((logsPage - 1) * itemsPerPage, logsPage * itemsPerPage);
-                                            return paginatedLogs.map(log => (
-                                                <tr key={log.id} className="hover:bg-gray-50/50">
-                                                    <td className="py-4 px-6 text-[10px] text-gray-600">
-                                                        {new Date(log.timestamp).toLocaleString('fr-FR')}
-                                                    </td>
-                                                    <td className="py-4 px-6 font-bold">
-                                                        {log.user_id === currentUserId ? 'VOUS (Principal)' : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`}
-                                                    </td>
-                                                    <td className="py-4 px-4">
-                                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600' : log.action_type === 'UPDATE' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
-                                                            {log.action_type}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-4 font-mono text-[10px] text-gray-600 uppercase">{log.table_name}</td>
-                                                    <td className="py-4 px-4">
-                                                        <button onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))} className="text-[10px] text-blue-500 hover:underline">Voir JSON</button>
-                                                    </td>
-                                                </tr>
-                                            ));
+                                            return paginatedLogs.map(log => {
+                                                // Déterminer le rôle du collaborateur
+                                                const authorProfile = profiles.find(p => p.id === log.user_id);
+                                                const role = authorProfile?.role || 'user';
+                                                const roleConfig: Record<string, { label: string; color: string }> = {
+                                                    admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
+                                                    cho: { label: 'CHO', color: 'bg-green-100 text-green-700' },
+                                                    choa: { label: 'CHOa', color: 'bg-blue-100 text-blue-700' },
+                                                    ambassadeur: { label: 'Ambassadeur', color: 'bg-amber-100 text-amber-700' },
+                                                    user: { label: 'Membre', color: 'bg-gray-100 text-gray-600' },
+                                                };
+                                                const rc = roleConfig[role] || roleConfig['user'];
+
+                                                // Label lisible pour le type d'action
+                                                const actionLabels: Record<string, string> = {
+                                                    INSERT: 'Ajout ➕',
+                                                    UPDATE: 'Modif. ✏️',
+                                                    DELETE: 'Suppr. ❌',
+                                                    BATCH_RESET_PENDING_CHOA: 'Migration 🔄',
+                                                    STATUS_CHANGE: 'Statut 🟠',
+                                                };
+
+                                                return (
+                                                    <tr key={log.id} className="hover:bg-gray-50/50">
+                                                        <td className="py-4 px-6 text-[10px] text-gray-600 whitespace-nowrap">
+                                                            {new Date(log.timestamp).toLocaleString('fr-FR')}
+                                                        </td>
+                                                        <td className="py-4 px-6">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-600 overflow-hidden flex-shrink-0">
+                                                                    {authorProfile?.avatar_url ? (
+                                                                        <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        (log.user_details?.first_name?.[0] || 'A').toUpperCase()
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-sm leading-tight">
+                                                                        {log.user_id === currentUserId
+                                                                            ? 'Vous'
+                                                                            : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`.trim()
+                                                                        }
+                                                                    </p>
+                                                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${rc.color}`}>{rc.label}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600'
+                                                                    : log.action_type === 'DELETE' ? 'bg-red-100 text-red-600'
+                                                                        : 'bg-blue-100 text-blue-600'
+                                                                }`}>
+                                                                {actionLabels[log.action_type] || log.action_type}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 px-4 font-mono text-[10px] text-gray-600 uppercase">{log.table_name}</td>
+                                                        <td className="py-4 px-4">
+                                                            <button onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))} className="text-[10px] text-blue-500 hover:underline">Voir JSON</button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            });
                                         })()}
                                         {auditLogs.length === 0 && (
                                             <tr>
@@ -1593,9 +1636,38 @@ export default function AdminDashboard() {
                                     <span className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">{s.value}</span>
                                 </div>
                             ))}
-                            <div className="flex items-center justify-between py-3">
+                            <div className="flex items-center justify-between py-3 border-b border-gray-50">
                                 <span className="text-sm font-medium text-gray-700 flex items-center gap-2"><Lock className="w-4 h-4 text-green-500" /> Supabase RLS</span>
                                 <span className="text-xs bg-green-100 text-green-600 px-3 py-1 rounded-full font-bold">ACTIF</span>
+                            </div>
+                            {/* Bouton de migration des inscrits existants */}
+                            <div className="pt-4 border-t border-gray-100">
+                                <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-[#FF6600]" /> Migration Workflow CHOa
+                                </h3>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    Repositionne tous les inscrits existants (status &quot;pending&quot; ou sans statut) vers <strong>pending_choa</strong> pour qu&apos;ils apparaissent dans le tableau de bord des CHOa et démarrent le workflow de validation.
+                                </p>
+                                <button
+                                    onClick={async () => {
+                                        if (!confirm('Repositionner tous les inscrits non-validés vers pending_choa ?')) return;
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        if (!session) return;
+                                        const res = await fetch('/api/admin/reset-pending-choa', {
+                                            method: 'POST',
+                                            headers: { authorization: `Bearer ${session.access_token}` }
+                                        });
+                                        const result = await res.json();
+                                        if (result.success) {
+                                            alert(`✅ ${result.message}`);
+                                        } else {
+                                            alert(`❌ Erreur : ${result.error}`);
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-[#FF6600] hover:bg-[#e55c00] text-white rounded-xl text-sm font-bold transition-all active:scale-95 shadow-md shadow-orange-100"
+                                >
+                                    <ShieldCheck className="w-4 h-4" /> Lancer la migration
+                                </button>
                             </div>
                         </div>
                     </div>

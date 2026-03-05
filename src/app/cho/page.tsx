@@ -23,7 +23,16 @@ interface PendingProfile {
     status: string;
     avatar_url?: string | null;
     created_at: string;
+    birth_date?: string;
+    father_first_name?: string;
+    father_last_name?: string;
+    father_birth_date?: string;
+    mother_first_name?: string;
+    mother_last_name?: string;
+    mother_birth_date?: string;
     pre_validated_by?: string | null;
+    choa_approvals?: string[];
+    choa_names?: string[];
 }
 
 interface ValidationComment {
@@ -72,6 +81,7 @@ export default function ChoBoard() {
     const [isLoading, setIsLoading] = useState(true);
     const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
     const [viewingCommentsProfile, setViewingCommentsProfile] = useState<PendingProfile | null>(null);
+    const [infoModalProfile, setInfoModalProfile] = useState<PendingProfile | null>(null);
     const [unreadCount, setUnreadCount] = useState(0);
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
@@ -107,50 +117,49 @@ export default function ChoBoard() {
             console.log('[cho] CHO profile loaded:', profile);
             setMyProfile(profile);
 
-            // Charger tous les profils utilisateurs
+            // Charger tous les profils utilisateurs (avec choa_approvals pour voir les CHOa signataires)
             const { data: allUsers, error: usersErr } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at')
+                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
                 .eq('role', 'user')
                 .order('created_at', { ascending: false });
 
             if (usersErr) console.error('[cho] Error fetching users:', usersErr);
 
             if (allUsers) {
-                // Fetch the names of CHOa who 'probable' pre-validated those profiles
-                const probableIds = allUsers.filter(u => u.status === 'probable').map(u => u.id);
-                const validationsMap: Record<string, string> = {};
+                // Récupérer tous les IDs CHOa uniques depuis choa_approvals
+                const allChoaIds = [...new Set(
+                    allUsers.flatMap(u => Array.isArray(u.choa_approvals) ? u.choa_approvals : [])
+                )];
 
-                if (probableIds.length > 0) {
-                    const { data: vals } = await supabase.from('validations')
-                        .select('profile_id, validator:profiles!validations_validator_id_fkey(first_name, last_name)')
-                        .in('profile_id', probableIds)
-                        .eq('statut', 'probable');
+                // Charger les noms des CHOa signataires
+                const choaNamesMap: Record<string, string> = {};
+                if (allChoaIds.length > 0) {
+                    const { data: choaProfiles } = await supabase
+                        .from('profiles')
+                        .select('id, first_name, last_name, avatar_url')
+                        .in('id', allChoaIds);
 
-                    if (vals) {
-                        vals.forEach(v => {
-                            if (v.validator) {
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                const validatorData = Array.isArray(v.validator) ? v.validator[0] : v.validator as Record<string, any>;
-                                const fName = validatorData?.first_name || '';
-                                const lName = validatorData?.last_name || '';
-                                validationsMap[v.profile_id] = `${fName} ${lName}`.trim();
-                            }
+                    if (choaProfiles) {
+                        choaProfiles.forEach(cp => {
+                            choaNamesMap[cp.id] = `${cp.first_name || ''} ${cp.last_name || ''}`.trim();
                         });
                     }
                 }
 
                 const enhancedUsers = allUsers.map(u => ({
                     ...u,
-                    pre_validated_by: validationsMap[u.id] || null
+                    choa_names: Array.isArray(u.choa_approvals)
+                        ? u.choa_approvals.map((id: string) => choaNamesMap[id] || id)
+                        : [],
+                    pre_validated_by: Array.isArray(u.choa_approvals) && u.choa_approvals.length > 0
+                        ? u.choa_approvals.map((id: string) => choaNamesMap[id] || 'CHOa').join(' + ')
+                        : null
                 }));
 
-                // ─── Flux de validation obligatoire : pending_choa → CHOa → probable → CHO ───
-                // Le CHO voit :
-                //   1. Les dossiers pré-validés par les 2 CHOa (status='probable') → à confirmer
-                //   2. Les dossiers bloqués sans CHOa (status='pending_choa' sans quartier assigné) → cas exceptionnel
+                // CHO voit uniquement les dossiers doublement validés par les CHOa (probable)
                 setPendingProfiles(enhancedUsers.filter(u =>
-                    u.status === 'probable' || (u.status === 'pending_choa' && !u.quartier_nom)
+                    u.status === 'probable'
                 ));
                 setConfirmedProfiles(enhancedUsers.filter(u => u.status === 'confirmed'));
                 setRejectedProfiles(enhancedUsers.filter(u => u.status === 'rejected'));
@@ -376,13 +385,21 @@ export default function ChoBoard() {
                             <MapPin className="w-3.5 h-3.5 text-gray-400" />
                             {profile.village_origin || 'Village ?'} • <span className="text-gray-400 italic font-normal">{profile.quartier_nom || 'Quartier ?'}</span>
                         </p>
-                        <div className="flex items-center gap-4 mt-2">
+                        {profile.birth_date && (
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
                                 <Clock className="w-3 h-3" /> {new Date(profile.created_at).toLocaleDateString('fr-FR')}
                             </p>
-                            {profile.status === 'probable' && profile.pre_validated_by && (
-                                <div className="text-[10px] font-black text-orange-600 uppercase tracking-tighter bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100 flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3" /> Pré-validé par {profile.pre_validated_by}
+                            {profile.status === 'probable' && Array.isArray(profile.choa_names) && profile.choa_names.length > 0 && (
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    {profile.choa_names.map((name, i) => (
+                                        <div key={i} className="flex items-center gap-1 text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
+                                            <ShieldCheck className="w-3 h-3 text-blue-500" /> {name}
+                                        </div>
+                                    ))}
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase">ont validé</span>
                                 </div>
                             )}
                         </div>
@@ -395,28 +412,29 @@ export default function ChoBoard() {
                             onClick={() => handleStatusChange(profile.id, 'confirmed', true)}
                             className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs px-5 py-3 rounded-2xl bg-green-600 text-white hover:bg-green-700 transition-all font-black shadow-lg shadow-green-200 active:scale-95 group/btn"
                         >
-                            <Stamp className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" /> BASCULE ✅
+                            <Stamp className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" /> BASCULE PATRIMONIALE ✅
                         </button>
 
                         <div className="flex gap-2 w-full md:w-auto">
                             <button
-                                onClick={() => handleStatusChange(profile.id, 'probable')}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-100 transition-all uppercase"
+                                onClick={() => setInfoModalProfile(profile)}
+                                className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
+                                title="Fiche détaillée"
                             >
-                                Probable
+                                <Eye className="w-3.5 h-3.5" />
                             </button>
                             <button
                                 onClick={() => {
                                     setViewingCommentsProfile(profile);
                                     loadComments(profile.id);
                                 }}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
+                                className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
                             >
                                 <MessageSquare className="w-3.5 h-3.5" />
                             </button>
                             <button
                                 onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
-                                className="flex-1 items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
+                                className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
                             >
                                 <XCircle className="w-3.5 h-3.5" />
                             </button>
@@ -767,6 +785,126 @@ export default function ChoBoard() {
                     </div>
                 )}
             </main>
+
+            {/* Modale Dossier Complet CHO */}
+            {infoModalProfile && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                        <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+                            <h3 className="font-black text-lg flex items-center gap-2">
+                                <Eye className="w-5 h-5 text-green-600" /> Dossier Officiel — Validation CHO
+                            </h3>
+                            <button onClick={() => setInfoModalProfile(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                                <XCircle className="w-5 h-5 text-gray-600" />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                            <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 text-green-600 flex items-center justify-center text-3xl font-black overflow-hidden border-2 border-white shadow-md flex-shrink-0">
+                                    {infoModalProfile.avatar_url ? (
+                                        <img src={infoModalProfile.avatar_url} alt="Photo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        (infoModalProfile.first_name?.[0] || '?').toUpperCase()
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="font-black text-xl text-gray-900">{infoModalProfile.first_name} {infoModalProfile.last_name}</p>
+                                    <StatusBadge status={infoModalProfile.status || 'probable'} />
+                                    <p className="text-xs text-gray-500 mt-1 font-medium">
+                                        Inscrit le {new Date(infoModalProfile.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
+                                <h4 className="text-[10px] font-black uppercase text-[#FF6600] mb-3 tracking-widest">Identité</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Nom</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.last_name || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Prénoms</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.first_name || '—'}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.birth_date ? new Date(infoModalProfile.birth_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '— Non renseignée'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                                <h4 className="text-[10px] font-black uppercase text-green-600 mb-3 tracking-widest">Village & Quartier</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Village</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.village_origin || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Quartier</p>
+                                        <p className="font-bold text-gray-900">{infoModalProfile.quartier_nom || 'Non assigné'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                <h4 className="text-[10px] font-black uppercase text-blue-500 mb-3 tracking-widest">Père</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Nom & Prénoms</p>
+                                        <p className="font-bold text-gray-900">
+                                            {(infoModalProfile.father_first_name || infoModalProfile.father_last_name)
+                                                ? `${infoModalProfile.father_first_name || ''} ${infoModalProfile.father_last_name || ''}`.trim()
+                                                : '— Non renseigné'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
+                                        <p className="font-bold text-gray-900">
+                                            {infoModalProfile.father_birth_date ? new Date(infoModalProfile.father_birth_date).toLocaleDateString('fr-FR') : '— N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100">
+                                <h4 className="text-[10px] font-black uppercase text-pink-500 mb-3 tracking-widest">Mère</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Nom & Prénoms</p>
+                                        <p className="font-bold text-gray-900">
+                                            {(infoModalProfile.mother_first_name || infoModalProfile.mother_last_name)
+                                                ? `${infoModalProfile.mother_first_name || ''} ${infoModalProfile.mother_last_name || ''}`.trim()
+                                                : '— Non renseigné'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
+                                        <p className="font-bold text-gray-900">
+                                            {infoModalProfile.mother_birth_date ? new Date(infoModalProfile.mother_birth_date).toLocaleDateString('fr-FR') : '— N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
+                            <button
+                                onClick={() => { setInfoModalProfile(null); setMotifModal({ id: infoModalProfile.id, action: 'rejected' }); }}
+                                className="flex-1 py-3 rounded-xl bg-red-50 text-red-500 text-sm font-bold hover:bg-red-100 transition-colors border border-red-100"
+                            >
+                                Rejeter ✗
+                            </button>
+                            <button
+                                onClick={() => { setInfoModalProfile(null); handleStatusChange(infoModalProfile.id, 'confirmed', true); }}
+                                className="flex-1 py-3 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 transition-colors shadow-lg shadow-green-200"
+                            >
+                                Bascule Patrimoniale ✅
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modale Motif de Rejet */}
             {motifModal && (
