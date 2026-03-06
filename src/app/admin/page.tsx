@@ -7,7 +7,7 @@ import {
     Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
     BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame, Download,
-    Shield, Activity, Key, Stamp
+    Shield, Activity, Key, Stamp, MapPin
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -1527,120 +1527,153 @@ export default function AdminDashboard() {
                 }
 
                 {/* Validations */}
-                {
-                    activeTab === 'validations' && (
-                        <div className="space-y-6 mt-6">
-                            <h1 className="text-2xl font-bold">Suivi des Validations</h1>
-                            <div className="grid grid-cols-3 gap-4 mb-6">
-                                <div className="bg-green-50 border border-green-100 rounded-2xl p-5">
-                                    <div className="text-3xl font-extrabold text-green-600">{stats.confirmedUsers}</div>
-                                    <p className="text-sm text-green-700 font-medium mt-1">🟢 Confirmés</p>
-                                </div>
-                                <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5">
-                                    <div className="text-3xl font-extrabold text-orange-500">{stats.pendingUsers}</div>
-                                    <p className="text-sm text-orange-600 font-medium mt-1">🟠 En attente</p>
-                                </div>
-                                <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
-                                    <div className="text-3xl font-extrabold text-red-500">{stats.rejectedUsers}</div>
-                                    <p className="text-sm text-red-600 font-medium mt-1">🔴 Rejetés</p>
+                {/* Validations (Suivi Ultra-Détaillé) */}
+                {activeTab === 'validations' && (
+                    <div className="space-y-8 mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Suivi des <span className="text-[#FF6600]">Validations</span></h1>
+                                <p className="text-gray-500 font-medium mt-1">Gérez le flux de certification national en temps réel.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="bg-white/40 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 group hover:shadow-2xl hover:shadow-green-200/40 transition-all duration-700 overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-green-50 rounded-bl-[4rem] -mr-8 -mt-8 group-hover:scale-110 transition-transform" />
+                                <div className="relative z-10">
+                                    <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center mb-4">
+                                        <CheckCircle className="w-6 h-6 text-green-600" />
+                                    </div>
+                                    <div className="text-4xl font-black text-gray-900 mb-1">{stats.confirmedUsers}</div>
+                                    <p className="text-[10px] font-black text-green-600 uppercase tracking-[0.2em]">Citoyens Certifiés</p>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                                    <h2 className="font-bold text-lg">Suivi Ultra-Détaillé</h2>
+
+                            <div className="bg-white/40 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 group hover:shadow-2xl hover:shadow-orange-200/40 transition-all duration-700 overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-orange-50 rounded-bl-[4rem] -mr-8 -mt-8 group-hover:scale-110 transition-transform" />
+                                <div className="relative z-10">
+                                    <div className="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-4">
+                                        <Clock className="w-6 h-6 text-orange-500" />
+                                    </div>
+                                    <div className="text-4xl font-black text-gray-900 mb-1">{stats.pendingUsers}</div>
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-[0.2em]">Flux en Attente</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white/40 backdrop-blur-xl border border-white/60 p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/40 group hover:shadow-2xl hover:shadow-red-200/40 transition-all duration-700 overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-red-50 rounded-bl-[4rem] -mr-8 -mt-8 group-hover:scale-110 transition-transform" />
+                                <div className="relative z-10">
+                                    <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mb-4">
+                                        <XCircle className="w-6 h-6 text-red-600" />
+                                    </div>
+                                    <div className="text-4xl font-black text-gray-900 mb-1">{stats.rejectedUsers}</div>
+                                    <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em]">Dossiers Rejetés</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/60 backdrop-blur-2xl rounded-[3rem] border border-white/80 shadow-2xl shadow-gray-200/50 overflow-hidden">
+                            <div className="p-8 border-b border-gray-100 bg-gray-50/50">
+                                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gray-900 rounded-2xl flex items-center justify-center">
+                                            <Filter className="w-5 h-5 text-white" />
+                                        </div>
+                                        <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Registre Global</h2>
+                                    </div>
+
                                     <div className="flex flex-wrap items-center gap-3">
-                                        <div className="relative">
-                                            <Search className="w-4 h-4 text-gray-600 absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <div className="relative group">
+                                            <div className="absolute inset-0 bg-orange-400 blur rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity" />
+                                            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                                             <input
                                                 type="text"
-                                                placeholder="Chercher nom, téléphone..."
+                                                placeholder="Rechercher un citoyen..."
                                                 value={valSearchTerm}
                                                 onChange={e => setValSearchTerm(e.target.value)}
-                                                className="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm w-full md:w-64 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/10 outline-none"
+                                                className="pl-12 pr-6 py-3.5 bg-white border border-gray-100 rounded-2xl text-sm w-full md:w-80 focus:border-[#FF6600] focus:ring-4 focus:ring-orange-50 outline-none transition-all font-medium shadow-sm"
                                             />
                                         </div>
-                                        <select value={valFilterStatus} onChange={e => setValFilterStatus(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
+                                        <div className="h-8 w-[2px] bg-gray-100 hidden md:block" />
+                                        <select value={valFilterStatus} onChange={e => setValFilterStatus(e.target.value)} className="px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:border-[#FF6600] focus:ring-4 focus:ring-orange-50 transition-all cursor-pointer shadow-sm appearance-none min-w-[160px]">
                                             <option value="all">Tous Statuts</option>
-                                            <option value="confirmed">✅ Confirmés</option>
-                                            <option value="probable">🟠 Prés-validés (Probables)</option>
-                                            <option value="pending">⏳ En attente (Nouveaux)</option>
-                                            <option value="rejected">❌ Rejetés</option>
-                                        </select>
-                                        <select value={valFilterVillage} onChange={e => setValFilterVillage(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
-                                            <option value="all">Tous Villages</option>
-                                            {uniqueVillages.map(v => (
-                                                <option key={v as string} value={v as string}>{v as string}</option>
-                                            ))}
+                                            <option value="confirmed">CERTIFIÉ ✅</option>
+                                            <option value="probable">PROBABLE 🟠</option>
+                                            <option value="pending">NOUVEAU ⏳</option>
+                                            <option value="rejected">REJETÉ 🔴</option>
                                         </select>
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50 text-[10px] text-gray-600 uppercase font-bold tracking-wider">
-                                            <tr>
-                                                <th className="text-left py-3 px-4">Citoyen</th>
-                                                <th className="text-left py-3 px-4">Origines</th>
-                                                <th className="text-left py-3 px-4">Contact & Info</th>
-                                                <th className="text-left py-3 px-4">Statut</th>
-                                                <th className="text-left py-3 px-4">Délai</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                            {paginatedValidations.map((p: any) => (
-                                                <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
-                                                    <td className="py-3 px-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold relative overflow-hidden">
+                            <div className="overflow-x-auto no-scrollbar">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                                            <th className="text-left py-6 px-8">Citoyen & Identité</th>
+                                            <th className="text-left py-6 px-6">Localité Origine</th>
+                                            <th className="text-left py-6 px-6">Cursus & Contact</th>
+                                            <th className="text-center py-6 px-6">État de Validation</th>
+                                            <th className="text-right py-6 px-8">Inscription</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {paginatedValidations.map((p: any) => (
+                                            <tr key={p.id} className="hover:bg-orange-50/20 transition-all duration-300 group">
+                                                <td className="py-6 px-8">
+                                                    <div className="flex items-center gap-5">
+                                                        <div className="relative">
+                                                            <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-opacity" />
+                                                            <div className="relative w-12 h-12 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center text-[#FF6600] font-black text-sm">
                                                                 {p.avatar_url ? (
-                                                                    <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                                    <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
                                                                 ) : (
                                                                     (p.first_name?.[0] || '?').toUpperCase()
                                                                 )}
                                                             </div>
-                                                            <div>
-                                                                <p className="font-bold text-gray-900">{p.first_name} {p.last_name}</p>
-                                                                <p className="text-[10px] text-gray-500 uppercase">{p.gender || 'Genre non précisé'}</p>
-                                                            </div>
                                                         </div>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <p className="font-medium text-gray-800">{p.village_origin || '—'}</p>
-                                                        <p className="text-[10px] text-gray-500 uppercase">{p.quartier_nom || 'Quartier non précisé'}</p>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <p className="text-xs text-gray-600">{p.phone_1 || p.whatsapp_1 ? `📞 ${p.phone_1 || p.whatsapp_1}` : 'Vérifier la fiche'}</p>
-                                                        <p className="text-[10px] text-gray-400 capitalize">{p.niveau_etudes || 'Études non précisées'}</p>
-                                                    </td>
-                                                    <td className="py-3 px-4">
-                                                        <span className={`text-[10px] px-2 py-1 rounded-full font-black tracking-wide ${p.status === 'confirmed' ? 'bg-green-100 text-green-700' : p.status === 'probable' ? 'bg-orange-100 text-orange-700' : p.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                            {p.status === 'confirmed' ? 'CERTIFIÉ ✅' : p.status === 'probable' ? 'PROBABLE 🟠' : p.status === 'rejected' ? 'REJETÉ 🔴' : 'EN ATTENTE ⏳'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 px-4 text-xs text-gray-500">
-                                                        {new Date(p.created_at).toLocaleDateString('fr-FR')}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    {validationsProfiles.length === 0 && (
-                                        <div className="text-center py-10">
-                                        </div>
-                                    )}
-                                </div>
-                                {/* Pagination Validations */}
-                                {totalValPages > 1 && (
-                                    <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
-                                        <button disabled={valPage === 1} onClick={() => setValPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Précédent</button>
-                                        <span className="text-sm font-semibold text-gray-600">Page {valPage} sur {totalValPages}</span>
-                                        <button disabled={valPage === totalValPages} onClick={() => setValPage(prev => Math.min(totalValPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Suivant</button>
-                                    </div>
-                                )}
+                                                        <div>
+                                                            <p className="font-black text-gray-900 group-hover:text-[#FF6600] transition-colors">{p.first_name} {p.last_name}</p>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{p.gender || 'GNR'}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-6 px-6">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-1.5 text-sm font-bold text-gray-800">
+                                                            <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                                                            {p.village_origin || '—'}
+                                                        </div>
+                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-5">{p.quartier_nom || 'Non défini'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-6 px-6">
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm font-bold text-gray-600">{p.phone_1 || p.whatsapp_1 || 'Aucun contact'}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full uppercase tracking-tighter">
+                                                                {p.niveau_etudes || 'N/A'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-6 px-6 text-center">
+                                                    <span className={`text-[10px] px-4 py-2 rounded-2xl font-black tracking-widest inline-flex items-center gap-2 shadow-sm border ${p.status === 'confirmed' ? 'bg-green-50 text-green-700 border-green-100' : p.status === 'probable' ? 'bg-orange-50 text-orange-700 border-orange-100' : p.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-gray-50 text-gray-700 border-gray-100'}`}>
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'confirmed' ? 'bg-green-500' : p.status === 'probable' ? 'bg-orange-500' : p.status === 'rejected' ? 'bg-red-500' : 'bg-gray-400'}`} />
+                                                        {p.status === 'confirmed' ? 'CERTIFIÉ ✅' : p.status === 'probable' ? 'PROBABLE 🟠' : p.status === 'rejected' ? 'REJETÉ 🔴' : 'EN ATTENTE ⏳'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-6 px-8 text-right">
+                                                    <p className="text-xs font-black text-gray-400 tracking-widest">{new Date(p.created_at).toLocaleDateString('fr-FR')}</p>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                    )
-                }
+                    </div>
+                )}
 
                 {/* Mémorial 2010 */}
                 {
@@ -1800,111 +1833,117 @@ export default function AdminDashboard() {
                 }
 
                 {/* Journal d'Audit */}
-                {
-                    activeTab === 'audit' && (
-                        <div className="space-y-6 mt-6">
-                            <div>
-                                <h1 className="text-2xl font-bold">Journal d&apos;Audit (Tour de Contrôle)</h1>
-                                <p className="text-sm text-gray-600">Traçabilité complète des actions effectuées sur Racines+.</p>
-                            </div>
-                            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50 text-[10px] text-gray-600 uppercase font-bold">
-                                            <tr>
-                                                <th className="text-left py-4 px-6">Date</th>
-                                                <th className="text-left py-4 px-6">Auteur</th>
-                                                <th className="text-left py-4 px-4">Action</th>
-                                                <th className="text-left py-4 px-4">Table</th>
-                                                <th className="text-left py-4 px-4">Données</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-50">
-                                            {(() => {
-                                                const paginatedLogs = auditLogs.slice((logsPage - 1) * itemsPerPage, logsPage * itemsPerPage);
-                                                return paginatedLogs.map(log => {
-                                                    // Déterminer le rôle du collaborateur
-                                                    const authorProfile = profiles.find(p => p.id === log.user_id);
-                                                    const role = authorProfile?.role || 'user';
-                                                    const roleConfig: Record<string, { label: string; color: string }> = {
-                                                        admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700' },
-                                                        cho: { label: 'CHO', color: 'bg-green-100 text-green-700' },
-                                                        choa: { label: 'CHOa', color: 'bg-blue-100 text-blue-700' },
-                                                        ambassadeur: { label: 'Ambassadeur', color: 'bg-amber-100 text-amber-700' },
-                                                        user: { label: 'Membre', color: 'bg-gray-100 text-gray-600' },
-                                                    };
-                                                    const rc = roleConfig[role] || roleConfig['user'];
-
-                                                    // Label lisible pour le type d'action
-                                                    const actionLabels: Record<string, string> = {
-                                                        INSERT: 'Ajout ➕',
-                                                        UPDATE: 'Modif. ✏️',
-                                                        DELETE: 'Suppr. ❌',
-                                                        BATCH_RESET_PENDING_CHOA: 'Migration 🔄',
-                                                        STATUS_CHANGE: 'Statut 🟠',
-                                                    };
-
-                                                    return (
-                                                        <tr key={log.id} className="hover:bg-gray-50/50">
-                                                            <td className="py-4 px-6 text-[10px] text-gray-600 whitespace-nowrap">
-                                                                {new Date(log.timestamp).toLocaleString('fr-FR')}
-                                                            </td>
-                                                            <td className="py-4 px-6">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-600 overflow-hidden flex-shrink-0">
-                                                                        {authorProfile?.avatar_url ? (
-                                                                            <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
-                                                                        ) : (
-                                                                            (log.user_details?.first_name?.[0] || 'A').toUpperCase()
-                                                                        )}
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="font-bold text-sm leading-tight">
-                                                                            {log.user_id === currentUserId
-                                                                                ? 'Vous'
-                                                                                : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`.trim()
-                                                                            }
-                                                                        </p>
-                                                                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${rc.color}`}>{rc.label}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-4 px-4">
-                                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600'
-                                                                    : log.action_type === 'DELETE' ? 'bg-red-100 text-red-600'
-                                                                        : 'bg-blue-100 text-blue-600'
-                                                                    }`}>
-                                                                    {actionLabels[log.action_type] || log.action_type}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-4 px-4 font-mono text-[10px] text-gray-600 uppercase">{log.table_name}</td>
-                                                            <td className="py-4 px-4">
-                                                                <button onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))} className="text-[10px] text-blue-500 hover:underline">Voir JSON</button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                });
-                                            })()}
-                                            {auditLogs.length === 0 && (
-                                                <tr>
-                                                    <td colSpan={5} className="py-12 text-center text-gray-600 italic text-sm">Aucune activité enregistrée.</td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {/* Pagination Logs */}
-                                {Math.ceil(auditLogs.length / itemsPerPage) > 1 && (
-                                    <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
-                                        <button disabled={logsPage === 1} onClick={() => setLogsPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Précédent</button>
-                                        <span className="text-sm font-semibold text-gray-600">Page {logsPage} sur {Math.ceil(auditLogs.length / itemsPerPage)}</span>
-                                        <button disabled={logsPage === Math.ceil(auditLogs.length / itemsPerPage)} onClick={() => setLogsPage(prev => Math.min(Math.ceil(auditLogs.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50">Suivant</button>
+                {/* Journal d'Audit (Design Premium) */}
+                {activeTab === 'audit' && (
+                    <div className="space-y-8 mt-12 animate-in fade-in slide-in-from-right-8 duration-700">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div className="flex items-center gap-5">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-orange-400 blur-lg rounded-full opacity-20 animate-pulse" />
+                                    <div className="relative w-16 h-16 bg-gray-900 rounded-[2rem] flex items-center justify-center shadow-2xl">
+                                        <Activity className="w-8 h-8 text-[#FF6600]" />
                                     </div>
-                                )}
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">Tour de <span className="text-[#FF6600]">Contrôle</span></h1>
+                                    <p className="text-gray-500 font-medium">Surveillance cryptographique et journalisation des flux.</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 bg-orange-50/50 px-6 py-3 rounded-2xl border border-orange-100/50">
+                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Flux temps RÉEL ACTIF</p>
                             </div>
                         </div>
-                    )
-                }
+
+                        <div className="bg-white/60 backdrop-blur-2xl rounded-[3rem] border border-white/80 shadow-2xl shadow-gray-200/50 overflow-hidden">
+                            <div className="overflow-x-auto no-scrollbar">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
+                                            <th className="text-left py-6 px-8">Horodatage</th>
+                                            <th className="text-left py-6 px-6">Opérateur</th>
+                                            <th className="text-center py-6 px-6">Action Réalisée</th>
+                                            <th className="text-center py-6 px-6">Cible Système</th>
+                                            <th className="text-right py-6 px-8">Audit JSON</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {(() => {
+                                            const paginatedLogs = auditLogs.slice((logsPage - 1) * itemsPerPage, logsPage * itemsPerPage);
+                                            return paginatedLogs.map(log => {
+                                                const authorProfile = profiles.find(p => p.id === log.user_id);
+                                                const role = authorProfile?.role || 'user';
+                                                const roleConfig: Record<string, { label: string; color: string; bg: string }> = {
+                                                    admin: { label: 'ADMIN', color: 'text-purple-700', bg: 'bg-purple-50' },
+                                                    cho: { label: 'CHO', color: 'text-green-700', bg: 'bg-green-50' },
+                                                    choa: { label: 'CHOa', color: 'text-blue-700', bg: 'bg-blue-50' },
+                                                    ambassadeur: { label: 'AMB.', color: 'text-amber-700', bg: 'bg-amber-50' },
+                                                    user: { label: 'MBRE', color: 'text-gray-600', bg: 'bg-gray-100' },
+                                                };
+                                                const rc = roleConfig[role] || roleConfig['user'];
+                                                const actionLabels: Record<string, string> = {
+                                                    INSERT: 'CRÉATION ➕',
+                                                    UPDATE: 'MODIFICATION ✏️',
+                                                    DELETE: 'SUPPRESSION ❌',
+                                                    BATCH_RESET_PENDING_CHOA: 'MIGRATION 🔄',
+                                                    STATUS_CHANGE: 'STATUT 🟠',
+                                                };
+
+                                                return (
+                                                    <tr key={log.id} className="hover:bg-gray-50/50 transition-colors group">
+                                                        <td className="py-6 px-8 whitespace-nowrap">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-sm font-black text-gray-900 leading-none">{new Date(log.timestamp).toLocaleDateString('fr-FR')}</span>
+                                                                <span className="text-[10px] font-bold text-gray-400 mt-1 uppercase">{new Date(log.timestamp).toLocaleTimeString('fr-FR')}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-6 px-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="relative w-10 h-10 rounded-xl bg-white shadow-md border-2 border-white overflow-hidden flex items-center justify-center text-[10px] font-black text-gray-900">
+                                                                    {authorProfile?.avatar_url ? (
+                                                                        <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        (log.user_details?.first_name?.[0] || 'A').toUpperCase()
+                                                                    )}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-bold text-gray-900 group-hover:text-[#FF6600] transition-colors">
+                                                                        {log.user_id === currentUserId ? 'Vous' : `${log.user_details?.first_name || ''} ${log.user_details?.last_name || 'Assistant'}`}
+                                                                    </p>
+                                                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-full ${rc.bg} ${rc.color}`}>{rc.label}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-6 px-6 text-center">
+                                                            <span className={`px-4 py-2 rounded-2xl text-[9px] font-black tracking-widest shadow-sm border ${log.action_type === 'INSERT' ? 'bg-green-50 text-green-700 border-green-100'
+                                                                : log.action_type === 'DELETE' ? 'bg-red-50 text-red-700 border-red-100'
+                                                                    : 'bg-blue-50 text-blue-700 border-blue-100'
+                                                                }`}>
+                                                                {actionLabels[log.action_type] || log.action_type}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-6 px-6 text-center text-[10px] font-black text-gray-400 font-mono tracking-tighter bg-gray-50/30 group-hover:bg-orange-50/50 transition-colors">
+                                                            {log.table_name || 'SYSTEM'}
+                                                        </td>
+                                                        <td className="py-6 px-8 text-right">
+                                                            <button
+                                                                onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))}
+                                                                className="px-4 py-2 rounded-xl bg-gray-900 text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#FF6600] transition-all active:scale-90"
+                                                            >
+                                                                Inspections
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            });
+                                        })()}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Invitations */}
                 {

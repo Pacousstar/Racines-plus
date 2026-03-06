@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
     ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
-    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin
+    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Activity, Search
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -104,65 +104,74 @@ export default function ChoBoard() {
     const [confirmedPage, setConfirmedPage] = useState(1);
     const [rejectedPage, setRejectedPage] = useState(1);
     const itemsPerPage = 20;
+    const load = async () => {
+        setIsLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/login'); return; }
+        setCurrentUserId(user.id);
+        console.log("🔍 [CHOa Debug] User ID:", user.id);
+
+        // Charger le profil CHOa
+        const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, role, village_origin, quartier_nom, quartiers_assignes, export_authorized, export_requested')
+            .eq('id', user.id).single();
+
+        if (profileErr) console.error('[choa] Error fetching CHOa profile:', profileErr);
+        if (!profile || profile.role !== 'choa') {
+            console.warn("⚠️ [CHOa Debug] Profil non CHOa ou inexistant. Redirection...");
+            router.push('/dashboard');
+            return;
+        }
+        setMyProfile(profile);
+        console.log("🔍 [CHOa Debug] CHOa Profile:", profile);
+
+        // Charger les profils utilisateurs
+        let q = supabase
+            .from('profiles')
+            .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
+            .order('created_at', { ascending: false });
+
+        // Assouplissement du filtre village pour le diagnostic
+        if (profile.village_origin) {
+            console.log("🔍 [CHOa Debug] Filtering by village:", profile.village_origin);
+            q = q.ilike('village_origin', profile.village_origin); // Utilisation d'ilike pour la tolérance à la casse
+        }
+
+        const { data: allUsers, error: usersErr } = await q;
+
+        if (usersErr) {
+            console.error('❌ [CHOa Debug] Error fetching users:', usersErr);
+        } else {
+            console.log("📊 [CHOa Debug] Total relevant users found:", allUsers?.length || 0);
+        }
+
+        if (allUsers) {
+            const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
+            const pending = allUsers.filter(u => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
+            const probable = allUsers.filter(u => u.status === 'probable');
+
+            console.log("📊 [CHOa Debug] Pending profiles:", pending.length);
+            console.log("📊 [CHOa Debug] Probable profiles:", probable.length);
+
+            setPendingProfiles(pending);
+            setSentToChoProfiles(probable);
+            setConfirmedProfiles(allUsers.filter(u => u.status === 'confirmed'));
+            setRejectedProfiles(allUsers.filter(u => u.status === 'rejected'));
+        }
+
+        const { count } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', user.id).eq('is_read', false);
+        setUnreadCount(count || 0);
+        setIsLoading(false);
+    };
+
     useEffect(() => {
-        const load = async () => {
-            setIsLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { router.push('/login'); return; }
-            setCurrentUserId(user.id);
-
-            // Charger le profil CHOa avec les quartiers assignés
-            const { data: profile, error: profileErr } = await supabase
-                .from('profiles')
-                .select('first_name, last_name, role, village_origin, quartier_nom, quartiers_assignes, export_authorized, export_requested')
-                .eq('id', user.id).single();
-            if (profileErr) console.error('[choa] Error fetching CHOa profile:', profileErr);
-            if (!profile || profile.role !== 'choa') {
-                router.push('/dashboard');
-                return;
-            }
-            setMyProfile(profile);
-
-            // Charger les profils utilisateurs du village (on inclut tous les inscrits pour éviter qu'un nullable village bloque tout)
-            let q = supabase
-                .from('profiles')
-                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
-                .eq('role', 'user')
-                .order('created_at', { ascending: false });
-
-            // Si le CHOa a un village d'origine défini, on filtre en BD, sinon on prend tout pour l'instant (MVP)
-            if (profile.village_origin) {
-                q = q.eq('village_origin', profile.village_origin);
-            }
-
-            const { data: allUsers, error: usersErr } = await q;
-
-            if (usersErr) console.error('[choa] Error fetching users:', usersErr);
-
-            if (allUsers) {
-                // Workflow CHOa : le CHOa voit TOUS les inscrits du village
-                // (pas de filtre quartier — tous les CHOa du village voient tous les dossiers)
-                // À valider = pending_choa, pending (ancien), pre_approved (1 CHOa déjà OK)
-                // Envoyés au CHO = probable (2 validations CHOa → transmis au CHO)
-                const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
-
-                setPendingProfiles(allUsers.filter(u =>
-                    CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa')
-                ));
-                setSentToChoProfiles(allUsers.filter(u => u.status === 'probable'));
-                setConfirmedProfiles(allUsers.filter(u => u.status === 'confirmed'));
-                setRejectedProfiles(allUsers.filter(u => u.status === 'rejected'));
-            }
-
-            const { count } = await supabase
-                .from('notifications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id).eq('is_read', false);
-            setUnreadCount(count || 0);
-            setIsLoading(false);
-        };
         load();
-    }, [supabase, router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleRequestExport = async () => {
         if (!myProfile) return;
@@ -380,80 +389,102 @@ export default function ChoBoard() {
     const ProfileCard = ({ profile, showActions = true }: { profile: PendingProfile; showActions?: boolean }) => {
         const alreadyApproved = Array.isArray(profile.choa_approvals) && currentUserId ? profile.choa_approvals.includes(currentUserId) : false;
         const approvalCount = Array.isArray(profile.choa_approvals) ? profile.choa_approvals.length : 0;
+
         return (
-            <div className="group bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-[#FF6600]/10 hover:border-[#FF6600]/30 transition-all duration-500 relative overflow-hidden active:scale-[0.99] animate-in zoom-in duration-300">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50/50 rounded-bl-[5rem] -mr-12 -mt-12 group-hover:bg-orange-100/50 transition-colors duration-500" />
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-5">
-                        <div className="relative flex-shrink-0">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6600]/10 to-amber-50 text-[#FF6600] flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
-                                {profile.avatar_url ? (
-                                    <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                                ) : (
-                                    (profile.first_name?.[0] || '?').toUpperCase()
+            <div className="group bg-white/40 backdrop-blur-xl rounded-[3rem] p-8 border border-white/60 shadow-xl shadow-gray-200/40 hover:shadow-2xl hover:shadow-orange-200/40 hover:border-[#FF6600]/30 transition-all duration-700 relative overflow-hidden active:scale-[0.98] animate-in slide-in-from-bottom-8 duration-500">
+                {/* Background decorative elements */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-orange-100/40 to-transparent rounded-bl-[6rem] -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700" />
+
+                <div className="relative z-10">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+                        <div className="flex items-center gap-6">
+                            <div className="relative group-hover:rotate-3 transition-transform duration-500">
+                                <div className="absolute -inset-2 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-3xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-700" />
+                                <div className="relative w-20 h-20 rounded-3xl bg-gray-100 overflow-hidden border-4 border-white shadow-2xl">
+                                    {profile.avatar_url ? (
+                                        <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF6600] to-orange-400 text-white text-2xl font-black">
+                                            {(profile.first_name?.[0] || '?').toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                                {approvalCount > 0 && (
+                                    <div className="absolute -bottom-2 -right-2 bg-[#124E35] text-white text-[10px] font-black px-2.5 py-1 rounded-xl border-4 border-white shadow-lg animate-bounce">
+                                        {approvalCount}/2 <span className="text-[8px] opacity-70">SCEAUX</span>
+                                    </div>
                                 )}
                             </div>
-                            {approvalCount > 0 && (
-                                <div className="absolute -bottom-2 -right-2 bg-blue-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border-2 border-white shadow">
-                                    {approvalCount}/2
+
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <h3 className="font-black text-2xl text-gray-900 tracking-tight group-hover:text-[#FF6600] transition-colors duration-300">
+                                        {profile.first_name} {profile.last_name}
+                                    </h3>
+                                    <StatusBadge status={profile.status || 'pending'} />
                                 </div>
-                            )}
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <h3 className="font-black text-lg text-gray-900 leading-tight">{profile.first_name} {profile.last_name}</h3>
-                                <StatusBadge status={profile.status || 'pending'} />
+                                <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-[#FF6600] rounded-full text-[10px] font-black uppercase tracking-wider">
+                                        <MapPin className="w-3 h-3" />
+                                        {profile.village_origin || 'Village ?'}
+                                    </div>
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{profile.quartier_nom || 'Quartier non assigné'}</span>
+                                </div>
+                                {profile.birth_date && (
+                                    <p className="text-[11px] font-bold text-gray-400 pt-1">Identité déclarée • Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
+                                )}
                             </div>
-                            <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                                {profile.village_origin || 'Village ?'} • <span className="text-gray-400 italic font-normal">{profile.quartier_nom || 'Sans quartier'}</span>
-                            </p>
-                            {profile.birth_date && (
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
-                            )}
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Clock className="w-3 h-3" /> Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
-                            </p>
+                        </div>
+
+                        <div className="flex flex-col items-end gap-3 text-right">
+                            <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
+                                <Clock className="w-3.5 h-3.5" />
+                                Enregistré le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                            </div>
                         </div>
                     </div>
 
                     {showActions && (
-                        <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                        <div className="mt-8 pt-8 border-t border-gray-100/50 flex flex-wrap md:flex-nowrap items-center gap-4">
                             {alreadyApproved ? (
-                                <div className="flex items-center gap-2 text-xs px-5 py-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 font-black">
-                                    <ShieldCheck className="w-4 h-4" /> MON SCEAU ✓
+                                <div className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-[#124E35] text-white text-[11px] font-black uppercase tracking-[0.15em] shadow-xl shadow-green-100 opacity-90">
+                                    <ShieldCheck className="w-5 h-5 text-orange-400" />
+                                    VOTRE SCEAU EST APPOSÉ ✓
                                 </div>
                             ) : (
                                 <button
                                     onClick={() => handleStatusChange(profile.id, 'probable')}
-                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs px-5 py-3 rounded-2xl bg-[#FF6600] text-white hover:bg-[#e55c00] transition-all font-black shadow-lg shadow-orange-100 active:scale-95"
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-[#FF6600] to-orange-500 text-white text-[11px] font-black uppercase tracking-[0.15em] hover:from-[#e55c00] hover:to-[#FF6600] transition-all shadow-xl shadow-orange-200 active:scale-95 group/btn"
                                 >
-                                    <ShieldCheck className="w-4 h-4" /> APPOSER MON SCEAU 🟠
+                                    <ShieldCheck className="w-5 h-5 group-hover/btn:scale-110 transition-transform duration-500" />
+                                    APPOSER MON SCEAU 🟠
                                 </button>
                             )}
 
-                            <div className="flex gap-2 w-full md:w-auto">
+                            <div className="flex gap-3 w-full md:w-auto">
                                 <button
                                     onClick={() => setInfoModalProfile(profile)}
-                                    className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
-                                    title="Fiche détaillée"
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-900 text-white hover:bg-[#FF6600] transition-all text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 group/eye"
                                 >
-                                    <Eye className="w-3.5 h-3.5" />
+                                    <Eye className="w-4 h-4 group-hover/eye:scale-125 transition-transform" />
+                                    Examiner
                                 </button>
                                 <button
                                     onClick={() => {
                                         setViewingCommentsProfile(profile);
                                         loadComments(profile.id);
                                     }}
-                                    className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
+                                    className="flex items-center justify-center p-4 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-[#FF6600] hover:text-white border border-orange-100 transition-all duration-300 relative group/msg"
+                                    title="Commentaires et Audit"
                                 >
-                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <MessageSquare className="w-5 h-5 transition-transform group-hover/msg:scale-110" />
                                 </button>
                                 <button
                                     onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
-                                    className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
+                                    className="flex items-center justify-center p-4 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-100 transition-all duration-300 group/x"
+                                    title="Rejeter le dossier"
                                 >
-                                    <XCircle className="w-3.5 h-3.5" />
+                                    <XCircle className="w-5 h-5 transition-transform group-hover/x:rotate-90" />
                                 </button>
                             </div>
                         </div>
@@ -467,69 +498,116 @@ export default function ChoBoard() {
         <div className="min-h-screen bg-[#fafafa] text-foreground relative overflow-hidden">
             {/* Éléments de design d'arrière-plan (Mesh Gradient) */}
             <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-orange-100/20 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-amber-100/10 rounded-full blur-[120px]" />
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-100/30 rounded-full blur-[120px] animate-pulse" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-100/20 rounded-full blur-[120px]" />
             </div>
 
             <div className="relative z-10 animate-in fade-in duration-700">
-                {/* Header */}
-                <header className="fixed top-0 w-full bg-white/70 backdrop-blur-2xl border-b border-gray-100 px-6 py-4 flex justify-between items-center z-[100] transition-all">
-                    <div className="flex items-center gap-5">
-                        <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={100} height={35} className="object-contain hover:opacity-80 transition-opacity" /></Link>
-                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest border bg-[#FF6600] text-white shadow-lg shadow-orange-100 uppercase">
-                            <ShieldCheck className="w-3.5 h-3.5 text-white" />
-                            CHOa — ADJOINT PATRIMONIAL
+                {/* Navbar Glassmorphism Premium Orange */}
+                <header className="fixed top-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-b border-orange-50 flex items-center justify-between px-8 z-[100] shadow-sm">
+                    <div className="flex items-center gap-6">
+                        <Link href="/" className="group relative">
+                            <div className="absolute -inset-2 bg-gradient-to-r from-orange-400 to-amber-400 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-all duration-500" />
+                            <Image src="/LOGO_Racines.png" alt="Racines+" width={120} height={40} className="relative object-contain" />
+                        </Link>
+                        <div className="h-10 w-[1px] bg-gray-100 hidden md:block" />
+                        <div className="hidden md:flex items-center gap-3 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FF6600]/10 to-transparent border border-orange-100/50">
+                            <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                            <span className="text-[10px] font-black tracking-[0.2em] text-[#FF6600] uppercase">Validateur de Quartier</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <MessageSquare className={`w-5 h-5 ${unreadCount > 0 ? 'text-[#FF6600]' : 'text-gray-600'}`} />
+                    <div className="flex items-center gap-4">
+                        <div className="relative group cursor-pointer" onClick={() => setActiveTab('quartier')}>
+                            <div className="p-3 rounded-2xl bg-gray-50 text-gray-400 group-hover:text-[#FF6600] group-hover:bg-orange-50 transition-all duration-300">
+                                <MessageSquare className={`w-5 h-5 ${unreadCount > 0 ? 'text-[#FF6600] scale-110' : ''}`} />
+                            </div>
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF6600] text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white font-bold animate-pulse">
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF6600] text-white text-[10px] flex items-center justify-center rounded-xl border-2 border-white font-black shadow-lg animate-bounce">
                                     {unreadCount}
                                 </span>
                             )}
                         </div>
-                        <span className="text-sm font-semibold hidden md:block">{myProfile?.first_name} {myProfile?.last_name}</span>
-                        <button
-                            onClick={() => setIsInviteOpen(true)}
-                            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:border-racines-green hover:text-racines-green transition-colors"
-                        >
-                            <Share2 className="w-3.5 h-3.5" /> Inviter
-                        </button>
-                        <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
-                            <LogOut className="w-4 h-4" />
-                        </button>
+
+                        <div className="h-8 w-[1px] bg-gray-100" />
+
+                        <div className="flex items-center gap-3 pl-2">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-sm font-black text-gray-900 leading-none">{myProfile?.first_name} {myProfile?.last_name}</p>
+                                <p className="text-[10px] font-bold text-[#FF6600] mt-1 uppercase tracking-widest">{myProfile?.village_origin || 'Village'}</p>
+                            </div>
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-all" />
+                                <div className="relative w-11 h-11 rounded-2xl border-2 border-white shadow-xl bg-orange-100 flex items-center justify-center text-[#FF6600] font-black">
+                                    {myProfile?.first_name?.[0] || '?'}{myProfile?.last_name?.[0] || '?'}
+                                </div>
+                            </div>
+                            <button
+                                onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+                                className="p-3 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
+                                title="Déconnexion"
+                            >
+                                <LogOut className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 </header>
 
-                <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto pb-12">
-                    <div className="mt-8 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Espace de Pré-Validation</h1>
-                            <p className="text-gray-500 font-medium mt-1 flex items-center gap-2 flex-wrap">
-                                <span className="w-2 h-2 bg-[#FF6600] rounded-full animate-pulse" />
-                                Village : <span className="text-gray-900 font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>
-                                <span className="text-gray-400 mx-1">•</span>
-                                Quartier : <span className="text-[#FF6600] font-black">{myProfile?.quartier_nom || 'Non assigné'}</span>
-                            </p>
-                        </div>
-                        <div className="text-right hidden md:block">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Session Adjoint</p>
+                <main className="pt-32 px-4 md:px-8 max-w-7xl mx-auto pb-24">
+                    {/* Hero Section with ouf effect */}
+                    <div className="relative mb-12 p-10 rounded-[3rem] bg-gray-900 overflow-hidden shadow-2xl shadow-orange-900/10 border border-white/5">
+                        <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-[#FF6600]/10 to-transparent pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em]">Tableau de Validation Alpha (CHOa)</p>
+                                    </div>
+                                    <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(251,146,60,0.5)]" />
+                                </div>
+                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+                                    Espace de <span className="text-[#FF6600]">Pré-Validation</span>
+                                </h1>
+                                <p className="text-gray-400 font-medium max-w-md">
+                                    En tant que CHOa, vous êtes le garant de la lignée. Votre sceau permet de transférer les dossiers au CHO pour validation finale.
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-3 text-right">
+                                <div className="flex flex-wrap gap-3 items-center">
+                                    <button
+                                        onClick={load}
+                                        className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors group"
+                                        title="Rafraîchir les dossiers"
+                                    >
+                                        <Activity className={`w-5 h-5 text-white ${isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                                    </button>
+                                    <div className="p-5 bg-white/5 backdrop-blur-lg rounded-[2.5rem] border border-white/10 min-w-[200px]">
+                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Circonscription</p>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                            <p className="text-sm font-black text-white">{myProfile?.village_origin || 'NON RENSEIGNÉE'}</p>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-orange-400 mt-1 uppercase tracking-widest">{myProfile?.quartier_nom || 'Secteur Central'}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex gap-3 mb-10 overflow-x-auto pb-4 px-1 scrollbar-hide">
+                    <div className="flex gap-4 mb-12 overflow-x-auto pb-6 px-2 scrollbar-hide no-scrollbar uppercase tracking-[0.1em]">
                         {tabs.map(tab => (
                             <button
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                                className={`flex items-center gap-3 px-6 py-4 rounded-[1.5rem] text-sm font-black whitespace-nowrap transition-all duration-300 ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-xl shadow-gray-200 -translate-y-1' : 'bg-white border border-gray-100 text-gray-500 hover:border-[#FF6600]/30 hover:bg-orange-50/30'}`}
+                                className={`flex items-center gap-3 px-8 py-5 rounded-[2rem] text-[11px] font-black tracking-[0.15em] transition-all duration-500 whitespace-nowrap relative group ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-2xl shadow-gray-400 -translate-y-1' : 'bg-white/50 backdrop-blur-md border border-white/60 text-gray-500 hover:bg-white hover:text-[#FF6600] hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5'}`}
                             >
-                                <tab.icon className={`w-4 h-4 ${activeTab === tab.key ? 'text-[#FF6600]' : 'text-gray-400'}`} />
+                                <div className={`p-2 rounded-xl transition-colors duration-500 ${activeTab === tab.key ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF6600]'}`}>
+                                    <tab.icon className="w-4 h-4" />
+                                </div>
                                 {tab.label}
-                                {tab.count > 0 && <span className={`${tab.countColor} text-white text-[10px] px-2 py-0.5 rounded-full flex items-center justify-center font-black shadow-sm`}>{tab.count}</span>}
+                                {tab.count > 0 && <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg animate-in zoom-in duration-500`}>{tab.count}</span>}
                             </button>
                         ))}
                     </div>
@@ -552,9 +630,46 @@ export default function ChoBoard() {
                                     </h2>
                                 </div>
                                 {pendingProfiles.length === 0 && (
-                                    <div className="bg-white rounded-3xl p-10 text-center border border-gray-100">
-                                        <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                                        <p className="font-semibold text-gray-700">Aucun profil en attente !</p>
+                                    <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+                                        <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
+                                            <Search className="w-10 h-10 text-orange-200 group-hover:scale-110 group-hover:text-orange-400 transition-all duration-500" />
+                                        </div>
+                                        <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier à traiter</h2>
+                                        <p className="text-gray-500 max-w-sm mx-auto font-medium mb-10">
+                                            La file d&apos;attente pour <span className="text-[#FF6600] font-black">{myProfile?.village_origin || 'votre village'}</span> est actuellement vide.
+                                        </p>
+
+                                        <div className="max-w-md mx-auto p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100/50 text-left">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                                <Activity className="w-3.5 h-3.5 text-orange-400" /> Auto-Diagnostic Système
+                                            </p>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
+                                                    <span className="text-xs font-bold text-gray-500">Votre Village</span>
+                                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${myProfile?.village_origin ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                        {myProfile?.village_origin || 'ABSENT'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
+                                                    <span className="text-xs font-bold text-gray-500">Filtrage Village</span>
+                                                    <span className="text-[10px] font-black bg-orange-100 text-orange-700 px-3 py-1 rounded-full uppercase">ACTIF (CASSE TOLÉRÉE)</span>
+                                                </div>
+                                                <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
+                                                    <span className="text-xs font-bold text-gray-500">Dernière Sync</span>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase">{new Date().toLocaleTimeString()}</span>
+                                                </div>
+                                            </div>
+                                            <p className="mt-6 text-[11px] text-gray-400 font-medium italic text-center">
+                                                💡 Conseil : Si vous attendez des dossiers, assurez-vous que l&apos;Admin a bien lancé la &quot;Migration CHOa&quot; dans les paramètres.
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={load}
+                                            className="mt-10 px-10 py-5 bg-[#FF6600] text-white rounded-2xl font-black text-sm shadow-2xl shadow-orange-200 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                                        >
+                                            Forcer la synchronisation
+                                        </button>
                                     </div>
                                 )}
                                 {pendingProfiles.map(p => <ProfileCard key={p.id} profile={p} />)}

@@ -44,7 +44,9 @@ export async function POST(request: Request) {
         .from('profiles')
         .select('id, status, village_origin, quartier_nom')
         .eq('role', 'user')
-        .neq('status', 'rejected');
+        .neq('status', 'rejected')
+        .neq('status', 'confirmed')
+        .neq('status', 'probable');
 
     if (usersErr) {
         return NextResponse.json({ error: usersErr.message }, { status: 500 });

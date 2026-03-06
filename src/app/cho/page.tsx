@@ -51,6 +51,7 @@ interface MyProfile {
     village_origin: string;
     export_authorized: boolean;
     export_requested: boolean;
+    avatar_url?: string | null;
 }
 
 interface CHOa {
@@ -107,7 +108,7 @@ export default function ChoBoard() {
             if (!user) { router.push('/login'); return; }
             setCurrentUserId(user.id);
 
-            const { data: profile, error: profileErr } = await supabase.from('profiles').select('first_name, last_name, role, village_origin, export_authorized, export_requested').eq('id', user.id).single();
+            const { data: profile, error: profileErr } = await supabase.from('profiles').select('first_name, last_name, role, village_origin, export_authorized, export_requested, avatar_url').eq('id', user.id).single();
             if (profileErr) console.error('[cho] Error fetching CHO profile:', profileErr);
             if (!profile || profile.role !== 'cho') {
                 console.warn('[cho] Access denied or profile missing for id:', user.id);
@@ -357,87 +358,109 @@ export default function ChoBoard() {
     };
 
     const ProfileCard = ({ profile, showActions = true }: { profile: PendingProfile; showActions?: boolean }) => (
-        <div className="group bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-7 border border-white/60 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-[#FF6600]/10 hover:border-[#FF6600]/30 transition-all duration-500 relative overflow-hidden active:scale-[0.99] animate-in zoom-in duration-300">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50/50 rounded-bl-[5rem] -mr-12 -mt-12 group-hover:bg-orange-100/50 transition-colors duration-500" />
-            {profile.status === 'confirmed' && <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-bl-[4rem] -mr-8 -mt-8 pointer-events-none" />}
+        <div className="group bg-white/40 backdrop-blur-xl rounded-[3rem] p-8 border border-white/60 shadow-xl shadow-gray-200/40 hover:shadow-2xl hover:shadow-orange-200/40 hover:border-[#FF6600]/30 transition-all duration-700 relative overflow-hidden active:scale-[0.98] animate-in slide-in-from-bottom-8 duration-500">
+            {/* Background decorative elements */}
+            <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-orange-100/40 to-transparent rounded-bl-[6rem] -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-50/30 to-transparent rounded-tr-[4rem] -ml-8 -mb-8" />
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                    <div className="relative">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF6600]/10 to-amber-50 text-[#FF6600] flex items-center justify-center text-xl font-black flex-shrink-0 overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform duration-500">
-                            {profile.avatar_url ? (
-                                <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                            ) : (
-                                (profile.first_name?.[0] || '?').toUpperCase()
-                            )}
-                        </div>
-                        {profile.status === 'confirmed' && (
-                            <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1 rounded-full border-2 border-white shadow-sm">
-                                <CheckCircle className="w-3.5 h-3.5" />
+            <div className="relative z-10">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+                    <div className="flex items-center gap-6">
+                        <div className="relative group-hover:rotate-3 transition-transform duration-500">
+                            <div className="absolute -inset-2 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-3xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-700" />
+                            <div className="relative w-20 h-20 rounded-3xl bg-gray-100 overflow-hidden border-4 border-white shadow-2xl">
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF6600] to-orange-400 text-white text-2xl font-black">
+                                        {(profile.first_name?.[0] || '?').toUpperCase()}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-black text-lg text-gray-900 leading-tight">{profile.first_name} {profile.last_name}</h3>
-                            <StatusBadge status={profile.status || 'pending'} />
-                        </div>
-                        <p className="text-sm font-medium text-gray-500 mt-1 flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                            {profile.village_origin || 'Village ?'} • <span className="text-gray-400 italic font-normal">{profile.quartier_nom || 'Quartier ?'}</span>
-                        </p>
-                        {profile.birth_date && (
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> {new Date(profile.created_at).toLocaleDateString('fr-FR')}
-                            </p>
-                            {profile.status === 'probable' && Array.isArray(profile.choa_names) && profile.choa_names.length > 0 && (
-                                <div className="flex items-center gap-1 flex-wrap">
-                                    {profile.choa_names.map((name, i) => (
-                                        <div key={i} className="flex items-center gap-1 text-[10px] font-black text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
-                                            <ShieldCheck className="w-3 h-3 text-blue-500" /> {name}
-                                        </div>
-                                    ))}
-                                    <span className="text-[9px] text-gray-400 font-bold uppercase">ont validé</span>
+                            {profile.status === 'confirmed' && (
+                                <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1.5 rounded-xl border-4 border-white shadow-lg animate-bounce">
+                                    <CheckCircle className="w-4 h-4" />
                                 </div>
                             )}
                         </div>
+
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h3 className="font-black text-2xl text-gray-900 tracking-tight group-hover:text-[#FF6600] transition-colors duration-300">
+                                    {profile.first_name} {profile.last_name}
+                                </h3>
+                                <StatusBadge status={profile.status || 'pending'} />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 text-[#FF6600] rounded-full text-[10px] font-black uppercase tracking-wider">
+                                    <MapPin className="w-3 h-3" />
+                                    {profile.village_origin || 'Village ?'}
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{profile.quartier_nom || 'Quartier ?'}</span>
+                            </div>
+                            {profile.birth_date && (
+                                <p className="text-[11px] font-bold text-gray-400 pt-1">Membre de la lignée • Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-3 text-right">
+                        <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
+                            <Clock className="w-3.5 h-3.5" />
+                            Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                        </div>
+
+                        {profile.status === 'probable' && Array.isArray(profile.choa_names) && profile.choa_names.length > 0 && (
+                            <div className="flex flex-col items-end gap-1.5">
+                                <span className="text-[9px] font-black text-[#124E35] uppercase tracking-widest pr-2">Scellé par les CHOa :</span>
+                                <div className="flex flex-wrap justify-end gap-2">
+                                    {profile.choa_names.map((name, i) => (
+                                        <div key={i} className="flex items-center gap-2 text-[10px] font-black text-white bg-[#124E35] px-3 py-1.5 rounded-xl shadow-lg shadow-green-900/10">
+                                            <ShieldCheck className="w-3 h-3 text-orange-400" />
+                                            {name}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {showActions && (
-                    <div className="flex flex-wrap md:flex-nowrap items-center gap-2">
+                    <div className="mt-8 pt-8 border-t border-gray-100/50 flex flex-wrap md:flex-nowrap items-center gap-4">
                         <button
                             onClick={() => handleStatusChange(profile.id, 'confirmed', true)}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 text-xs px-5 py-3 rounded-2xl bg-green-600 text-white hover:bg-green-700 transition-all font-black shadow-lg shadow-green-200 active:scale-95 group/btn"
+                            className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-600 text-white text-[11px] font-black uppercase tracking-[0.15em] hover:from-green-700 hover:to-emerald-700 transition-all shadow-xl shadow-green-200 active:scale-95 group/btn"
                         >
-                            <Stamp className="w-4 h-4 group-hover/btn:rotate-12 transition-transform" /> BASCULE PATRIMONIALE ✅
+                            <Stamp className="w-5 h-5 group-hover/btn:rotate-12 transition-transform duration-500" />
+                            BASCULE PATRIMONIALE ✅
                         </button>
 
-                        <div className="flex gap-2 w-full md:w-auto">
+                        <div className="flex gap-3 w-full md:w-auto">
                             <button
                                 onClick={() => setInfoModalProfile(profile)}
-                                className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-100 transition-all uppercase"
-                                title="Fiche détaillée"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-900 text-white hover:bg-[#FF6600] transition-all text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 group/eye"
                             >
-                                <Eye className="w-3.5 h-3.5" />
+                                <Eye className="w-4 h-4 group-hover/eye:scale-125 transition-transform" />
+                                Examiner
                             </button>
                             <button
                                 onClick={() => {
                                     setViewingCommentsProfile(profile);
                                     loadComments(profile.id);
                                 }}
-                                className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-orange-100 border border-orange-100 transition-all uppercase"
+                                className="flex items-center justify-center p-4 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-[#FF6600] hover:text-white border border-orange-100 transition-all duration-300 relative group/msg"
+                                title="Commentaires et Audit"
                             >
-                                <MessageSquare className="w-3.5 h-3.5" />
+                                <MessageSquare className="w-5 h-5 transition-transform group-hover/msg:scale-110" />
+                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF6600] rounded-full border-2 border-white group-hover:bg-white transition-colors" />
                             </button>
                             <button
                                 onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
-                                className="flex items-center justify-center gap-1.5 text-[10px] font-black px-4 py-3 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 border border-red-100 transition-all uppercase"
+                                className="flex items-center justify-center p-4 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-100 transition-all duration-300 group/x"
+                                title="Rejeter le dossier"
                             >
-                                <XCircle className="w-3.5 h-3.5" />
+                                <XCircle className="w-5 h-5 transition-transform group-hover/x:rotate-90" />
                             </button>
                         </div>
                     </div>
@@ -455,63 +478,101 @@ export default function ChoBoard() {
             </div>
 
             <div className="relative z-10 animate-in fade-in duration-700">
-                {/* Header */}
-                <header className="fixed top-0 w-full bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4 flex justify-between items-center z-50 shadow-sm">
-                    <div className="flex items-center gap-5">
-                        <Link href="/"><Image src="/LOGO_Racines.png" alt="Racines+" width={100} height={35} className="object-contain hover:opacity-80 transition-opacity" /></Link>
-                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest border bg-[#FF6600] text-white shadow-lg shadow-orange-100 uppercase">
-                            <ShieldCheck className="w-3.5 h-3.5 text-white" />
-                            CHO — DIRECTEUR DU PATRIMOINE
+                {/* Navbar Glassmorphism Premium Orange */}
+                <header className="fixed top-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-b border-orange-50 flex items-center justify-between px-8 z-[100] shadow-sm">
+                    <div className="flex items-center gap-6">
+                        <Link href="/" className="group relative">
+                            <div className="absolute -inset-2 bg-gradient-to-r from-orange-400 to-amber-400 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-all duration-500" />
+                            <Image src="/LOGO_Racines.png" alt="Racines+" width={120} height={40} className="relative object-contain" />
+                        </Link>
+                        <div className="h-10 w-[1px] bg-gray-100 hidden md:block" />
+                        <div className="hidden md:flex items-center gap-3 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FF6600]/10 to-transparent border border-orange-100/50">
+                            <div className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
+                            <span className="text-[10px] font-black tracking-[0.2em] text-[#FF6600] uppercase">Chef d&apos;Organisation</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <MessageSquare className={`w-5 h-5 ${unreadCount > 0 ? 'text-[#FF6600]' : 'text-gray-600'}`} />
+                    <div className="flex items-center gap-4">
+                        <div className="relative group cursor-pointer" onClick={() => setActiveTab('team')}>
+                            <div className="p-3 rounded-2xl bg-gray-50 text-gray-400 group-hover:text-[#FF6600] group-hover:bg-orange-50 transition-all duration-300">
+                                <MessageSquare className={`w-5 h-5 ${unreadCount > 0 ? 'text-[#FF6600] scale-110' : ''}`} />
+                            </div>
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF6600] text-white text-[10px] flex items-center justify-center rounded-full border-2 border-white font-bold animate-pulse">
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF6600] text-white text-[10px] flex items-center justify-center rounded-xl border-2 border-white font-black shadow-lg animate-bounce">
                                     {unreadCount}
                                 </span>
                             )}
                         </div>
-                        <span className="text-sm font-semibold hidden md:block">{myProfile?.first_name} {myProfile?.last_name}</span>
-                        <button
-                            onClick={() => setIsInviteOpen(true)}
-                            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:border-racines-green hover:text-racines-green transition-colors"
-                        >
-                            <Share2 className="w-3.5 h-3.5" /> Inviter
-                        </button>
-                        <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
-                            <LogOut className="w-4 h-4" />
-                        </button>
+
+                        <div className="h-8 w-[1px] bg-gray-100" />
+
+                        <div className="flex items-center gap-3 pl-2">
+                            <div className="text-right hidden sm:block">
+                                <p className="text-sm font-black text-gray-900 leading-none">{myProfile?.first_name} {myProfile?.last_name}</p>
+                                <p className="text-[10px] font-bold text-[#FF6600] mt-1 uppercase tracking-widest">{myProfile?.village_origin || 'Village'}</p>
+                            </div>
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-all" />
+                                <img
+                                    src={myProfile?.avatar_url || `https://ui-avatars.com/api/?name=${myProfile?.first_name}+${myProfile?.last_name}&background=FF6600&color=fff&bold=true`}
+                                    alt="Avatar"
+                                    className="relative w-11 h-11 rounded-2xl border-2 border-white shadow-xl object-cover"
+                                />
+                            </div>
+                            <button
+                                onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+                                className="p-3 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
+                                title="Déconnexion"
+                            >
+                                <LogOut className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
                 </header>
 
-                <main className="pt-20 px-4 md:px-6 max-w-5xl mx-auto pb-12">
-                    <div className="mt-8 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 tracking-tight">Tableau de Validation</h1>
-                            <p className="text-gray-500 font-medium mt-1 flex items-center gap-2">
-                                <span className="w-2 h-2 bg-[#FF6600] rounded-full animate-pulse" />
-                                Village : <span className="text-gray-900 font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>
-                            </p>
-                        </div>
-                        <div className="text-right hidden md:block">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Session Active</p>
+                <main className="pt-32 px-4 md:px-8 max-w-7xl mx-auto pb-24">
+                    {/* Hero Section with ouf effect */}
+                    <div className="relative mb-12 p-10 rounded-[3rem] bg-gray-900 overflow-hidden shadow-2xl shadow-orange-900/10 border border-white/5">
+                        <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-[#FF6600]/20 to-transparent pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-600/20 rounded-full blur-[100px] pointer-events-none" />
+
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em]">Tableau de Validation Alpha</p>
+                                    </div>
+                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                                </div>
+                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+                                    Gestion du <span className="text-[#FF6600]">Patrimoine</span>
+                                </h1>
+                                <p className="text-gray-400 font-medium max-w-md">
+                                    Bienvenue, Commandant. Votre expertise assure l&apos;intégrité et la pérennité de l&apos;arbre de <span className="text-white font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>.
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="p-4 bg-white/5 backdrop-blur-lg rounded-[2rem] border border-white/10 text-right">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Session active</p>
+                                    <p className="text-sm font-bold text-white">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex gap-3 mb-10 overflow-x-auto pb-4 px-1 scrollbar-hide">
+                    <div className="flex gap-4 mb-12 overflow-x-auto pb-6 px-2 scrollbar-hide no-scrollbar">
                         {tabs.map(tab => (
                             <button
                                 key={tab.key}
                                 onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                                className={`flex items-center gap-3 px-6 py-4 rounded-[1.5rem] text-sm font-black whitespace-nowrap transition-all duration-300 ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-xl shadow-gray-200 -translate-y-1' : 'bg-white border border-gray-100 text-gray-500 hover:border-[#FF6600]/30 hover:bg-orange-50/30'}`}
+                                className={`flex items-center gap-3 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-500 whitespace-nowrap relative group ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-2xl shadow-gray-400 -translate-y-1' : 'bg-white/50 backdrop-blur-md border border-white/60 text-gray-500 hover:bg-white hover:text-[#FF6600] hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5'}`}
                             >
-                                <tab.icon className={`w-4 h-4 ${activeTab === tab.key ? 'text-[#FF6600]' : 'text-gray-400'}`} />
+                                <div className={`p-2 rounded-xl transition-colors duration-500 ${activeTab === tab.key ? 'bg-[#FF6600]/20 text-[#FF6600]' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF6600]'}`}>
+                                    <tab.icon className="w-4 h-4" />
+                                </div>
                                 {tab.label}
                                 {tab.count > 0 && (
-                                    <span className={`${tab.countColor} text-white text-[10px] px-2 py-0.5 rounded-full flex items-center justify-center font-black shadow-sm`}>
+                                    <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg animate-in zoom-in duration-500`}>
                                         {tab.count}
                                     </span>
                                 )}

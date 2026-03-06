@@ -11,7 +11,7 @@ interface MemberCardProps {
         fonction: string | null;
         niveau_etudes: string | null;
         residence_city: string | null;
-        address_country: string | null;
+        residence_country: string | null;
         quartier_nom: string | null;
         whatsapp_1: string | null;
         is_deceased: boolean;
@@ -20,7 +20,7 @@ interface MemberCardProps {
 }
 
 export default function MemberCard({ member }: MemberCardProps) {
-    const isDiaspora = member.address_country && member.address_country !== "Côte d'Ivoire";
+    const isDiaspora = member.residence_country && member.residence_country !== "CI" && member.residence_country !== "Côte d'Ivoire";
 
     // Déterminer la couleur de la bordure et du fond selon le statut (Décédé, Diaspora, Local)
     let borderClass = "border-gray-100 dark:border-white/10";
@@ -71,10 +71,10 @@ export default function MemberCard({ member }: MemberCardProps) {
                         <span>{member.niveau_etudes}</span>
                     </div>
                 )}
-                {(member.residence_city || member.address_country) && (
+                {(member.residence_city || member.residence_country) && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span>{member.residence_city}{member.residence_city && member.address_country ? ', ' : ''}{member.address_country}</span>
+                        <span>{member.residence_city}{member.residence_city && member.residence_country ? ', ' : ''}{member.residence_country}</span>
                     </div>
                 )}
             </div>
