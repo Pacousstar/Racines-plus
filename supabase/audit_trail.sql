@@ -140,10 +140,30 @@ DECLARE
     v_actor_role  TEXT;
     v_village     TEXT;
     v_quartier    TEXT;
+    v_action_type TEXT;
+    v_record_id   UUID;
+    v_old_data    JSONB;
+    v_new_data    JSONB;
     v_target_id   UUID;
     v_target_name TEXT;
 BEGIN
     v_user_id := auth.uid();
+    v_action_type := TG_OP;
+
+    -- Récupérer le record_id selon l'opération
+    IF (TG_OP = 'DELETE') THEN
+        v_record_id := OLD.id;
+        v_old_data := to_jsonb(OLD);
+        v_new_data := NULL;
+    ELSIF (TG_OP = 'INSERT') THEN
+        v_record_id := NEW.id;
+        v_old_data := NULL;
+        v_new_data := to_jsonb(NEW);
+    ELSE
+        v_record_id := NEW.id;
+        v_old_data := to_jsonb(OLD);
+        v_new_data := to_jsonb(NEW);
+    END IF;
 
     -- Récupérer le rôle, village, quartier de l'acteur
     SELECT role, village_origin, quartier_nom
@@ -154,28 +174,40 @@ BEGIN
     IF TG_TABLE_NAME = 'profiles' THEN
         IF TG_OP = 'DELETE' THEN
             v_target_id   := OLD.id;
-            v_target_name := OLD.first_name || ' ' || OLD.last_name;
+            v_target_name := COALESCE(OLD.first_name, '') || ' ' || COALESCE(OLD.last_name, '');
         ELSE
             v_target_id   := NEW.id;
-            v_target_name := NEW.first_name || ' ' || NEW.last_name;
+            v_target_name := COALESCE(NEW.first_name, '') || ' ' || COALESCE(NEW.last_name, '');
         END IF;
     END IF;
 
     INSERT INTO public.activity_logs (
-        user_id, action_type, table_name, record_id,
-        old_data, new_data,
-        actor_role, village_origin, quartier_nom,
-        target_user_id, target_name, result,
+        user_id, 
+        action_type, 
+        table_name, 
+        record_id,
+        old_data, 
+        new_data,
+        actor_role, 
+        village_origin, 
+        quartier_nom,
+        target_user_id, 
+        target_name, 
+        result,
         action_label
-    )
-    VALUES (
-        v_user_id, TG_OP, TG_TABLE_NAME,
-        CASE WHEN TG_OP = 'DELETE' THEN OLD.id ELSE NEW.id END,
-        CASE WHEN TG_OP IN ('UPDATE', 'DELETE') THEN to_jsonb(OLD) ELSE NULL END,
-        CASE WHEN TG_OP IN ('INSERT', 'UPDATE') THEN to_jsonb(NEW) ELSE NULL END,
-        v_actor_role, v_village, v_quartier,
-        v_target_id, v_target_name, 'success',
-        -- Label lisible
+    ) VALUES (
+        v_user_id,
+        v_action_type,
+        TG_TABLE_NAME::text,
+        v_record_id,
+        v_old_data,
+        v_new_data,
+        v_actor_role,
+        v_village,
+        v_quartier,
+        CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE v_target_id END,
+        v_target_name,
+        'success',
         CASE TG_OP
             WHEN 'INSERT' THEN 'Création dans ' || TG_TABLE_NAME
             WHEN 'UPDATE' THEN
@@ -212,6 +244,7 @@ CREATE TRIGGER tr_log_validations AFTER INSERT OR UPDATE ON public.validations F
 
 -- admin_permissions : tout admin peut gérer
 DROP POLICY IF EXISTS "Admin_Principal_Manage_Permissions" ON public.admin_permissions;
+DROP POLICY IF EXISTS "Admin_Manage_Permissions" ON public.admin_permissions;
 CREATE POLICY "Admin_Manage_Permissions" ON public.admin_permissions
     FOR ALL USING (
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
@@ -226,6 +259,7 @@ DROP POLICY IF EXISTS "Admin_Principal_View_Logs"   ON public.activity_logs;
 DROP POLICY IF EXISTS "Admin_View_Logs"              ON public.activity_logs;
 DROP POLICY IF EXISTS "CHO_View_Village_Logs"        ON public.activity_logs;
 DROP POLICY IF EXISTS "CHOa_View_Quartier_Logs"      ON public.activity_logs;
+DROP POLICY IF EXISTS "Admin_View_All_Logs"          ON public.activity_logs;
 
 CREATE POLICY "Admin_View_All_Logs" ON public.activity_logs
     FOR SELECT USING (

@@ -41,7 +41,32 @@ export async function POST(request: Request) {
     // Sinon, nous devons supprimer le profil manuellement. 
     // Mieux vaut supprimer d'abord depuis la BD pour éviter des contraintes non-cascaded.
 
-    // Supprimer le profil BD
+    // 1. Supprimer les logs d'activité (acteur et cible)
+    await supabaseAdmin.from('activity_logs').delete().eq('user_id', user_id);
+    await supabaseAdmin.from('activity_logs').delete().eq('target_user_id', user_id);
+
+    // 2. Supprimer les permissions admin
+    await supabaseAdmin.from('admin_permissions').delete().eq('user_id', user_id);
+
+    // 3. Supprimer les validations (en tant que profil validé et en tant que validateur)
+    await supabaseAdmin.from('validations').delete().eq('profile_id', user_id);
+    await supabaseAdmin.from('validations').delete().eq('validator_id', user_id);
+
+    // 4. Supprimer les invitations envoyées
+    await supabaseAdmin.from('invitations').delete().eq('inviter_id', user_id);
+
+    // 5. Supprimer les commentaires de validation
+    await supabaseAdmin.from('validation_comments').delete().eq('profile_id', user_id);
+    await supabaseAdmin.from('validation_comments').delete().eq('author_id', user_id);
+
+    // 6. Supprimer les notifications
+    await supabaseAdmin.from('notifications').delete().eq('user_id', user_id);
+
+    // 7. Supprimer les validations de liens (Neo4j metadata)
+    await supabaseAdmin.from('link_validations').delete().eq('created_by', user_id);
+    await supabaseAdmin.from('link_validations').delete().eq('validated_by', user_id);
+
+    // 8. Supprimer le profil
     await supabaseAdmin.from('profiles').delete().eq('id', user_id);
 
     // Supprimer dans Supabase Auth

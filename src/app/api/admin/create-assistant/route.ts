@@ -57,8 +57,8 @@ export async function POST(request: Request) {
 
     const newUserId = newAuthUser.user.id;
 
-    // Créer le profil en BD
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+    // Créer le profil en BD (upsert pour gérer le trigger de création Auth par défaut)
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
         id: newUserId,
         first_name,
         last_name,
