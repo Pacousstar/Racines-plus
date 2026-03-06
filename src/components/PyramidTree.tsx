@@ -166,7 +166,7 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
 const Legend = () => (
     <div className="flex justify-center gap-4 flex-wrap mt-6 mb-10">
         {[
-            { color: 'bg-emerald-500', label: 'Confirmé (CHO)' },
+            { color: 'bg-emerald-500', label: 'Certifié (CHO)' },
             { color: 'bg-orange-500', label: 'Probable' },
             { color: 'bg-gray-400', label: 'En attente' },
             { color: 'bg-red-800', label: 'Victime 2010', pulse: true },

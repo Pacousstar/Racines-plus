@@ -24,15 +24,17 @@ interface PendingProfile {
     avatar_url?: string | null;
     created_at: string;
     birth_date?: string;
-    father_first_name?: string;
-    father_last_name?: string;
-    father_birth_date?: string;
-    mother_first_name?: string;
-    mother_last_name?: string;
     mother_birth_date?: string;
+    metadata?: any;
     pre_validated_by?: string | null;
     choa_approvals?: string[];
     choa_names?: string[];
+    phone_1?: string;
+    whatsapp_1?: string;
+    niveau_etudes?: string;
+    emploi?: string;
+    fonction?: string;
+    validations?: Array<{ validator_id: string; profiles: { first_name: string; last_name: string } }>;
 }
 
 interface ValidationComment {
@@ -121,7 +123,12 @@ export default function ChoBoard() {
             // Charger tous les profils utilisateurs (avec choa_approvals pour voir les CHOa signataires)
             const { data: allUsers, error: usersErr } = await supabase
                 .from('profiles')
-                .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
+                .select(`
+                    id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, 
+                    residence_city, residence_country, metadata,
+                    choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction,
+                    validations!profile_id(validator_id, profiles!validator_id(first_name, last_name))
+                `)
                 .eq('role', 'user')
                 .order('created_at', { ascending: false });
 
@@ -336,7 +343,7 @@ export default function ChoBoard() {
     const tabs = [
         { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine, count: 0, countColor: '' },
         { key: 'tasks', label: 'À valider', icon: Clock, count: pendingProfiles.length, countColor: 'bg-orange-500' },
-        { key: 'confirmed', label: 'Confirmés', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
+        { key: 'confirmed', label: 'Certifiés ✅', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
         { key: 'rejected', label: 'Rejetés', icon: XCircle, count: rejectedProfiles.length, countColor: 'bg-red-500' },
         { key: 'ancestor', label: 'Ancêtre Village', icon: Stamp, count: 0, countColor: 'bg-purple-500' },
         { key: 'team', label: 'Mon Équipe', icon: Users, count: team.length, countColor: 'bg-blue-500' },
@@ -399,8 +406,34 @@ export default function ChoBoard() {
                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{profile.quartier_nom || 'Quartier ?'}</span>
                             </div>
                             {profile.birth_date && (
-                                <p className="text-[11px] font-bold text-gray-400 pt-1">Membre de la lignée • Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
+                                <p className="text-[11px] font-bold text-gray-400 pt-1">
+                                    Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')} • {profile.gender === 'Homme' ? '♂️ Homme' : profile.gender === 'Femme' ? '♀️ Femme' : 'Genre ?'}
+                                </p>
                             )}
+                            <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-wider">
+                                    <Home className="w-3 h-3" />
+                                    Habite : {profile.residence_city || '—'}, {profile.residence_country || '—'}
+                                </div>
+                            </div>
+
+                            {/* Section Lignée sur la carte */}
+                            <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100/50">
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Père</p>
+                                    <p className="text-[11px] font-bold text-gray-900 truncate">
+                                        {profile.metadata?.father_first_name || '—'} {profile.metadata?.father_last_name || ''}
+                                        {profile.metadata?.father_status && <span className="ml-1 text-[9px] opacity-60">({profile.metadata?.father_status})</span>}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mère</p>
+                                    <p className="text-[11px] font-bold text-gray-900 truncate">
+                                        {profile.metadata?.mother_first_name || '—'} {profile.metadata?.mother_last_name || ''}
+                                        {profile.metadata?.mother_status && <span className="ml-1 text-[9px] opacity-60">({profile.metadata?.mother_status})</span>}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -642,7 +675,7 @@ export default function ChoBoard() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center mb-2">
                                 <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
-                                    <CheckCircle className="w-3 h-3" /> Dossiers validés ({confirmedProfiles.length})
+                                    <CheckCircle className="w-3 h-3" /> Dossiers Certifiés ✅ ({confirmedProfiles.length})
                                 </h2>
                                 {myProfile?.export_authorized && (
                                     <button
@@ -899,6 +932,28 @@ export default function ChoBoard() {
                                         <div className="col-span-2">
                                             <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
                                             <p className="font-bold text-gray-900">{infoModalProfile.birth_date ? new Date(infoModalProfile.birth_date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '— Non renseignée'}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                                    <h4 className="text-[10px] font-black uppercase text-emerald-600 mb-3 tracking-widest">Contact & Profession</h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Téléphone</p>
+                                            <p className="font-bold text-gray-900">{infoModalProfile.phone_1 || '—'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">WhatsApp</p>
+                                            <p className="font-bold text-emerald-600">{infoModalProfile.whatsapp_1 || '—'}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Profession / Emploi</p>
+                                            <p className="font-bold text-gray-900">{infoModalProfile.emploi || infoModalProfile.fonction || 'Non renseigné'}</p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Niveau d'études</p>
+                                            <p className="font-bold text-gray-900">{infoModalProfile.niveau_etudes || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>

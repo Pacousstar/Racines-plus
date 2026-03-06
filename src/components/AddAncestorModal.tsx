@@ -24,7 +24,7 @@ const RELATION_OPTIONS = [
 ];
 
 const RELIABILITY_OPTIONS = [
-    { value: 'confirme', label: '✅ Confirmé', desc: 'Source solide (acte, archive)', color: 'border-green-500 bg-green-50 text-green-700' },
+    { value: 'confirme', label: '✅ Certifié', desc: 'Source solide (acte, archive)', color: 'border-green-500 bg-green-50 text-green-700' },
     { value: 'probable', label: '🔶 Probable', desc: 'Indices forts (témoignage)', color: 'border-amber-500 bg-amber-50 text-amber-700' },
     { value: 'en_cours', label: '🕐 En cours', desc: 'À vérifier', color: 'border-gray-400 bg-gray-50 text-gray-600' },
 ];

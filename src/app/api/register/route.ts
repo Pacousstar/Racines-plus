@@ -169,6 +169,17 @@ export async function POST(request: NextRequest) {
                 role: email === 'pacous2000@gmail.com' ? 'admin' : 'user',
                 status: email === 'pacous2000@gmail.com' ? 'confirmed' : 'pending_choa'
             }),
+            // --- AJOUT PARENTS POUR SUPABASE (stockés dans metadata JSONB) ---
+            metadata: {
+                father_first_name: formData.get('fatherFirstName') as string || null,
+                father_last_name: formData.get('fatherLastName') as string || null,
+                father_status: formData.get('fatherStatus') as string || null,
+                father_birth_date: formData.get('fatherBirthDate') as string || null,
+                mother_first_name: formData.get('motherFirstName') as string || null,
+                mother_last_name: formData.get('motherLastName') as string || null,
+                mother_status: formData.get('motherStatus') as string || null,
+                mother_birth_date: formData.get('motherBirthDate') as string || null,
+            }
         };
         if (avatarUrl) profilePayload.avatar_url = avatarUrl;
 

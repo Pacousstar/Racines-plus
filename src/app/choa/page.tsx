@@ -23,15 +23,11 @@ interface PendingProfile {
     status: string;
     avatar_url?: string | null;
     created_at: string;
-    birth_date?: string;
+    gender?: string;
     residence_country?: string;
     residence_city?: string;
-    father_first_name?: string;
-    father_last_name?: string;
-    father_birth_date?: string;
-    mother_first_name?: string;
-    mother_last_name?: string;
-    mother_birth_date?: string;
+    mother_status?: string;
+    metadata?: any;
     choa_approvals?: string[];
 }
 
@@ -129,7 +125,7 @@ export default function ChoBoard() {
         // Charger les profils utilisateurs
         let q = supabase
             .from('profiles')
-            .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
+            .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals')
             .order('created_at', { ascending: false });
 
         // Assouplissement du filtre village pour le diagnostic
@@ -431,8 +427,34 @@ export default function ChoBoard() {
                                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{profile.quartier_nom || 'Quartier non assigné'}</span>
                                 </div>
                                 {profile.birth_date && (
-                                    <p className="text-[11px] font-bold text-gray-400 pt-1">Identité déclarée • Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')}</p>
+                                    <p className="text-[11px] font-bold text-gray-400 pt-1">
+                                        Né(e) le {new Date(profile.birth_date).toLocaleDateString('fr-FR')} • {profile.gender === 'Homme' ? '♂️ Homme' : profile.gender === 'Femme' ? '♀️ Femme' : 'Genre ?'}
+                                    </p>
                                 )}
+                                <div className="flex items-center gap-2 mt-2">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-wider">
+                                        <Home className="w-3 h-3" />
+                                        Habite : {profile.residence_city || '—'}, {profile.residence_country || '—'}
+                                    </div>
+                                </div>
+
+                                {/* Section Lignée sur la carte */}
+                                <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100/50">
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Père</p>
+                                        <p className="text-[11px] font-bold text-gray-900 truncate">
+                                            {profile.metadata?.father_first_name || '—'} {profile.metadata?.father_last_name || ''}
+                                            {profile.metadata?.father_status && <span className="ml-1 text-[9px] opacity-60">({profile.metadata?.father_status})</span>}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mère</p>
+                                        <p className="text-[11px] font-bold text-gray-900 truncate">
+                                            {profile.metadata?.mother_first_name || '—'} {profile.metadata?.mother_last_name || ''}
+                                            {profile.metadata?.mother_status && <span className="ml-1 text-[9px] opacity-60">({profile.metadata?.mother_status})</span>}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -719,7 +741,7 @@ export default function ChoBoard() {
                                             </div>
                                         </div>
                                         <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${act.statut === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                            {act.statut === 'confirmed' ? 'Confirmé' : 'Sceau Apposé'}
+                                            {act.statut === 'confirmed' ? 'Certifié' : 'Sceau Apposé'}
                                         </span>
                                     </div>
                                 ))}

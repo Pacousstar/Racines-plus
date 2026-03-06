@@ -42,6 +42,9 @@ interface Profile {
     phone_1?: string;
     whatsapp_1?: string;
     quartier_nom?: string;
+    metadata?: any;
+    emploi?: string;
+    fonction?: string;
 }
 
 interface Village {
@@ -258,7 +261,7 @@ export default function AdminDashboard() {
             const [profilesRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
                 supabase
                     .from('profiles')
-                    .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email')
+                    .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email, residence_city, residence_country, metadata, emploi, fonction')
                     .order('created_at', { ascending: false }),
                 supabase
                     .from('villages')
@@ -821,7 +824,7 @@ export default function AdminDashboard() {
                                 </div>
                                 <div>
                                     <p className="text-xl font-black text-amber-900">{stats.confirmedPrelim}</p>
-                                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">Confirmés préalables</p>
+                                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">Certifiés d'office</p>
                                     <p className="text-[9px] text-amber-400">CHO/CHOa désignés par l&apos;admin</p>
                                 </div>
                             </div>
@@ -1003,7 +1006,7 @@ export default function AdminDashboard() {
                                 </select>
                                 <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#FF6600]">
                                     <option value="all">Tous Statuts</option>
-                                    <option value="confirmed">✅ Confirmés</option>
+                                    <option value="confirmed">Certifié ✅</option>
                                     <option value="pending">⏳ En attente</option>
                                     <option value="rejected">❌ Rejetés</option>
                                 </select>
@@ -1098,7 +1101,7 @@ export default function AdminDashboard() {
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <span className={`text-xs px-2 py-1 rounded-full font-bold ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                        {p.status === 'confirmed' ? '✅ Confirmé' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
+                                                        {p.status === 'confirmed' ? 'Certifié ✅' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
                                                     </span>
                                                 </td>
                                                 <td className="py-3 px-4 text-xs text-gray-600">
@@ -1610,9 +1613,10 @@ export default function AdminDashboard() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
-                                            <th className="text-left py-6 px-8">Citoyen & Identité</th>
-                                            <th className="text-left py-6 px-6">Localité Origine</th>
-                                            <th className="text-left py-6 px-6">Cursus & Contact</th>
+                                            <th className="text-left py-6 px-8">Citoyen & Identité (Naissance / Genre)</th>
+                                            <th className="text-left py-6 px-6">Origines & Résidence</th>
+                                            <th className="text-left py-6 px-6">Lignée Parentale (Père / Mère)</th>
+                                            <th className="text-left py-6 px-6">Profession & Études</th>
                                             <th className="text-center py-6 px-6">État de Validation</th>
                                             <th className="text-right py-6 px-8">Inscription</th>
                                         </tr>
@@ -1622,38 +1626,66 @@ export default function AdminDashboard() {
                                             <tr key={p.id} className="hover:bg-orange-50/20 transition-all duration-300 group">
                                                 <td className="py-6 px-8">
                                                     <div className="flex items-center gap-5">
-                                                        <div className="relative">
-                                                            <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-opacity" />
-                                                            <div className="relative w-12 h-12 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center text-[#FF6600] font-black text-sm">
-                                                                {p.avatar_url ? (
-                                                                    <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    (p.first_name?.[0] || '?').toUpperCase()
-                                                                )}
-                                                            </div>
+                                                        <div className="w-12 h-12 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex-shrink-0">
+                                                            {p.avatar_url ? (
+                                                                <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center bg-orange-100 text-[#FF6600] font-black text-sm">
+                                                                    {(p.first_name?.[0] || '?').toUpperCase()}
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                        <div>
-                                                            <p className="font-black text-gray-900 group-hover:text-[#FF6600] transition-colors">{p.first_name} {p.last_name}</p>
-                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{p.gender || 'GNR'}</p>
+                                                        <div className="min-w-0">
+                                                            <p className="font-black text-gray-900 group-hover:text-[#FF6600] transition-colors truncate">{p.first_name} {p.last_name}</p>
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{p.gender === 'Homme' ? '♂️ M' : p.gender === 'Femme' ? '♀️ F' : 'GNR'}</span>
+                                                                <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                                                                <span className="text-[10px] font-bold text-gray-500">{p.birth_date ? new Date(p.birth_date).toLocaleDateString('fr-FR') : 'Date ?'}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="py-6 px-6">
                                                     <div className="flex flex-col gap-1">
                                                         <div className="flex items-center gap-1.5 text-sm font-bold text-gray-800">
-                                                            <MapPin className="w-3.5 h-3.5 text-orange-400" />
-                                                            {p.village_origin || '—'}
+                                                            <MapPin className="w-3 h-3 text-orange-400" />
+                                                            {p.village_origin} <span className="text-gray-400 mx-1">/</span> {p.quartier_nom || '—'}
                                                         </div>
-                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-5">{p.quartier_nom || 'Non défini'}</span>
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-lg w-fit">
+                                                            <Home className="w-3 h-3 text-blue-400" />
+                                                            Habite à : {p.residence_city || '—'}, {p.residence_country || '—'}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-6 px-6">
+                                                    <div className="space-y-2">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Père :</span>
+                                                            <p className="text-[11px] font-bold text-gray-900 truncate">
+                                                                {p.metadata?.father_first_name || '—'} {p.metadata?.father_last_name || ''}
+                                                                <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${p.metadata?.father_status === 'Vivant' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                    {p.metadata?.father_status || '—'}
+                                                                </span>
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Mère :</span>
+                                                            <p className="text-[11px] font-bold text-gray-900 truncate">
+                                                                {p.metadata?.mother_first_name || '—'} {p.metadata?.mother_last_name || ''}
+                                                                <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${p.metadata?.mother_status === 'Vivante' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                    {p.metadata?.mother_status || '—'}
+                                                                </span>
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="py-6 px-6">
                                                     <div className="space-y-1">
-                                                        <p className="text-sm font-bold text-gray-600">{p.phone_1 || p.whatsapp_1 || 'Aucun contact'}</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full uppercase tracking-tighter">
-                                                                {p.niveau_etudes || 'N/A'}
-                                                            </span>
+                                                        <p className="text-[11px] font-black text-gray-900 truncate">{p.emploi || p.fonction || 'Non renseigné'}</p>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            {p.phone_1 && <p className="text-[10px] font-bold text-gray-600">📞 {p.phone_1}</p>}
+                                                            {p.whatsapp_1 && <p className="text-[10px] font-bold text-green-600">🟢 {p.whatsapp_1}</p>}
+                                                            <span className="text-[9px] font-black px-2 py-0.5 bg-gray-100 text-gray-400 rounded-full uppercase tracking-tighter w-fit">{p.niveau_etudes || 'N/A'}</span>
                                                         </div>
                                                     </div>
                                                 </td>

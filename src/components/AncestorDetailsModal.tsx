@@ -60,7 +60,7 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
     const isAncestor = person.type === 'ancetre' || person.roleOuLien.toLowerCase().includes('fondateur');
 
     const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
-        confirmed: { bg: 'bg-green-100', text: 'text-green-700', icon: <ShieldCheck className="w-4 h-4" />, label: 'Confirmé (Bascule Patrimoniale)' },
+        confirmed: { bg: 'bg-green-100', text: 'text-green-700', icon: <ShieldCheck className="w-4 h-4" />, label: 'Certifié (Bascule Patrimoniale)' },
         probable: { bg: 'bg-orange-100', text: 'text-orange-700', icon: <AlertTriangle className="w-4 h-4" />, label: 'Probable (Validé CHOa)' },
         pending: { bg: 'bg-gray-100', text: 'text-gray-600', icon: <Clock className="w-4 h-4" />, label: 'En attente de validation' },
         rejected: { bg: 'bg-red-100', text: 'text-red-700', icon: <AlertCircle className="w-4 h-4" />, label: 'Rejeté' },

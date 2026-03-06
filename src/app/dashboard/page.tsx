@@ -149,7 +149,7 @@ export default function Dashboard() {
                                 } else if (userProfile?.status === 'confirmed') {
                                     handleRequestCertificate();
                                 } else {
-                                    alert("🔒 Votre dossier doit d'abord être validé 'Confirmé' par le CHO pour demander un certificat.");
+                                    alert("🔒 Votre dossier doit d'abord être 'Certifié ✅' par le CHO pour demander un certificat.");
                                 }
                             }}
                             className={`text-sm font-semibold pb-0.5 transition-colors ${userProfile?.certificate_issued ? 'text-amber-600 border-b-2 border-amber-600' : 'text-gray-500 hover:text-gray-800'}`}
