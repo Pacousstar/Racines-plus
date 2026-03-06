@@ -338,6 +338,7 @@ CREATE POLICY "Validators_Insert" ON public.validations
     );
 
 -- CHO et CHOa peuvent lire leurs propres validations insérées
+DROP POLICY IF EXISTS "Validators_View_Own" ON public.validations;
 CREATE POLICY "Validators_View_Own" ON public.validations
     FOR SELECT USING (validator_id = auth.uid());
 

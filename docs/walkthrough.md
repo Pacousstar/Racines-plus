@@ -112,7 +112,7 @@
     - Modales de commentaires et de rejet restructurées pour une clarté absolue.
     - Animations d'entrée fluides (`animate-in fade-in`) sur tous les éléments clés.
 - **Fiabilisation SQL (Audit Trail)** :
-  - Correction du script `audit_trail.sql` pour le rendre idempotent. Ajout de `DROP POLICY IF EXISTS` avant chaque création de politique RLS pour éviter les erreurs de duplication lors des exécutions répétées.
+  - Correction du script `audit_trail.sql` pour le rendre totalement idempotent. Ajout systématique de `DROP POLICY IF EXISTS` avant chaque création de politique RLS (notamment pour `Validators_View_Own`) afin d'éliminer les erreurs "already exists" lors des ré-exécutions.
 - **Maintenance & Qualité** :
   - Réparation des structures de fichiers Next.js (`cho/page.tsx` et `choa/page.tsx`) suite aux refontes esthétiques majeures.
   - Consolidation de la documentation technique et alignement sur la charte graphique Orange.
