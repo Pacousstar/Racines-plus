@@ -123,13 +123,19 @@ export default function ChoBoard() {
             }
             setMyProfile(profile);
 
-            // Charger les profils utilisateurs du village
-            const { data: allUsers, error: usersErr } = await supabase
+            // Charger les profils utilisateurs du village (on inclut tous les inscrits pour éviter qu'un nullable village bloque tout)
+            let q = supabase
                 .from('profiles')
                 .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, residence_country, residence_city, father_first_name, father_last_name, father_birth_date, mother_first_name, mother_last_name, mother_birth_date, choa_approvals')
                 .eq('role', 'user')
-                .eq('village_origin', profile.village_origin)
                 .order('created_at', { ascending: false });
+
+            // Si le CHOa a un village d'origine défini, on filtre en BD, sinon on prend tout pour l'instant (MVP)
+            if (profile.village_origin) {
+                q = q.eq('village_origin', profile.village_origin);
+            }
+
+            const { data: allUsers, error: usersErr } = await q;
 
             if (usersErr) console.error('[choa] Error fetching users:', usersErr);
 
