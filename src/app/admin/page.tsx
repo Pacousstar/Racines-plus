@@ -85,9 +85,11 @@ interface MemorialVictim {
 }
 
 interface StatsData {
-    totalUsers: number;
-    confirmedUsers: number;
-    pendingUsers: number;
+    totalUsers: number;           // Uniquement role='user'
+    totalCollaborateurs: number;  // cho + choa + admin + ambassadeurs
+    confirmedUsers: number;       // role='user' AND status='confirmed' (via workflow CHOa)
+    confirmedPrelim: number;      // cho/choa/admin confirmés d'office par l'admin
+    pendingUsers: number;         // role='user' en attente de validation
     rejectedUsers: number;
     genderStats: { male: number; female: number; unknown: number };
     educationStats: Record<string, number>;
@@ -134,7 +136,9 @@ export default function AdminDashboard() {
     const [memorialVictims, setMemorialVictims] = useState<MemorialVictim[]>([]);
     const [stats, setStats] = useState<StatsData>({
         totalUsers: 0,
+        totalCollaborateurs: 0,
         confirmedUsers: 0,
+        confirmedPrelim: 0,
         pendingUsers: 0,
         rejectedUsers: 0,
         genderStats: { male: 0, female: 0, unknown: 0 },
@@ -176,6 +180,22 @@ export default function AdminDashboard() {
     const [memorialPage, setMemorialPage] = useState(1);
     const [logsPage, setLogsPage] = useState(1);
     const itemsPerPage = 20;
+
+    // États modale création assistant admin
+    const [showCreateAssistant, setShowCreateAssistant] = useState(false);
+    const [assistantForm, setAssistantForm] = useState({
+        first_name: '', last_name: '', email: '', password: '', phone: '', poste: '', village_origin: ''
+    });
+    const [assistantPerms, setAssistantPerms] = useState({
+        can_validate_users: false,
+        can_manage_villages: false,
+        can_manage_ancestors: false,
+        can_manage_memorial: false,
+        can_issue_certificates: false,
+        can_manage_invitations: false,
+        can_export_data: false
+    });
+    const [isCreatingAssistant, setIsCreatingAssistant] = useState(false);
 
     const handleViewProfile = async (id: string) => {
         const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
@@ -254,33 +274,47 @@ export default function AdminDashboard() {
 
             if (profilesRes.data) {
                 setProfiles(profilesRes.data);
+                // Séparer les simples membres (role='user') des collaborateurs
+                const usersOnly = profilesRes.data.filter(p => p.role === 'user');
+                const collaborateurs = profilesRes.data.filter(p => ['cho', 'choa', 'admin'].includes(p.role) || p.is_ambassadeur);
+
                 setStats({
-                    totalUsers: profilesRes.data.length,
-                    confirmedUsers: profilesRes.data.filter(p => p.status === 'confirmed').length,
-                    // pending_choa = nouveau workflow, pending = ancien, pre_approved/probable = en cours
-                    pendingUsers: profilesRes.data.filter(p =>
+                    // Membres (users uniquement)
+                    totalUsers: usersOnly.length,
+                    totalCollaborateurs: collaborateurs.length,
+
+                    // Certifiés via workflow CHOa (users confirmés + on distingue des préalables)
+                    confirmedUsers: usersOnly.filter(p => p.status === 'confirmed').length,
+
+                    // CHO/CHOa/admin confirmés d'office
+                    confirmedPrelim: profilesRes.data.filter(p =>
+                        ['cho', 'choa', 'admin'].includes(p.role) && p.status === 'confirmed'
+                    ).length,
+
+                    pendingUsers: usersOnly.filter(p =>
                         !p.status ||
                         p.status === 'pending' ||
                         p.status === 'pending_choa' ||
                         p.status === 'pre_approved' ||
                         p.status === 'probable'
                     ).length,
-                    rejectedUsers: profilesRes.data.filter(p => p.status === 'rejected').length,
+                    rejectedUsers: usersOnly.filter(p => p.status === 'rejected').length,
+
                     genderStats: {
-                        male: profilesRes.data.filter(p => p.gender === 'Homme').length,
-                        female: profilesRes.data.filter(p => p.gender === 'Femme').length,
-                        unknown: profilesRes.data.filter(p => !p.gender).length
+                        male: usersOnly.filter(p => p.gender === 'Homme').length,
+                        female: usersOnly.filter(p => p.gender === 'Femme').length,
+                        unknown: usersOnly.filter(p => !p.gender).length
                     },
-                    educationStats: profilesRes.data.reduce((acc: Record<string, number>, p) => {
+                    educationStats: usersOnly.reduce((acc: Record<string, number>, p) => {
                         const level = p.niveau_etudes || 'Non renseigné';
                         acc[level] = (acc[level] || 0) + 1;
                         return acc;
                     }, {}),
-                    pendingCertificates: profilesRes.data.filter(p => p.certificate_requested && !p.certificate_issued).length,
-                    pendingExports: profilesRes.data.filter(p => p.export_requested && !p.export_authorized).length,
+                    pendingCertificates: usersOnly.filter(p => p.certificate_requested && !p.certificate_issued).length,
+                    pendingExports: usersOnly.filter(p => p.export_requested && !p.export_authorized).length,
                     contactStats: {
-                        hasPhone: profilesRes.data.filter((p: any) => p.phone_1).length,
-                        hasWhatsapp: profilesRes.data.filter((p: any) => p.whatsapp_1).length
+                        hasPhone: usersOnly.filter((p: any) => p.phone_1).length,
+                        hasWhatsapp: usersOnly.filter((p: any) => p.whatsapp_1).length
                     }
                 });
             }
@@ -374,8 +408,16 @@ export default function AdminDashboard() {
     const handleRoleChange = async (userId: string, newRole: string) => {
         setIsLoading(true);
         const updateData: any = { role: newRole };
+
+        // CHO, CHOa et admin sont validés d'office par l'admin sur proposition du conseil
+        // Ils reçoivent status='confirmed' immédiatement + confirmed_source='admin_prelim'
         if (['cho', 'choa', 'admin'].includes(newRole)) {
             updateData.status = 'confirmed';
+            updateData.confirmed_source = 'admin_prelim';
+        } else if (newRole === 'user') {
+            // Rétrograder un collaborateur vers user le replace dans le pipeline CHOa
+            updateData.status = 'pending_choa';
+            updateData.confirmed_source = null;
         }
 
         const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
@@ -388,10 +430,12 @@ export default function AdminDashboard() {
 
         setProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...updateData } : p));
 
-        if (updateData.status === 'confirmed') {
-            alert(`Le rôle a été changé en ${newRole.toUpperCase()} et confirmé.`);
+        if (['cho', 'choa'].includes(newRole)) {
+            alert(`Rôle ${newRole.toUpperCase()} assigné et confirmé préalablement par l'Admin ✔️`);
+        } else if (newRole === 'admin') {
+            alert(`Promu Administrateur (Assistant) ✔️`);
         } else {
-            alert(`Le rôle a été changé en ${newRole.toUpperCase()}.`);
+            alert(`Rôle changé en ${newRole.toUpperCase()}.`);
         }
 
         if (newRole === 'admin') {
@@ -592,10 +636,44 @@ export default function AdminDashboard() {
     const totalValPages = Math.ceil(validationsProfiles.length / itemsPerPage);
 
     const kpis = [
-        { label: 'Total Inscrits', value: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
-        { label: 'Sortie Arbre ✅', value: stats.confirmedUsers, icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
-        { label: 'Certificats 📜', value: stats.pendingCertificates, icon: Stamp, color: 'text-[#FF6600]', bg: 'bg-orange-50', border: 'border-orange-100', highlight: stats.pendingCertificates > 0 },
-        { label: 'Demandes Export 📥', value: stats.pendingExports, icon: Download, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100', highlight: stats.pendingExports > 0 },
+        {
+            label: 'Membres Inscrits',
+            sublabel: 'Simples utilisateurs (hors collaborateurs)',
+            value: stats.totalUsers,
+            icon: Users,
+            color: 'text-blue-600',
+            bg: 'bg-blue-50',
+            border: 'border-blue-100'
+        },
+        {
+            label: 'Certifiés ✅',
+            sublabel: 'Validés via le workflow CHOa → CHO',
+            value: stats.confirmedUsers,
+            icon: CheckCircle,
+            color: 'text-green-600',
+            bg: 'bg-green-50',
+            border: 'border-green-100'
+        },
+        {
+            label: 'Certificats 📜',
+            sublabel: 'En attente de délivrance',
+            value: stats.pendingCertificates,
+            icon: Stamp,
+            color: 'text-[#FF6600]',
+            bg: 'bg-orange-50',
+            border: 'border-orange-100',
+            highlight: stats.pendingCertificates > 0
+        },
+        {
+            label: 'Demandes Export 📥',
+            sublabel: 'En attente d’autorisation',
+            value: stats.pendingExports,
+            icon: Download,
+            color: 'text-purple-600',
+            bg: 'bg-purple-50',
+            border: 'border-purple-100',
+            highlight: stats.pendingExports > 0
+        },
     ];
 
     const tabs = [
@@ -685,9 +763,46 @@ export default function AdminDashboard() {
                                         {!isLoading && kpi.value}
                                         {!isLoading && kpi.highlight && <span className="flex h-2 w-2 rounded-full bg-[#FF6600] animate-ping" />}
                                     </div>
-                                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider mt-1">{kpi.label}</p>
+                                    <p className="text-[10px] text-gray-800 font-black uppercase tracking-wider mt-1">{kpi.label}</p>
+                                    {'sublabel' in kpi && kpi.sublabel && (
+                                        <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">{kpi.sublabel}</p>
+                                    )}
                                 </div>
                             ))}
+                        </div>
+
+                        {/* Stats collaborateurs */}
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 flex items-center gap-3">
+                                <div className="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <ShieldCheck className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xl font-black text-purple-900">{stats.totalCollaborateurs}</p>
+                                    <p className="text-[9px] font-bold text-purple-600 uppercase tracking-wider">Collaborateurs</p>
+                                    <p className="text-[9px] text-purple-400">CHO, CHOa, Admin, Ambassadeurs</p>
+                                </div>
+                            </div>
+                            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-center gap-3">
+                                <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <Star className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div>
+                                    <p className="text-xl font-black text-amber-900">{stats.confirmedPrelim}</p>
+                                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">Confirmés préalables</p>
+                                    <p className="text-[9px] text-amber-400">CHO/CHOa désignés par l&apos;admin</p>
+                                </div>
+                            </div>
+                            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3">
+                                <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <XCircle className="w-4 h-4 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className="text-xl font-black text-red-900">{stats.rejectedUsers}</p>
+                                    <p className="text-[9px] font-bold text-red-500 uppercase tracking-wider">Dossiers Rejetés</p>
+                                    <p className="text-[9px] text-red-300">Membres — workflow complet</p>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Statistiques Démographiques */}
@@ -1023,10 +1138,129 @@ export default function AdminDashboard() {
                 {/* Gestion Assistants Admin */}
                 {activeTab === 'assistants' && (
                     <div className="space-y-6 mt-6">
-                        <div>
-                            <h1 className="text-2xl font-bold">Gestion des Assistants</h1>
-                            <p className="text-sm text-gray-600">Déléguez des tâches spécifiques tout en gardant le contrôle.</p>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold">Gestion des Assistants</h1>
+                                <p className="text-sm text-gray-600">Déléguez des tâches spécifiques tout en gardant le contrôle.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowCreateAssistant(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#FF6600] hover:bg-[#e55c00] text-white rounded-xl text-sm font-bold shadow-md shadow-orange-100 transition-all active:scale-95"
+                            >
+                                <Plus className="w-4 h-4" /> Recruter un assistant
+                            </button>
                         </div>
+
+                        {/* Modale Création Assistant */}
+                        {showCreateAssistant && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+                                    <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-3xl">
+                                        <div>
+                                            <h2 className="text-lg font-black text-gray-900">Recruter un Assistant Admin</h2>
+                                            <p className="text-xs text-gray-500 mt-0.5">Ce compte sera créé directement sans passer par le workflow CHOa.</p>
+                                        </div>
+                                        <button onClick={() => setShowCreateAssistant(false)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500">×</button>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-700 mb-1">Prénom *</label>
+                                                <input type="text" value={assistantForm.first_name} onChange={e => setAssistantForm(f => ({ ...f, first_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600]" placeholder="Jean" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-700 mb-1">Nom *</label>
+                                                <input type="text" value={assistantForm.last_name} onChange={e => setAssistantForm(f => ({ ...f, last_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600]" placeholder="Kouassi" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">Email * (identifiant de connexion)</label>
+                                            <input type="email" value={assistantForm.email} onChange={e => setAssistantForm(f => ({ ...f, email: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600]" placeholder="assistant@racinesplus.ci" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">Mot de passe temporaire *</label>
+                                            <input type="password" value={assistantForm.password} onChange={e => setAssistantForm(f => ({ ...f, password: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600]" placeholder="Min. 8 caractères" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-700 mb-1">Téléphone</label>
+                                                <input type="tel" value={assistantForm.phone} onChange={e => setAssistantForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600]" placeholder="+225 ..."
+                                                /></div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-700 mb-1">Poste / Fonction</label>
+                                                <input type="text" value={assistantForm.poste} onChange={e => setAssistantForm(f => ({ ...f, poste: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600]" placeholder="Modérateur contenu" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">Village d&apos;origine (optionnel)</label>
+                                            <select value={assistantForm.village_origin} onChange={e => setAssistantForm(f => ({ ...f, village_origin: e.target.value }))} className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#FF6600] bg-white">
+                                                <option value="">-- Aucune affiliation village --</option>
+                                                {villages.map(v => <option key={v.id} value={v.nom}>{v.nom}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="border-t border-gray-100 pt-4">
+                                            <p className="text-xs font-black text-gray-700 uppercase mb-3">Permissions accordées</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {([
+                                                    { key: 'can_validate_users', label: 'Valider utilisateurs' },
+                                                    { key: 'can_manage_villages', label: 'Gérer villages' },
+                                                    { key: 'can_manage_ancestors', label: 'Gérer ancêtres' },
+                                                    { key: 'can_manage_memorial', label: 'Gérer mémorial' },
+                                                    { key: 'can_issue_certificates', label: 'Délivrer certificats' },
+                                                    { key: 'can_manage_invitations', label: 'Gérer invitations' },
+                                                    { key: 'can_export_data', label: 'Exporter les données' },
+                                                ] as const).map(item => (
+                                                    <label key={item.key} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={assistantPerms[item.key]}
+                                                            onChange={e => setAssistantPerms(p => ({ ...p, [item.key]: e.target.checked }))}
+                                                            className="w-4 h-4 rounded accent-[#FF6600]"
+                                                        />
+                                                        {item.label}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            disabled={isCreatingAssistant || !assistantForm.email || !assistantForm.password || !assistantForm.first_name || !assistantForm.last_name}
+                                            onClick={async () => {
+                                                setIsCreatingAssistant(true);
+                                                const { data: { session } } = await supabase.auth.getSession();
+                                                if (!session) { setIsCreatingAssistant(false); return; }
+                                                const res = await fetch('/api/admin/create-assistant', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                                                    body: JSON.stringify({ ...assistantForm, permissions: assistantPerms })
+                                                });
+                                                const result = await res.json();
+                                                setIsCreatingAssistant(false);
+                                                if (result.success) {
+                                                    alert(`✅ ${result.message}`);
+                                                    setShowCreateAssistant(false);
+                                                    setAssistantForm({ first_name: '', last_name: '', email: '', password: '', phone: '', poste: '', village_origin: '' });
+                                                    setAssistantPerms({ can_validate_users: false, can_manage_villages: false, can_manage_ancestors: false, can_manage_memorial: false, can_issue_certificates: false, can_manage_invitations: false, can_export_data: false });
+                                                    // Recharger les profiles
+                                                    window.location.reload();
+                                                } else {
+                                                    alert(`❌ Erreur : ${result.error}`);
+                                                }
+                                            }}
+                                            className="w-full py-3 bg-[#FF6600] hover:bg-[#e55c00] disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                                        >
+                                            {isCreatingAssistant ? (
+                                                <span className="animate-pulse">Création en cours...</span>
+                                            ) : (
+                                                <><Key className="w-4 h-4" /> Créer le compte Assistant</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             <table className="w-full">
                                 <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
@@ -1571,8 +1805,8 @@ export default function AdminDashboard() {
                                                         </td>
                                                         <td className="py-4 px-4">
                                                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${log.action_type === 'INSERT' ? 'bg-green-100 text-green-600'
-                                                                    : log.action_type === 'DELETE' ? 'bg-red-100 text-red-600'
-                                                                        : 'bg-blue-100 text-blue-600'
+                                                                : log.action_type === 'DELETE' ? 'bg-red-100 text-red-600'
+                                                                    : 'bg-blue-100 text-blue-600'
                                                                 }`}>
                                                                 {actionLabels[log.action_type] || log.action_type}
                                                             </span>
