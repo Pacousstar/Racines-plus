@@ -413,11 +413,9 @@ export default function AdminDashboard() {
         // Ils reçoivent status='confirmed' immédiatement + confirmed_source='admin_prelim'
         if (['cho', 'choa', 'admin'].includes(newRole)) {
             updateData.status = 'confirmed';
-            updateData.confirmed_source = 'admin_prelim';
         } else if (newRole === 'user') {
             // Rétrograder un collaborateur vers user le replace dans le pipeline CHOa
             updateData.status = 'pending_choa';
-            updateData.confirmed_source = null;
         }
 
         const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
@@ -451,10 +449,44 @@ export default function AdminDashboard() {
         setIsLoading(true);
         const { error } = await supabase.from('profiles').update({ quartier_nom: quartierNom }).eq('id', userId);
         if (error) {
-            alert("Erreur lors de l'assignation du quartier : " + error.message);
-        } else {
-            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, quartier_nom: quartierNom } : p));
-            alert("Quartier assigné avec succès !");
+            alert("Erreur lors de l'assignation du quartier.");
+            return;
+        }
+        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, quartier_nom: quartierNom } : p));
+        alert(`Quartier ${quartierNom} assigné avec succès.`);
+        setIsLoading(false);
+    };
+
+    const handleDeleteUser = async (userId: string, userName: string) => {
+        if (!confirm(`ATTENTION ⚠️\nVoulez-vous vraiment supprimer définitivement "${userName}" ?\nCette action est irréversible et supprimera son profil et son accès.`)) return;
+
+        setIsLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Erreur d'authentification.");
+                setIsLoading(false);
+                return;
+            }
+
+            const res = await fetch('/api/admin/delete-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                setProfiles(prev => prev.filter(p => p.id !== userId));
+                alert(`Utilisateur "${userName}" supprimé définitivement.`);
+            } else {
+                alert(`Erreur de suppression : ${result.error}`);
+            }
+        } catch (err: any) {
+            alert(`Erreur: ${err.message}`);
         }
         setIsLoading(false);
     };
@@ -1103,7 +1135,7 @@ export default function AdminDashboard() {
                                                         )}
 
                                                         <button onClick={() => handleViewProfile(p.id)} className="p-1.5 text-gray-600 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir la fiche détaillée"><Eye className="w-3.5 h-3.5" /></button>
-                                                        <button className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer (Bientôt disponible)"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                        <button onClick={() => handleDeleteUser(p.id, `${p.first_name || ''} ${p.last_name || ''}`)} className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer définitivement"><Trash2 className="w-3.5 h-3.5" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1679,11 +1711,11 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             </td>
                                                             <td className="py-4 px-4">
-                                                                <p className="text-gray-600 font-medium">{villages.find(v => v.id === mv.village_id)?.nom || 'Inconnu'}</p>
+                                                                <p className="text-gray-600 font-medium">{villages.find(v => v.id === mv.village_id)?.nom || 'Non renseignée'}</p>
                                                                 <p className="text-[10px] text-gray-600 font-bold uppercase">{mv.quartier_nom || '—'}</p>
                                                             </td>
                                                             <td className="py-4 px-4 max-w-[200px]">
-                                                                <p className="text-xs text-gray-600 line-clamp-2 italic">&quot;{mv.description_circonstances || 'Aucun détail'}&quot;</p>
+                                                                <p className="text-xs text-gray-600 line-clamp-2 italic">{mv.description_circonstances || 'Aucun détail'}</p>
                                                             </td>
                                                             <td className="py-4 px-4">
                                                                 <div className="flex items-center justify-center gap-2">

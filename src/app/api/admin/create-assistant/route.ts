@@ -66,7 +66,6 @@ export async function POST(request: Request) {
         phone_1: phone || null,
         role: 'admin',
         status: 'confirmed',
-        confirmed_source: 'admin_prelim',
         is_assistant: true,
         poste: poste || null,
         village_origin: village_origin || null,
