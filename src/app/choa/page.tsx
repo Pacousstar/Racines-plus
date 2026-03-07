@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
     ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
-    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Activity, Search
+    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Activity, Search, Home
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,7 @@ interface PendingProfile {
     status: string;
     avatar_url?: string | null;
     created_at: string;
+    birth_date?: string;
     gender?: string;
     residence_country?: string;
     residence_city?: string;
@@ -809,11 +810,15 @@ export default function ChoBoard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="p-5 bg-orange-50/50 rounded-3xl border border-orange-100/50">
                                         <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Père</p>
-                                        <p className="font-bold text-gray-900 text-sm">{infoModalProfile.father_first_name} {infoModalProfile.father_last_name || '—'}</p>
+                                        <p className="font-bold text-gray-900 text-sm">
+                                            {infoModalProfile.metadata?.father_first_name || '—'} {infoModalProfile.metadata?.father_last_name || ''}
+                                        </p>
                                     </div>
                                     <div className="p-5 bg-pink-50/50 rounded-3xl border border-pink-100/50">
                                         <p className="text-[10px] font-black text-pink-400 uppercase tracking-widest mb-1">Mère</p>
-                                        <p className="font-bold text-gray-900 text-sm">{infoModalProfile.mother_first_name} {infoModalProfile.mother_last_name || '—'}</p>
+                                        <p className="font-bold text-gray-900 text-sm">
+                                            {infoModalProfile.metadata?.mother_first_name || '—'} {infoModalProfile.metadata?.mother_last_name || ''}
+                                        </p>
                                     </div>
                                 </div>
 

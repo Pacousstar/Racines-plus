@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
     ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
-    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin
+    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Home
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -24,6 +24,9 @@ interface PendingProfile {
     avatar_url?: string | null;
     created_at: string;
     birth_date?: string;
+    gender?: string;
+    residence_country?: string;
+    residence_city?: string;
     mother_birth_date?: string;
     metadata?: any;
     pre_validated_by?: string | null;
@@ -34,7 +37,7 @@ interface PendingProfile {
     niveau_etudes?: string;
     emploi?: string;
     fonction?: string;
-    validations?: Array<{ validator_id: string; profiles: { first_name: string; last_name: string } }>;
+    validations?: Array<{ validator_id: string; profiles: Array<{ first_name: string; last_name: string }> }>;
 }
 
 interface ValidationComment {
@@ -978,15 +981,15 @@ export default function ChoBoard() {
                                         <div>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase">Nom & Prénoms</p>
                                             <p className="font-bold text-gray-900">
-                                                {(infoModalProfile.father_first_name || infoModalProfile.father_last_name)
-                                                    ? `${infoModalProfile.father_first_name || ''} ${infoModalProfile.father_last_name || ''}`.trim()
+                                                {(infoModalProfile.metadata?.father_first_name || infoModalProfile.metadata?.father_last_name)
+                                                    ? `${infoModalProfile.metadata?.father_first_name || ''} ${infoModalProfile.metadata?.father_last_name || ''}`.trim()
                                                     : '— Non renseigné'}
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
                                             <p className="font-bold text-gray-900">
-                                                {infoModalProfile.father_birth_date ? new Date(infoModalProfile.father_birth_date).toLocaleDateString('fr-FR') : '— N/A'}
+                                                {infoModalProfile.metadata?.father_birth_date ? new Date(infoModalProfile.metadata?.father_birth_date).toLocaleDateString('fr-FR') : '— N/A'}
                                             </p>
                                         </div>
                                     </div>
@@ -998,15 +1001,15 @@ export default function ChoBoard() {
                                         <div>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase">Nom & Prénoms</p>
                                             <p className="font-bold text-gray-900">
-                                                {(infoModalProfile.mother_first_name || infoModalProfile.mother_last_name)
-                                                    ? `${infoModalProfile.mother_first_name || ''} ${infoModalProfile.mother_last_name || ''}`.trim()
+                                                {(infoModalProfile.metadata?.mother_first_name || infoModalProfile.metadata?.mother_last_name)
+                                                    ? `${infoModalProfile.metadata?.mother_first_name || ''} ${infoModalProfile.metadata?.mother_last_name || ''}`.trim()
                                                     : '— Non renseigné'}
                                             </p>
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-gray-400 font-bold uppercase">Date de naissance</p>
                                             <p className="font-bold text-gray-900">
-                                                {infoModalProfile.mother_birth_date ? new Date(infoModalProfile.mother_birth_date).toLocaleDateString('fr-FR') : '— N/A'}
+                                                {infoModalProfile.metadata?.mother_birth_date ? new Date(infoModalProfile.metadata?.mother_birth_date).toLocaleDateString('fr-FR') : '— N/A'}
                                             </p>
                                         </div>
                                     </div>

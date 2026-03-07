@@ -7,7 +7,7 @@ import {
     Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
     BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame, Download,
-    Shield, Activity, Key, Stamp, MapPin
+    Shield, Activity, Key, Stamp, MapPin, Home
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
