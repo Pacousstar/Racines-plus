@@ -426,14 +426,14 @@ export default function ChoBoard() {
                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Père</p>
                                     <p className="text-[11px] font-bold text-gray-900 truncate">
                                         {profile.metadata?.father_first_name || '—'} {profile.metadata?.father_last_name || ''}
-                                        {profile.metadata?.father_status && <span className="ml-1 text-[9px] opacity-60">({profile.metadata?.father_status})</span>}
+                                        {profile.metadata?.father_status && <span className={`ml-1 text-[9px] font-black uppercase ${profile.metadata?.father_status === 'Vivant' ? 'text-green-500' : 'text-red-500'}`}>({profile.metadata?.father_status})</span>}
                                     </p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mère</p>
                                     <p className="text-[11px] font-bold text-gray-900 truncate">
                                         {profile.metadata?.mother_first_name || '—'} {profile.metadata?.mother_last_name || ''}
-                                        {profile.metadata?.mother_status && <span className="ml-1 text-[9px] opacity-60">({profile.metadata?.mother_status})</span>}
+                                        {profile.metadata?.mother_status && <span className={`ml-1 text-[9px] font-black uppercase ${profile.metadata?.mother_status === 'Vivante' ? 'text-green-500' : 'text-red-500'}`}>({profile.metadata?.mother_status})</span>}
                                     </p>
                                 </div>
                             </div>

@@ -116,3 +116,44 @@
 - **Maintenance & Qualité** :
   - Réparation des structures de fichiers Next.js (`cho/page.tsx` et `choa/page.tsx`) suite aux refontes esthétiques majeures.
   - Consolidation de la documentation technique et alignement sur la charte graphique Orange.
+
+## 13. 🧬 Phase 10 : Données Parentales Metadata & Harmonisation (07 Mars 2026)
+> [!NOTE]
+> Cette phase a permis d'intégrer des informations généalogiques cruciales sans modifier le schéma de la base de données, tout en assurant un build de production 100% propre.
+
+- **Intégration des Données Parentales (JSONB Metadata)** :
+  - **Backend API** : Modification de `api/register/route.ts` pour capturer et stocker les informations du père et de la mère (noms, prénoms, statuts vitaux, dates de naissance) au sein d'un seul champ `metadata` de type `jsonb`. Cette approche évite d'alourdir la structure de la table `profiles`.
+  - **Dashboards (Admin/CHO/CHOa)** : Mise à jour massive des requêtes de sélection pour inclure `metadata`. Refonte des composants `ProfileCard` et des modales de détails pour extraire dynamiquement ces données de manière sécurisée (optional chaining).
+- **Harmonisation Visuelle "Certifié ✅"** :
+  - Unification de l'affichage du statut dans les trois backoffices. Désormais, tout utilisateur dont le statut est `confirmed` est marqué par un badge **"Certifié ✅"** vert vibrant, renforçant la confiance dans les données validées.
+- **Fiabilisation & Build de Production** :
+  - **Correction TypeScript** : Résolution de multiples erreurs de typage dans `cho/page.tsx` et `choa/page.tsx`, notamment sur les structures imbriquées de `validations` et les champs optionnels comme `gender` et `birth_date`.
+  - **Correction d'Imports** : Ajout des icônes manquantes (ex: `Home` de Lucide) qui bloquaient le build.
+  - **Validation Finale** : Succès total du build Next.js local (`npm run build`) avec un rapport vierge d'erreurs, suivi d'un déploiement automatique sur Vercel.
+- **Maintenance** :
+  - Suppression des scripts de test temporaires (`test_workflow.cjs`, `test_lajorbone.cjs`, etc.) pour garder un environnement de développement propre.
+
+## 14. 🛠️ Phase 11 : Registre Global, Permissions & Maintenance (07 Mars 2026)
+> [!NOTE]
+> Cette session a résolu 7 points critiques de maintenance demandés par l'utilisateur pour stabiliser le backoffice Admin et renforcer la cohérence des données.
+
+- **Registre Global Admin (Point 1, 2, 5)** :
+  - **Affichage des 10 infos clés** : Mise à jour du tableau pour inclure : Photo, Nom/Prénoms, Village/Quartier, Date de naissance, Genre, Lieu de résidence, et Lignée parentale complète.
+  - **Lignée Parentale** : Extraction automatique des noms du père et de la mère depuis le champ `metadata` de l'onboarding. Ajout d'un statut "Vivant/Décédé" avec code couleur (Vert/Rouge).
+  - **Pagination Intelligente** : Réinitialisation automatique à la page 1 dès qu'un filtre (Recherche, Rôle, Statut, Village) est modifié, évitant les tableaux vides trompeurs.
+- **Permissions Assistants (Point 4, 9)** :
+  - Bridage du dashboard pour les Assistants Admin. Les onglets et fonctionnalités sont désormais masqués dynamiquement en fonction des permissions reçues (Gestion Assistants, Villages, etc.), sauf pour le Super Admin.
+- **Onboarding & Sources (Point 3, 4)** :
+  - Confirmation du caractère **obligatoire** des champs parentaux dans le formulaire d'onboarding actuel.
+  - Fiabilisation de la sauvegarde dans le champ `metadata` (JSONB) pour garantir que les nouveaux inscrits alimentent correctement le Registre Global.
+- **Diagnostic & Redirection (Point 6, 7)** :
+  - **Visibilité Franck GOUSSE** : Ajout de logs de diagnostic dans le dashboard CHOa pour tracer les résultats de filtrage par village et identifier pourquoi certains profils pourraient être masqués.
+  - **Redirection Pacous STAR** : Implémentation de logs de détection de rôle dans `dashboard/page.tsx` pour comprendre pourquoi la redirection vers `/choa` ne s'est pas déclenchée pour cet utilisateur spécifique.
+- **Consolidation UI/UX** :
+  - Harmonisation du design des cartes de profil dans CHO et CHOa pour refléter les 10 informations demandées de manière élégante et compacte.
+- **Validation Finale** :
+  - **Build de Production** : Succès total du build Next.js (`npm run build`) avec Exit Code 0, validant le routage et le typage TypeScript de toutes les nouvelles fonctionnalités.
+
+---
+**Statut Global : Opérationnel 🚀 | Build : Validé ✅**
+L'application Racines+ est stabilisée et prête pour les tests de validation CHOa.

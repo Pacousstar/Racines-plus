@@ -45,10 +45,12 @@ export default function Dashboard() {
         }
 
         if (data) {
+            console.log("🚀 [Dashboard Debug] User role detected:", data.role, "for user:", user.email);
             if (data.role === 'admin') { router.push('/admin'); return; }
             else if (data.role === 'cho') { router.push('/cho'); return; }
             else if (data.role === 'choa') { router.push('/choa'); return; }
 
+            console.log("➡️ [Dashboard Debug] No special role redirection, staying on /dashboard");
             const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
             const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
             setProfileName(fullName || fallbackName);

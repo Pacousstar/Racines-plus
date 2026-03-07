@@ -45,6 +45,8 @@ interface Profile {
     metadata?: any;
     emploi?: string;
     fonction?: string;
+    residence_country?: string;
+    residence_city?: string;
 }
 
 interface Village {
@@ -245,11 +247,10 @@ export default function AdminDashboard() {
                     if (adminProfile) {
                         console.log('[admin] Admin profile found:', adminProfile);
                         if (adminProfile.role !== 'admin') { router.push('/dashboard'); return; }
-                        const fullName = `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim();
-                        // Fallback sur metadata
-                        const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin';
-                        setAdminName(fullName || fallbackName);
-                        setAdminAvatar(adminProfile.avatar_url || user.user_metadata?.avatar_url || null);
+                        const name = `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim();
+                        setAdminName(name || user.email?.split('@')[0] || 'Admin');
+                        setAdminAvatar(adminProfile.avatar_url);
+                        setCurrentUserId(user.id);
                     } else {
                         console.warn('[admin] No admin profile found for id:', user.id);
                         setAdminName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin');
@@ -655,10 +656,16 @@ export default function AdminDashboard() {
         return matchSearch && matchRole && matchStatus && matchVillage;
     });
 
-    const paginatedProfiles = filteredProfiles.slice((usersPage - 1) * itemsPerPage, usersPage * itemsPerPage);
-    const totalUserPages = Math.ceil(filteredProfiles.length / itemsPerPage);
-
     const uniqueVillages = Array.from(new Set(profiles.map(p => p.village_origin).filter(Boolean)));
+
+    // Reset pagination when filters change
+    useEffect(() => {
+        setUsersPage(1);
+    }, [searchTerm, filterRole, filterStatus, filterVillage]);
+
+    useEffect(() => {
+        setValPage(1);
+    }, [valSearchTerm, valFilterStatus, valFilterVillage]);
 
     const validationsProfiles = profiles.filter(p => {
         const matchSearch = (p.first_name + ' ' + p.last_name + ' ' + (p.phone_1 || '')).toLowerCase().includes(valSearchTerm.toLowerCase());
@@ -668,7 +675,9 @@ export default function AdminDashboard() {
     });
 
     const paginatedValidations = validationsProfiles.slice((valPage - 1) * itemsPerPage, valPage * itemsPerPage);
+    const paginatedProfiles = filteredProfiles.slice((usersPage - 1) * itemsPerPage, usersPage * itemsPerPage);
     const totalValPages = Math.ceil(validationsProfiles.length / itemsPerPage);
+    const totalUsersPages = Math.ceil(filteredProfiles.length / itemsPerPage);
 
     const kpis = [
         {
@@ -711,16 +720,27 @@ export default function AdminDashboard() {
         },
     ];
 
+    const isSuperAdmin = adminName.toLowerCase().includes('pacous') || profiles.find(p => p.id === currentUserId)?.email?.toLowerCase() === 'pacous2000@gmail.com';
+    const myPerms = assistantPermissions[currentUserId || ''] || {
+        can_validate_users: isSuperAdmin,
+        can_manage_villages: isSuperAdmin,
+        can_manage_ancestors: isSuperAdmin,
+        can_manage_memorial: isSuperAdmin,
+        can_issue_certificates: isSuperAdmin,
+        can_manage_invitations: isSuperAdmin,
+        can_export_data: isSuperAdmin
+    };
+
     const tabs = [
         { key: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
         { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine },
         { key: 'users', label: 'Comptes & Rôles', icon: Users },
-        { key: 'assistants', label: 'Assistants Admin', icon: Shield, hidden: adminName !== 'Pacous2000@gmail.com' && !profiles.find(p => p.id === currentUserId)?.role?.includes('admin') },
-        { key: 'villages', label: 'Villages & Quartiers', icon: Map },
-        { key: 'validations', label: 'Validations', icon: ShieldCheck },
-        { key: 'memorial', label: 'Crise 2010', icon: Flame },
-        { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: adminName !== 'Pacous2000@gmail.com' },
-        { key: 'invitations', label: 'Invitations', icon: Share2 },
+        { key: 'assistants', label: 'Assistants Admin', icon: Shield, hidden: !isSuperAdmin },
+        { key: 'villages', label: 'Villages & Quartiers', icon: Map, hidden: !isSuperAdmin && !myPerms.can_manage_villages && !myPerms.can_manage_ancestors },
+        { key: 'validations', label: 'Validations', icon: ShieldCheck, hidden: !isSuperAdmin && !myPerms.can_validate_users },
+        { key: 'memorial', label: 'Crise 2010', icon: Flame, hidden: !isSuperAdmin && !myPerms.can_manage_memorial },
+        { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: !isSuperAdmin },
+        { key: 'invitations', label: 'Invitations', icon: Share2, hidden: !isSuperAdmin && !myPerms.can_manage_invitations },
         { key: 'settings', label: 'Paramètres', icon: Settings },
     ];
 
@@ -1033,10 +1053,11 @@ export default function AdminDashboard() {
                                     <thead className="bg-gray-50 text-xs text-gray-600 uppercase tracking-wide">
                                         <tr>
                                             <th className="text-left py-3 px-5">Utilisateur</th>
-                                            <th className="text-left py-3 px-4">Village</th>
-                                            <th className="text-left py-3 px-4">Rôle</th>
+                                            <th className="text-left py-3 px-4">Village / Quartier</th>
+                                            <th className="text-left py-3 px-4 text-[10px]">Naissance / Genre / Résidence</th>
+                                            <th className="text-left py-3 px-4">Lignée Paternelle</th>
+                                            <th className="text-left py-3 px-4">Lignée Maternelle</th>
                                             <th className="text-left py-3 px-4">Statut</th>
-                                            <th className="text-left py-3 px-4">Date</th>
                                             <th className="text-left py-3 px-4">Actions</th>
                                         </tr>
                                     </thead>
@@ -1060,52 +1081,49 @@ export default function AdminDashboard() {
                                                         <span className="text-sm font-medium">{p.first_name} {p.last_name}</span>
                                                     </div>
                                                 </td>
-                                                <td className="py-3 px-4 text-sm text-gray-600">{p.village_origin || '—'}</td>
                                                 <td className="py-3 px-4">
-                                                    {p.email?.toLowerCase() === 'pacous2000@gmail.com' ? (
-                                                        <span className="text-xs font-black text-purple-700 bg-purple-50 px-2 py-1 rounded-lg border border-purple-100 uppercase tracking-tighter">
-                                                            👑 Admin Principal
-                                                        </span>
-                                                    ) : (
-                                                        <div className="flex flex-col gap-2">
-                                                            <select
-                                                                value={p.role || 'user'}
-                                                                onChange={e => handleRoleChange(p.id, e.target.value)}
-                                                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:border-[#FF6600]"
-                                                            >
-                                                                <option value="user">User</option>
-                                                                <option value="ambassadeur">Ambassadeur</option>
-                                                                <option value="choa">CHOa</option>
-                                                                <option value="cho">CHO</option>
-                                                                <option value="admin">Admin / Assistant</option>
-                                                            </select>
-                                                            {(p.role === 'cho' || p.role === 'choa') && (
-                                                                <select
-                                                                    value={p.quartier_nom || ''}
-                                                                    onChange={e => handleAssignQuartier(p.id, e.target.value)}
-                                                                    className="text-[10px] border border-amber-200 rounded-lg px-2 py-1 bg-amber-50 text-amber-900 font-semibold focus:outline-none focus:border-amber-500"
-                                                                >
-                                                                    <option value="">-- Assigner quartier --</option>
-                                                                    {quartiers
-                                                                        .filter(q => {
-                                                                            const v = villages.find(v => v.nom === p.village_origin);
-                                                                            return v && q.village_id === v.id;
-                                                                        })
-                                                                        .map(q => (
-                                                                            <option key={q.id} value={q.nom}>{q.nom}</option>
-                                                                        ))}
-                                                                </select>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-semibold text-gray-800">{p.village_origin || '—'}</span>
+                                                        <span className="text-[10px] text-gray-500 font-bold uppercase">{p.quartier_nom || 'Quartier non assigné'}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="py-3 px-4">
-                                                    <span className={`text-xs px-2 py-1 rounded-full font-bold ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-bold text-gray-700">{p.birth_date ? new Date(p.birth_date).toLocaleDateString('fr-FR') : '—'}</span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-black uppercase ${p.gender === 'Homme' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                                                                {p.gender || '—'}
+                                                            </span>
+                                                            <span className="text-[9px] text-gray-400 font-bold uppercase">{p.residence_country}</span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4 whitespace-nowrap">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-gray-700">
+                                                            {p.metadata?.father_first_name} {p.metadata?.father_last_name}
+                                                            {(!p.metadata?.father_first_name && !p.metadata?.father_last_name) && <span className="text-gray-400 italic font-medium">À compléter</span>}
+                                                        </span>
+                                                        <span className={`text-[9px] font-black uppercase ${p.metadata?.father_status === 'Vivant' ? 'text-green-500' : 'text-red-500'}`}>
+                                                            {p.metadata?.father_status || '—'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4 whitespace-nowrap">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-gray-700">
+                                                            {p.metadata?.mother_first_name} {p.metadata?.mother_last_name}
+                                                            {(!p.metadata?.mother_first_name && !p.metadata?.mother_last_name) && <span className="text-gray-400 italic font-medium">À compléter</span>}
+                                                        </span>
+                                                        <span className={`text-[9px] font-black uppercase ${p.metadata?.mother_status === 'Vivante' ? 'text-green-500' : 'text-red-500'}`}>
+                                                            {p.metadata?.mother_status || '—'}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
                                                         {p.status === 'confirmed' ? 'Certifié ✅' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
                                                     </span>
-                                                </td>
-                                                <td className="py-3 px-4 text-xs text-gray-600">
-                                                    {new Date(p.created_at).toLocaleDateString('fr-FR')}
                                                 </td>
                                                 <td className="py-3 px-4">
                                                     <div className="flex items-center gap-2">
@@ -1147,7 +1165,7 @@ export default function AdminDashboard() {
                                 </table>
                             </div>
                             {/* Pagination Utilisateurs */}
-                            {totalUserPages > 1 && (
+                            {totalUsersPages > 1 && (
                                 <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2">
                                     <button
                                         disabled={usersPage === 1}
@@ -1156,10 +1174,10 @@ export default function AdminDashboard() {
                                     >
                                         Précédent
                                     </button>
-                                    <span className="text-sm font-semibold text-gray-600">Page {usersPage} sur {totalUserPages}</span>
+                                    <span className="text-sm font-semibold text-gray-600">Page {usersPage} sur {totalUsersPages}</span>
                                     <button
-                                        disabled={usersPage === totalUserPages}
-                                        onClick={() => setUsersPage(prev => Math.min(totalUserPages, prev + 1))}
+                                        disabled={usersPage === totalUsersPages}
+                                        onClick={() => setUsersPage(prev => Math.min(totalUsersPages, prev + 1))}
                                         className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
                                     >
                                         Suivant
