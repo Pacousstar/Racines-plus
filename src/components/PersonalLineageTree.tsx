@@ -220,7 +220,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 setCurrentUser(selfNode);
 
                 // 4. Parents et enfants via Neo4j (batch Supabase pour performance)
-                const parentNodes: LineageNode[] = [];
+                let parentNodes: LineageNode[] = [];
                 const childNodes: LineageNode[] = [];
 
                 try {
@@ -286,6 +286,36 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         }
                     }
                 } catch { /* Neo4j non disponible - arbre partiel */ }
+
+                // FALLBACK : Si pas de parents trouvés dans le graphe, on regarde dans les metadata du profil utilisateur
+                if (parentNodes.length === 0) {
+                    const { data: metaProfile } = await supabase.from('profiles').select('metadata').eq('id', userId).single();
+                    if (metaProfile?.metadata) {
+                        const meta = metaProfile.metadata;
+                        if (meta.father_first_name || meta.father_last_name) {
+                            parentNodes.push({
+                                id: 'father-meta',
+                                nom: `${meta.father_first_name || ''} ${meta.father_last_name || ''}`.trim(),
+                                type: 'parent',
+                                generation: 1,
+                                status: 'declared',
+                                lien: 'Père',
+                                quartier: 'Déclaratif'
+                            });
+                        }
+                        if (meta.mother_first_name || meta.mother_last_name) {
+                            parentNodes.push({
+                                id: 'mother-meta',
+                                nom: `${meta.mother_first_name || ''} ${meta.mother_last_name || ''}`.trim(),
+                                type: 'parent',
+                                generation: 1,
+                                status: 'declared',
+                                lien: 'Mère',
+                                quartier: 'Déclaratif'
+                            });
+                        }
+                    }
+                }
 
                 setParents(parentNodes);
                 setChildren(childNodes);

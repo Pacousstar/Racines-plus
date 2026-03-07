@@ -112,6 +112,9 @@ interface AdminPermission {
     can_issue_certificates: boolean;
     can_manage_invitations: boolean;
     can_export_data: boolean;
+    can_manage_roles: boolean;
+    can_view_audit_logs: boolean;
+    can_manage_settings: boolean;
 }
 
 interface ActivityLog {
@@ -184,6 +187,7 @@ export default function AdminDashboard() {
     const [villagesPage, setVillagesPage] = useState(1);
     const [memorialPage, setMemorialPage] = useState(1);
     const [logsPage, setLogsPage] = useState(1);
+    const [assistantPage, setAssistantPage] = useState(1);
     const itemsPerPage = 20;
 
     // États modale création assistant admin
@@ -198,7 +202,10 @@ export default function AdminDashboard() {
         can_manage_memorial: false,
         can_issue_certificates: false,
         can_manage_invitations: false,
-        can_export_data: false
+        can_export_data: false,
+        can_manage_roles: false,
+        can_view_audit_logs: false,
+        can_manage_settings: false
     });
     const [isCreatingAssistant, setIsCreatingAssistant] = useState(false);
 
@@ -728,20 +735,23 @@ export default function AdminDashboard() {
         can_manage_memorial: isSuperAdmin,
         can_issue_certificates: isSuperAdmin,
         can_manage_invitations: isSuperAdmin,
-        can_export_data: isSuperAdmin
+        can_export_data: isSuperAdmin,
+        can_manage_roles: isSuperAdmin,
+        can_view_audit_logs: isSuperAdmin,
+        can_manage_settings: isSuperAdmin
     };
 
     const tabs = [
         { key: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
         { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine },
-        { key: 'users', label: 'Comptes & Rôles', icon: Users },
+        { key: 'users', label: 'Comptes & Rôles', icon: Users, hidden: !isSuperAdmin && !myPerms.can_manage_roles },
         { key: 'assistants', label: 'Assistants Admin', icon: Shield, hidden: !isSuperAdmin },
         { key: 'villages', label: 'Villages & Quartiers', icon: Map, hidden: !isSuperAdmin && !myPerms.can_manage_villages && !myPerms.can_manage_ancestors },
         { key: 'validations', label: 'Validations', icon: ShieldCheck, hidden: !isSuperAdmin && !myPerms.can_validate_users },
         { key: 'memorial', label: 'Crise 2010', icon: Flame, hidden: !isSuperAdmin && !myPerms.can_manage_memorial },
-        { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: !isSuperAdmin },
+        { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: !isSuperAdmin && !myPerms.can_view_audit_logs },
         { key: 'invitations', label: 'Invitations', icon: Share2, hidden: !isSuperAdmin && !myPerms.can_manage_invitations },
-        { key: 'settings', label: 'Paramètres', icon: Settings },
+        { key: 'settings', label: 'Paramètres', icon: Settings, hidden: !isSuperAdmin && !myPerms.can_manage_settings },
     ];
 
     return (
@@ -1041,12 +1051,14 @@ export default function AdminDashboard() {
                         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                             <div className="p-5 border-b border-gray-50 flex justify-between items-center">
                                 <h2 className="font-bold">Résultats ({filteredProfiles.length})</h2>
-                                <button
-                                    onClick={handleExportUsers}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md active:scale-95"
-                                >
-                                    <Download className="w-3.5 h-3.5" /> Exporter CSV
-                                </button>
+                                {myPerms.can_export_data && (
+                                    <button
+                                        onClick={handleExportUsers}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md active:scale-95"
+                                    >
+                                        <Download className="w-3.5 h-3.5" /> Exporter CSV
+                                    </button>
+                                )}
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full">
@@ -1058,6 +1070,7 @@ export default function AdminDashboard() {
                                             <th className="text-left py-3 px-4">Lignée Paternelle</th>
                                             <th className="text-left py-3 px-4">Lignée Maternelle</th>
                                             <th className="text-left py-3 px-4">Statut</th>
+                                            <th className="text-left py-3 px-4">Rôle</th>
                                             <th className="text-left py-3 px-4">Actions</th>
                                         </tr>
                                     </thead>
@@ -1126,6 +1139,19 @@ export default function AdminDashboard() {
                                                     </span>
                                                 </td>
                                                 <td className="py-3 px-4">
+                                                    <select
+                                                        value={p.role}
+                                                        disabled={p.email?.toLowerCase() === 'pacous2000@gmail.com'}
+                                                        onChange={(e) => handleRoleChange(p.id, e.target.value)}
+                                                        className={`text-[10px] font-bold py-1 px-2 rounded-lg border focus:outline-none transition-all ${p.role === 'admin' ? (p.email?.toLowerCase() === 'pacous2000@gmail.com' ? 'bg-purple-100 border-purple-300 text-purple-800 cursor-not-allowed' : 'bg-purple-50 border-purple-200 text-purple-700') : p.role === 'cho' ? 'bg-blue-50 border-blue-200 text-blue-700' : p.role === 'choa' ? 'bg-cyan-50 border-cyan-200 text-cyan-700' : 'bg-gray-50 border-gray-200 text-gray-700'}`}
+                                                    >
+                                                        <option value="user">USER</option>
+                                                        <option value="cho">CHO</option>
+                                                        <option value="choa">CHOA</option>
+                                                        <option value="admin">ADMIN (ASST)</option>
+                                                    </select>
+                                                </td>
+                                                <td className="py-3 px-4">
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => handleToggleAmbassadeur(p.id, p.is_ambassadeur || false)}
@@ -1135,7 +1161,7 @@ export default function AdminDashboard() {
                                                             <Star className={`w-3.5 h-3.5 ${p.is_ambassadeur ? 'fill-amber-500' : ''}`} />
                                                         </button>
 
-                                                        {p.certificate_requested && !p.certificate_issued && (
+                                                        {p.certificate_requested && !p.certificate_issued && myPerms.can_issue_certificates && (
                                                             <button
                                                                 onClick={() => handleIssueCertificate(p.id)}
                                                                 className="p-1.5 text-[#FF6600] bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors animate-pulse"
@@ -1145,7 +1171,7 @@ export default function AdminDashboard() {
                                                             </button>
                                                         )}
 
-                                                        {(p.role === 'cho' || p.role === 'choa') && (
+                                                        {(p.role === 'cho' || p.role === 'choa') && myPerms.can_export_data && (
                                                             <button
                                                                 onClick={() => handleToggleExportAuth(p.id, p.export_authorized)}
                                                                 className={`p-1.5 rounded-lg transition-colors ${p.export_authorized ? 'text-green-600 bg-green-50 hover:bg-green-100' : p.export_requested ? 'text-[#FF6600] bg-orange-50 hover:bg-orange-100' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
@@ -1283,6 +1309,9 @@ export default function AdminDashboard() {
                                                     { key: 'can_issue_certificates', label: 'Délivrer certificats' },
                                                     { key: 'can_manage_invitations', label: 'Gérer invitations' },
                                                     { key: 'can_export_data', label: 'Exporter données' },
+                                                    { key: 'can_manage_roles', label: 'Gérer Rôles' },
+                                                    { key: 'can_view_audit_logs', label: 'Voir Audit' },
+                                                    { key: 'can_manage_settings', label: 'Gérer Paramètres' },
                                                 ] as const).map(item => (
                                                     <label key={item.key} className="flex items-center gap-3 text-xs font-bold text-gray-700 cursor-pointer group/perm">
                                                         <div className="relative flex items-center">
@@ -1317,7 +1346,11 @@ export default function AdminDashboard() {
                                                     alert(`✅ ${result.message}`);
                                                     setShowCreateAssistant(false);
                                                     setAssistantForm({ first_name: '', last_name: '', email: '', password: '', phone: '', poste: '', village_origin: '' });
-                                                    setAssistantPerms({ can_validate_users: false, can_manage_villages: false, can_manage_ancestors: false, can_manage_memorial: false, can_issue_certificates: false, can_manage_invitations: false, can_export_data: false });
+                                                    setAssistantPerms({
+                                                        can_validate_users: false, can_manage_villages: false, can_manage_ancestors: false,
+                                                        can_manage_memorial: false, can_issue_certificates: false, can_manage_invitations: false,
+                                                        can_export_data: false, can_manage_roles: false, can_view_audit_logs: false, can_manage_settings: false
+                                                    });
                                                     window.location.reload();
                                                 } else {
                                                     alert(`❌ Erreur : ${result.error}`);
@@ -1340,66 +1373,94 @@ export default function AdminDashboard() {
                             </div>
                         )}
 
-                        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
                                     <tr>
-                                        <th className="text-left py-4 px-6">Assistant</th>
+                                        <th className="text-left py-4 px-6 min-w-[200px]">Assistant</th>
                                         <th className="text-center py-4 px-2">Validations</th>
                                         <th className="text-center py-4 px-2">Villages</th>
                                         <th className="text-center py-4 px-2">Ancêtres</th>
                                         <th className="text-center py-4 px-2">Mémorial</th>
                                         <th className="text-center py-4 px-2">Certificats</th>
                                         <th className="text-center py-4 px-2">Export</th>
+                                        <th className="text-center py-4 px-2">Rôles</th>
+                                        <th className="text-center py-4 px-2">Audit</th>
+                                        <th className="text-center py-4 px-2">Settings</th>
                                         <th className="text-center py-4 px-2">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {profiles.filter(p => p.role === 'admin' && p.id !== currentUserId).map(p => {
-                                        const perms = assistantPermissions[p.id] || {
-                                            can_validate_users: false, can_manage_villages: false,
-                                            can_manage_ancestors: false, can_manage_memorial: false,
-                                            can_issue_certificates: false, can_export_data: false
-                                        };
+                                    {(() => {
+                                        const assistants = profiles.filter(p => p.role === 'admin' && p.id !== currentUserId);
+                                        const paginatedAssistants = assistants.slice((assistantPage - 1) * itemsPerPage, assistantPage * itemsPerPage);
+                                        const totalPages = Math.ceil(assistants.length / itemsPerPage);
+
                                         return (
-                                            <tr key={p.id} className="hover:bg-gray-50/50">
-                                                <td className="py-4 px-6">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">{p.first_name?.[0]}{p.last_name?.[0]}</div>
-                                                        <div>
-                                                            <p className="font-bold text-sm">{p.first_name} {p.last_name}</p>
-                                                            <p className="text-[10px] text-gray-600">{p.village_origin}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                {[
-                                                    { key: 'can_validate_users', icon: ShieldCheck },
-                                                    { key: 'can_manage_villages', icon: Map },
-                                                    { key: 'can_manage_ancestors', icon: TreePine },
-                                                    { key: 'can_manage_memorial', icon: Flame },
-                                                    { key: 'can_issue_certificates', icon: Stamp },
-                                                    { key: 'can_export_data', icon: Download }
-                                                ].map(perm => (
-                                                    <td key={perm.key} className="py-4 px-2 text-center">
-                                                        <button
-                                                            onClick={() => handleUpdatePermission(p.id, perm.key as any, !perms[perm.key as keyof typeof perms])}
-                                                            className={`p-2 rounded-xl transition-all ${perms[perm.key as keyof typeof perms] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
-                                                        >
-                                                            <perm.icon className="w-4 h-4" />
-                                                        </button>
-                                                    </td>
-                                                ))}
-                                                <td className="py-4 px-4 text-center">
-                                                    <button onClick={() => handleRoleChange(p.id, 'user')} className="text-[10px] font-bold text-red-500 hover:underline">RÉTROGRADER</button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                    {profiles.filter(p => p.role === 'admin' && p.id !== currentUserId).length === 0 && (
-                                        <tr>
-                                            <td colSpan={8} className="py-12 text-center text-gray-600 italic text-sm">Aucun assistant désigné pour le moment.</td>
-                                        </tr>
-                                    )}
+                                            <>
+                                                {paginatedAssistants.map(p => {
+                                                    const perms = assistantPermissions[p.id] || {
+                                                        can_validate_users: false, can_manage_villages: false,
+                                                        can_manage_ancestors: false, can_manage_memorial: false,
+                                                        can_issue_certificates: false, can_export_data: false,
+                                                        can_manage_roles: false, can_view_audit_logs: false, can_manage_settings: false
+                                                    };
+                                                    return (
+                                                        <tr key={p.id} className="hover:bg-gray-50/50">
+                                                            <td className="py-4 px-6">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">{p.first_name?.[0]}{p.last_name?.[0]}</div>
+                                                                    <div>
+                                                                        <p className="font-bold text-sm">{p.first_name} {p.last_name}</p>
+                                                                        <p className="text-[10px] text-gray-600">{p.village_origin}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            {[
+                                                                { key: 'can_validate_users', icon: ShieldCheck },
+                                                                { key: 'can_manage_villages', icon: Map },
+                                                                { key: 'can_manage_ancestors', icon: TreePine },
+                                                                { key: 'can_manage_memorial', icon: Flame },
+                                                                { key: 'can_issue_certificates', icon: Stamp },
+                                                                { key: 'can_export_data', icon: Download },
+                                                                { key: 'can_manage_roles', icon: Users },
+                                                                { key: 'can_view_audit_logs', icon: Activity },
+                                                                { key: 'can_manage_settings', icon: Settings }
+                                                            ].map(perm => (
+                                                                <td key={perm.key} className="py-4 px-2 text-center">
+                                                                    <button
+                                                                        onClick={() => handleUpdatePermission(p.id, perm.key as any, !perms[perm.key as keyof typeof perms])}
+                                                                        className={`p-2 rounded-xl transition-all ${perms[perm.key as keyof typeof perms] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+                                                                    >
+                                                                        <perm.icon className="w-4 h-4" />
+                                                                    </button>
+                                                                </td>
+                                                            ))}
+                                                            <td className="py-4 px-4 text-center">
+                                                                <button onClick={() => handleRoleChange(p.id, 'user')} className="text-[10px] font-bold text-red-500 hover:underline">RÉTROGRADER</button>
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                })}
+                                                {assistants.length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={11} className="py-12 text-center text-gray-600 italic text-sm">Aucun assistant désigné pour le moment.</td>
+                                                    </tr>
+                                                )}
+                                                {totalPages > 1 && (
+                                                    <tr>
+                                                        <td colSpan={11} className="py-4 px-6 border-t border-gray-50">
+                                                            <div className="flex justify-center items-center gap-2">
+                                                                <button disabled={assistantPage === 1} onClick={() => setAssistantPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                                                <span className="text-sm font-semibold text-gray-600">Page {assistantPage} sur {totalPages}</span>
+                                                                <button disabled={assistantPage === totalPages} onClick={() => setAssistantPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
                                 </tbody>
                             </table>
                         </div>

@@ -11,10 +11,8 @@
 ---
 
 > [!TIP]
-> **🌟 État Actuel du Projet**
-> - **Build de production validé** : Exit code 0 | 19 routes | 0 erreurs.
-> - **Phase 5 (Carte Mondiale)** : ✅ Achevée avec succès.
-> - **Phase 6 En Cours** : 📂 Module "Archives & Médias".
+> - **Phase 6 (Archives & Médias)** : ✅ Achevée avec succès.
+> - **Phase 14 (Registre & Maintenance)** : ✅ Terminée ce matin.
 
 ---
 
@@ -154,6 +152,38 @@
 - **Validation Finale** :
   - **Build de Production** : Succès total du build Next.js (`npm run build`) avec Exit Code 0, validant le routage et le typage TypeScript de toutes les nouvelles fonctionnalités.
 
+## 15. 🚀 Phase 12 : Fullstack Functional, Archives & Arbre Enrichi (07 Mars 2026)
+> [!NOTE]
+> Cette session a permis de rendre l'application "Totalement Fonctionnelle" en résolvant les derniers blocages de navigation et en enrichissant la visualisation de l'arbre.
+
+- **Correctifs de Visibilité & Routing** :
+  - **Diagnostic Cross-User** : Identification et résolution du bug de visibilité de Franck GOUSSE via un filtrage `ilike` plus flexible sur les noms de village.
+  - **Redirection de Rôle** : Renforcement du middleware de redirection dans `dashboard/page.tsx` pour garantir que les rôles CHO et CHOa (ex: Pacous STAR) atteignent instantanément leur interface dédiée.
+- **Arbre Généalogique Personnel (Hybrid Logic)** :
+  - **Intégration JSONB Metadata** : Modification de `PersonalLineageTree.tsx` pour extraire automatiquement la lignée parentale du champ `metadata` si les parents n'ont pas encore de compte Racines+. L'arbre n'est plus jamais vide.
+- **Module Archives & Médias** :
+  - Validation de l'interopérabilité des composants `DocumentManager` et `MediaGallery`.
+  - Intégration de l'onglet "Archives" dans le dashboard utilisateur, permettant le téléversement d'actes officiels dans un coffre privé sécurisé.
+- **Validation Build de Production** :
+  - **Analyse des Chemins Critiques** : Succès total du build Next.js (`npm run build`) en 3.1 minutes. Rapport vierge d'erreurs, validant l'architecture logicielle.
+
 ---
-**Statut Global : Opérationnel 🚀 | Build : Validé ✅**
-L'application Racines+ est stabilisée et prête pour les tests de validation CHOa.
+**Statut Global : Fullstack Functional 🚀 | Build : Validé ✅**
+L'application Racines+ est désormais pleinement opérationnelle pour l'ensemble des rôles.
+
+## 16. 🛠️ Phase 13 : Pagination, Scrollbars & Complétion de Profil (07 Mars 2026)
+> [!NOTE]
+> Cette session a amélioré l'ergonomie globale des backoffices et mis en place un système d'incitation à la complétion des données utilisateurs.
+
+- **Pagination & Performance** :
+    - Implémentation de la pagination (20 éléments/page) dans le dashboard **CHOa** pour tous les onglets (En attente, Transmis, Validés, Rejetés).
+    - Ajout de la pagination dans le dashboard **CHO** pour l'onglet "Mon Équipe".
+    - Ajout de la pagination dans le dashboard **Admin** pour l'onglet "Gestion des Assistants".
+- **Ergonomie & Accessibilité** :
+    - Optimisation des tableaux administratifs avec des barres de défilement horizontales (`overflow-x-auto`) et des largeurs minimales pour garantir la lisibilité sur petits écrans.
+- **Incitation à la Complétion de Profil** :
+    - Ajout d'une **Bannière d'Alerte "Wow"** orange dans le dashboard utilisateur si des informations critiques sont manquantes (Téléphone, Genre, Naissance ou Village par défaut).
+    - Intégration d'un bouton d'action directe "Compléter maintenant" ouvrant la modale d'édition.
+- **Vérification & Déploiement** :
+    - Succès total du build de production (`npm run build`) validé avec TypeScript.
+    - Commit et Push automatique vers le dépôt principal.

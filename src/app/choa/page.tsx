@@ -131,18 +131,18 @@ export default function ChoBoard() {
 
         // Assouplissement du filtre village pour le diagnostic
         if (profile.village_origin) {
-            console.log("🔍 [CHOa Debug] Filtering by village:", profile.village_origin);
-            q = q.ilike('village_origin', profile.village_origin); // Utilisation d'ilike pour la tolérance à la casse
+            const cleanVillage = profile.village_origin.trim();
+            console.log("🔍 [CHOa Debug] Filtering by village (cleaned):", `"${cleanVillage}"`);
+            q = q.ilike('village_origin', `%${cleanVillage}%`); // Recherche plus souple
         }
 
         const { data: allUsers, error: usersErr } = await q;
 
         if (usersErr) {
+            console.error('[choa] Error fetching profiles:', usersErr);
         } else {
-            console.log("📊 [CHOa Debug] Total relevant users found for village:", profile.village_origin, ":", allUsers?.length || 0);
-            if (allUsers?.length === 0) {
-                console.log("🔍 [CHOa Debug] Checking if anyone exists in Toa-Zéo (exact match)...");
-            }
+            console.log("📊 [CHOa Debug] Query results for", profile.village_origin, ":", allUsers?.map(u => `${u.first_name} ${u.last_name} (${u.village_origin})`));
+            console.log("📊 [CHOa Debug] Total relevant users found:", allUsers?.length || 0);
         }
 
         if (allUsers) {
@@ -697,7 +697,34 @@ export default function ChoBoard() {
                                         </button>
                                     </div>
                                 )}
-                                {pendingProfiles.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                {(() => {
+                                    const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
+                                    const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
+                                    return (
+                                        <>
+                                            {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                            {totalPages > 1 && (
+                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                                    <button
+                                                        disabled={pendingPage === 1}
+                                                        onClick={() => setPendingPage(prev => Math.max(1, prev - 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Précédent
+                                                    </button>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {pendingPage} / {totalPages}</span>
+                                                    <button
+                                                        disabled={pendingPage === totalPages}
+                                                        onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Suivant
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </>
                         )}
 
@@ -706,7 +733,34 @@ export default function ChoBoard() {
                                 <div className="flex justify-between items-center mb-2">
                                     <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Transmis au CHO ({sentToChoProfiles.length})</h2>
                                 </div>
-                                {sentToChoProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                {(() => {
+                                    const paginatedSent = sentToChoProfiles.slice((sentToChoPage - 1) * itemsPerPage, sentToChoPage * itemsPerPage);
+                                    const totalPages = Math.ceil(sentToChoProfiles.length / itemsPerPage);
+                                    return (
+                                        <>
+                                            {paginatedSent.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                            {totalPages > 1 && (
+                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                                    <button
+                                                        disabled={sentToChoPage === 1}
+                                                        onClick={() => setSentToChoPage(prev => Math.max(1, prev - 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Précédent
+                                                    </button>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {sentToChoPage} / {totalPages}</span>
+                                                    <button
+                                                        disabled={sentToChoPage === totalPages}
+                                                        onClick={() => setSentToChoPage(prev => Math.min(totalPages, prev + 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Suivant
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </>
                         )}
 
@@ -715,7 +769,34 @@ export default function ChoBoard() {
                                 <div className="flex justify-between items-center mb-2">
                                     <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Validés ({confirmedProfiles.length})</h2>
                                 </div>
-                                {confirmedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                {(() => {
+                                    const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
+                                    const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
+                                    return (
+                                        <>
+                                            {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                            {totalPages > 1 && (
+                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                                    <button
+                                                        disabled={confirmedPage === 1}
+                                                        onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Précédent
+                                                    </button>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {confirmedPage} / {totalPages}</span>
+                                                    <button
+                                                        disabled={confirmedPage === totalPages}
+                                                        onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Suivant
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </>
                         )}
 
@@ -724,7 +805,34 @@ export default function ChoBoard() {
                                 <div className="flex justify-between items-center mb-2">
                                     <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Rejetés ({rejectedProfiles.length})</h2>
                                 </div>
-                                {rejectedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                {(() => {
+                                    const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
+                                    const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
+                                    return (
+                                        <>
+                                            {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                            {totalPages > 1 && (
+                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                                    <button
+                                                        disabled={rejectedPage === 1}
+                                                        onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Précédent
+                                                    </button>
+                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {rejectedPage} / {totalPages}</span>
+                                                    <button
+                                                        disabled={rejectedPage === totalPages}
+                                                        onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))}
+                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                                    >
+                                                        Suivant
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </>
                         )}
 

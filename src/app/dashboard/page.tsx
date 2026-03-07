@@ -45,16 +45,26 @@ export default function Dashboard() {
         }
 
         if (data) {
-            console.log("🚀 [Dashboard Debug] User role detected:", data.role, "for user:", user.email);
-            if (data.role === 'admin') { router.push('/admin'); return; }
-            else if (data.role === 'cho') { router.push('/cho'); return; }
-            else if (data.role === 'choa') { router.push('/choa'); return; }
+            console.log("🚀 [Dashboard Debug] User role detected:", data.role, "for email:", user.email);
 
-            console.log("➡️ [Dashboard Debug] No special role redirection, staying on /dashboard");
-            const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
-            const fallbackName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Utilisateur';
-            setProfileName(fullName || fallbackName);
-            setAvatarUrl(data.avatar_url || user.user_metadata?.avatar_url || null);
+            // Redirection immédiate basée sur le rôle
+            if (data.role === 'admin') {
+                console.log("➡️ [Dashboard Debug] Redirecting to /admin");
+                router.push('/admin');
+                return;
+            }
+            if (data.role === 'cho') {
+                console.log("➡️ [Dashboard Debug] Redirecting to /cho");
+                router.push('/cho');
+                return;
+            }
+            if (data.role === 'choa') {
+                console.log("➡️ [Dashboard Debug] Redirecting to /choa");
+                router.push('/choa');
+                return;
+            }
+
+            console.log("➡️ [Dashboard Debug] Staying on /dashboard for user role");
             setUserProfile(data);
 
             // Charger le nombre de notifications non lues

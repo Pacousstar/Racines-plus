@@ -88,6 +88,9 @@ export async function POST(request: Request) {
         can_issue_certificates: permissions?.can_issue_certificates ?? false,
         can_manage_invitations: permissions?.can_manage_invitations ?? false,
         can_export_data: permissions?.can_export_data ?? false,
+        can_manage_roles: permissions?.can_manage_roles ?? false,
+        can_view_audit_logs: permissions?.can_view_audit_logs ?? false,
+        can_manage_settings: permissions?.can_manage_settings ?? false,
     };
 
     await supabaseAdmin.from('admin_permissions').insert(defaultPermissions);
