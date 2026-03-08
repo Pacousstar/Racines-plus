@@ -2198,57 +2198,148 @@ export default function AdminDashboard() {
                 }
 
                 {/* Paramètres */}
-                {
-                    activeTab === 'settings' && (
-                        <div className="space-y-6 mt-6">
-                            <h1 className="text-2xl font-bold">Paramètres Plateforme</h1>
-                            <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
-                                {[
-                                    { label: 'Nom de la plateforme', value: 'Racines+ MVP' },
-                                    { label: 'Village pilote actif', value: 'Toa-Zéo, Guémon, CI' },
-                                    { label: 'Version', value: '0.1.0-MVP BETA' },
-                                ].map(s => (
-                                    <div key={s.label} className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
-                                        <span className="text-sm font-medium text-gray-700">{s.label}</span>
-                                        <span className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">{s.value}</span>
+                {activeTab === 'settings' && (
+                    <div className="space-y-8 mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Configuration <span className="text-[#FF6600]">Système</span></h1>
+                                <p className="text-gray-500 font-medium mt-1">Gérez les constantes et l'identité de la plateforme Racines+.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* Section 1: Informations Générales */}
+                            <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/80 shadow-xl p-8 space-y-6 hover:shadow-2xl transition-all duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center">
+                                        <Globe className="w-6 h-6 text-blue-600" />
                                     </div>
-                                ))}
-                                <div className="flex items-center justify-between py-3 border-b border-gray-50">
-                                    <span className="text-sm font-medium text-gray-700 flex items-center gap-2"><Lock className="w-4 h-4 text-green-500" /> Supabase RLS</span>
-                                    <span className="text-xs bg-green-100 text-green-600 px-3 py-1 rounded-full font-bold">ACTIF</span>
+                                    <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Identité Plateforme</h2>
                                 </div>
-                                {/* Bouton de migration des inscrits existants */}
-                                <div className="pt-4 border-t border-gray-100">
-                                    <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
-                                        <ShieldCheck className="w-4 h-4 text-[#FF6600]" /> Migration Workflow CHOa
-                                    </h3>
-                                    <p className="text-xs text-gray-500 mb-3">
-                                        Repositionne tous les inscrits existants (status &quot;pending&quot; ou sans statut) vers <strong>pending_choa</strong> pour qu&apos;ils apparaissent dans le tableau de bord des CHOa et démarrent le workflow de validation.
-                                    </p>
-                                    <button
-                                        onClick={async () => {
-                                            if (!confirm('Repositionner tous les inscrits non-validés vers pending_choa ?')) return;
-                                            const { data: { session } } = await supabase.auth.getSession();
-                                            if (!session) return;
-                                            const res = await fetch('/api/admin/reset-pending-choa', {
-                                                method: 'POST',
-                                                headers: { authorization: `Bearer ${session.access_token}` }
-                                            });
-                                            const result = await res.json();
-                                            if (result.success) {
-                                                alert(`✅ ${result.message}`);
-                                            } else {
-                                                alert(`❌ Erreur : ${result.error}`);
-                                            }
-                                        }}
-                                        className="flex items-center gap-2 px-5 py-2.5 bg-[#FF6600] hover:bg-[#e55c00] text-white rounded-xl text-sm font-bold transition-all active:scale-95 shadow-md shadow-orange-100"
-                                    >
-                                        <ShieldCheck className="w-4 h-4" /> Lancer la migration
+                                <div className="space-y-4">
+                                    {[
+                                        { label: 'Nom du Projet', value: 'Racines+', icon: ShieldCheck },
+                                        { label: 'Slogan National', value: 'Retrouver ses racines, bâtir demain', icon: Star },
+                                        { label: 'Village Pilote', value: 'Toa-Zéo', icon: MapPin },
+                                        { label: 'Région Active', value: 'Guémon, Côte d\'Ivoire', icon: Globe },
+                                    ].map(item => (
+                                        <div key={item.label} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+                                            <div className="flex items-center gap-3">
+                                                <item.icon className="w-4 h-4 text-gray-400" />
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{item.label}</span>
+                                            </div>
+                                            <span className="text-xs font-black text-gray-900">{item.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Section 2: Identité Visuelle */}
+                            <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/80 shadow-xl p-8 space-y-6 hover:shadow-2xl transition-all duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
+                                        <Flame className="w-6 h-6 text-[#FF6600]" />
+                                    </div>
+                                    <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Charte & Design</h2>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-6 bg-white border-2 border-dashed border-gray-100 rounded-3xl">
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-black text-gray-900 uppercase tracking-widest">Logo Officiel</p>
+                                            <p className="text-[10px] text-gray-400 font-medium">Format PNG/SVG transparent</p>
+                                        </div>
+                                        <div className="p-2 bg-gray-50 rounded-xl">
+                                            <Image src="/LOGO_Racines.png" alt="Logo" width={60} height={20} className="object-contain mix-blend-multiply opacity-50" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 bg-[#FF6600] rounded-2xl shadow-lg shadow-orange-100 flex flex-col items-center justify-center gap-1 text-white">
+                                            <span className="text-[10px] font-black uppercase">Couleur Primaire</span>
+                                            <span className="text-xs font-bold">#FF6600</span>
+                                        </div>
+                                        <div className="p-4 bg-gray-950 rounded-2xl shadow-lg shadow-gray-100 flex flex-col items-center justify-center gap-1 text-white">
+                                            <span className="text-[10px] font-black uppercase">Couleur Texte</span>
+                                            <span className="text-xs font-bold">#030712</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Infrastructure & Sécurité */}
+                            <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/80 shadow-xl p-8 space-y-6 hover:shadow-2xl transition-all duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center">
+                                        <Lock className="w-6 h-6 text-purple-600" />
+                                    </div>
+                                    <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Sécurité & API</h2>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between p-4 bg-green-50/50 rounded-2xl border border-green-100/50">
+                                        <div className="flex items-center gap-3">
+                                            <ShieldCheck className="w-4 h-4 text-green-500" />
+                                            <span className="text-xs font-black text-green-700 uppercase tracking-widest">Supabase RLS</span>
+                                        </div>
+                                        <span className="px-3 py-1 bg-green-500 text-white rounded-full text-[9px] font-black">ACTIF</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-purple-50/50 rounded-2xl border border-purple-100/50">
+                                        <div className="flex items-center gap-3">
+                                            <Key className="w-4 h-4 text-purple-500" />
+                                            <span className="text-xs font-black text-purple-700 uppercase tracking-widest">Accès JWT</span>
+                                        </div>
+                                        <span className="px-3 py-1 bg-purple-500 text-white rounded-full text-[9px] font-black">SÉCURISÉ</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100/50">
+                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-7">Version Build</span>
+                                        <span className="text-xs font-black text-gray-900 font-mono tracking-tighter">v1.2.4-stable</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 4: Maintenance & Outils */}
+                            <div className="bg-white/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/80 shadow-xl p-8 space-y-6 hover:shadow-2xl transition-all duration-500">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center">
+                                        <Activity className="w-6 h-6 text-red-600" />
+                                    </div>
+                                    <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Maintenance</h2>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button className="p-4 bg-gray-50 hover:bg-white hover:shadow-lg rounded-[1.5rem] border border-gray-100 transition-all group flex flex-col items-center gap-2">
+                                        <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
+                                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest text-center">Nettoyer Cache</span>
+                                    </button>
+                                    <button className="p-4 bg-gray-50 hover:bg-white hover:shadow-lg rounded-[1.5rem] border border-gray-100 transition-all group flex flex-col items-center gap-2">
+                                        <Activity className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest text-center">Sync Database</span>
+                                    </button>
+                                    <button className="p-4 bg-gray-50 hover:bg-white hover:shadow-lg rounded-[1.5rem] border border-gray-100 transition-all group flex flex-col items-center gap-2">
+                                        <Download className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest text-center">Backup SQL</span>
+                                    </button>
+                                    <button className="p-4 bg-gray-50 hover:bg-white hover:shadow-lg rounded-[1.5rem] border border-gray-100 transition-all group flex flex-col items-center gap-2">
+                                        <Bell className="w-5 h-5 text-gray-400 group-hover:text-[#FF6600] transition-colors" />
+                                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest text-center">Test Alertes</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    )
+
+                        {/* Banner footer */}
+                        <div className="bg-gray-900 rounded-[2.5rem] p-10 relative overflow-hidden flex items-center justify-between">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF6600] opacity-10 rounded-full -mr-20 -mt-20 blur-3xl" />
+                            <div className="relative z-10">
+                                <p className="text-[#FF6600] text-xs font-black uppercase tracking-[0.3em] mb-2">Protocole de Sécurité S-Class</p>
+                                <h3 className="text-white text-2xl font-black max-w-md leading-tight">Le système Racines+ est optimisé pour Toa-Zéo.</h3>
+                                <p className="text-gray-400 text-sm mt-3 font-medium">Toutes les actions de maintenance sont tracées dans le journal d'audit cryptographique.</p>
+                            </div>
+                            <div className="relative z-10 hidden md:block">
+                                <div className="w-20 h-20 bg-white/5 rounded-[2rem] border border-white/10 flex items-center justify-center backdrop-blur-md">
+                                    <Shield className="w-10 h-10 text-[#FF6600]" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
                 }
             </main >
 
