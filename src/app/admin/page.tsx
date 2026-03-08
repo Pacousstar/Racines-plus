@@ -132,9 +132,8 @@ interface ActivityLog {
 export default function AdminDashboard() {
     const router = useRouter();
     const supabase = createClient();
-    // Double protection côté client (le middleware gère côté serveur)
     useRoleRedirect(['admin']);
-    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'assistants' | 'villages' | 'validations' | 'memorial' | 'audit' | 'invitations' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'mon_arbre' | 'users' | 'assistants' | 'villages' | 'validations' | 'memorial' | 'audit' | 'invitations' | 'certificates' | 'settings'>('overview');
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [assistantPermissions, setAssistantPermissions] = useState<Record<string, AdminPermission>>({});
     const [auditLogs, setAuditLogs] = useState<ActivityLog[]>([]);
@@ -188,6 +187,7 @@ export default function AdminDashboard() {
     const [memorialPage, setMemorialPage] = useState(1);
     const [logsPage, setLogsPage] = useState(1);
     const [assistantPage, setAssistantPage] = useState(1);
+    const [certificatesPage, setCertificatesPage] = useState(1);
     const itemsPerPage = 20;
 
     // États modale création assistant admin
@@ -751,6 +751,7 @@ export default function AdminDashboard() {
         { key: 'memorial', label: 'Crise 2010', icon: Flame, hidden: !isSuperAdmin && !myPerms.can_manage_memorial },
         { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: !isSuperAdmin && !myPerms.can_view_audit_logs },
         { key: 'invitations', label: 'Invitations', icon: Share2, hidden: !isSuperAdmin && !myPerms.can_manage_invitations },
+        { key: 'certificates', label: 'Certificats', icon: Stamp, hidden: !isSuperAdmin && !myPerms.can_issue_certificates },
         { key: 'settings', label: 'Paramètres', icon: Settings, hidden: !isSuperAdmin && !myPerms.can_manage_settings },
     ];
 
@@ -2070,6 +2071,128 @@ export default function AdminDashboard() {
                                 </button>
                             </div>
                             <InvitationsList userId={currentUserId} />
+                        </div>
+                    )
+                }
+
+                {/* Certificats */}
+                {
+                    activeTab === 'certificates' && (
+                        <div className="space-y-6 mt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                                            <Stamp className="w-6 h-6 text-amber-600" />
+                                        </div>
+                                        Gestion des <span className="text-amber-600">Certificats</span>
+                                    </h1>
+                                    <p className="text-sm text-gray-500 font-medium">Délivrez les certificats d&apos;appartenance aux membres validés.</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden">
+                                <div className="p-6 border-b border-gray-50 flex justify-between items-center bg-amber-50/20">
+                                    <h2 className="font-black text-[10px] text-amber-800 uppercase tracking-widest">
+                                        Demandes de <span className="text-amber-600">CERTIFICATS</span> en attente
+                                    </h2>
+                                </div>
+                                <div className="overflow-x-auto no-scrollbar">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50/50 text-[10px] text-gray-400 uppercase font-black tracking-widest border-b border-gray-100">
+                                            <tr>
+                                                <th className="text-left py-5 px-8">Identité Membre</th>
+                                                <th className="text-left py-5 px-6">Localité d&apos;Origine</th>
+                                                <th className="text-center py-5 px-6">Statut de la Demande</th>
+                                                <th className="text-right py-5 px-8">Action Décisive</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {(() => {
+                                                const requests = profiles.filter(p => p.certificate_requested && !p.certificate_issued);
+                                                const paginatedRequests = requests.slice((certificatesPage - 1) * itemsPerPage, certificatesPage * itemsPerPage);
+                                                const totalCertPages = Math.ceil(requests.length / itemsPerPage);
+
+                                                return (
+                                                    <>
+                                                        {paginatedRequests.map(p => (
+                                                            <tr key={p.id} className="hover:bg-amber-50/30 transition-all group">
+                                                                <td className="py-5 px-8">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center font-black text-xs border border-white shadow-sm transition-transform group-hover:scale-110">
+                                                                            {p.avatar_url ? (
+                                                                                <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover rounded-2xl" />
+                                                                            ) : (
+                                                                                (p.first_name?.[0] || '?').toUpperCase()
+                                                                            )}
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="font-bold text-gray-900 group-hover:text-amber-700 transition-colors">{p.first_name} {p.last_name}</p>
+                                                                            <p className="text-[10px] text-gray-500 font-medium">{p.email}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-5 px-6">
+                                                                    <p className="text-gray-900 font-bold text-sm">{p.village_origin || '—'}</p>
+                                                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">{p.quartier_nom || 'Quartier non défini'}</p>
+                                                                </td>
+                                                                <td className="py-5 px-6 text-center">
+                                                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black border border-amber-100 shadow-sm animate-pulse">
+                                                                        <div className="w-1.5 h-1.5 bg-amber-400 rounded-full" />
+                                                                        EN ATTENTE
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-5 px-8 text-right">
+                                                                    <button
+                                                                        onClick={() => handleIssueCertificate(p.id)}
+                                                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-[10px] font-black shadow-lg shadow-amber-200 transition-all active:scale-95 hover:translate-x-1"
+                                                                    >
+                                                                        <Stamp className="w-3.5 h-3.5" /> DÉLIVRER LE CERTIFICAT
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                        {requests.length === 0 && (
+                                                            <tr>
+                                                                <td colSpan={4} className="py-24 text-center">
+                                                                    <div className="w-16 h-16 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                                                                        <Stamp className="w-8 h-8 text-gray-200" />
+                                                                    </div>
+                                                                    <p className="text-gray-400 font-bold text-sm">Aucune demande de certificat en attente.</p>
+                                                                    <p className="text-[10px] text-gray-300 uppercase tracking-widest mt-1">Le registre est à jour</p>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        {totalCertPages > 1 && (
+                                                            <tr>
+                                                                <td colSpan={4} className="py-6 px-8 border-t border-gray-50 bg-gray-50/30">
+                                                                    <div className="flex justify-center items-center gap-4">
+                                                                        <button
+                                                                            disabled={certificatesPage === 1}
+                                                                            onClick={() => setCertificatesPage(prev => Math.max(1, prev - 1))}
+                                                                            className="w-10 h-10 rounded-2xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-amber-600 hover:border-amber-200 disabled:opacity-30 transition-all shadow-sm"
+                                                                        >
+                                                                            ←
+                                                                        </button>
+                                                                        <span className="text-[11px] font-black text-gray-500 tracking-widest uppercase">Page {certificatesPage} <span className="text-gray-200">/</span> {totalCertPages}</span>
+                                                                        <button
+                                                                            disabled={certificatesPage === totalCertPages}
+                                                                            onClick={() => setCertificatesPage(prev => Math.min(totalCertPages, prev + 1))}
+                                                                            className="w-10 h-10 rounded-2xl border border-gray-200 bg-white flex items-center justify-center text-gray-400 hover:text-amber-600 hover:border-amber-200 disabled:opacity-30 transition-all shadow-sm"
+                                                                        >
+                                                                            →
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     )
                 }

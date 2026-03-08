@@ -31,6 +31,7 @@ interface ProfileData {
     avatarUrl: string | null;
     ancestralRootId: string | null;
     extendedData: ExtendedProfileData;
+    metadata: any;
 }
 
 interface UserDashboardContentProps {
@@ -56,7 +57,13 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
         !profileData.extendedData.phone1 ||
         !profileData.extendedData.gender ||
         !profileData.extendedData.birthDate ||
-        profileData.village === 'Toa-Zéo'
+        !profileData.quartier ||
+        !profileData.extendedData.residenceCity ||
+        profileData.village === 'Toa-Zéo' ||
+        !profileData.metadata?.father_first_name ||
+        !profileData.metadata?.father_last_name ||
+        !profileData.metadata?.mother_first_name ||
+        !profileData.metadata?.mother_last_name
     );
 
     const fetchProfile = async () => {
@@ -64,7 +71,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
         if (!profileData) setIsLoading(true);
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, residence_country, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id')
+            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, residence_country, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id, metadata')
             .eq('id', userId)
             .single();
 
@@ -88,6 +95,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                 role: data.role || 'user',
                 avatarUrl: data.avatar_url || null,
                 ancestralRootId: data.ancestral_root_id || null,
+                metadata: data.metadata || {},
                 extendedData: {
                     firstName: fName,
                     lastName: lName,

@@ -22,6 +22,9 @@ export interface ExtendedProfileData {
     phone2?: string;
     whatsapp1?: string;
     whatsapp2?: string;
+    village_origin?: string;
+    quartier_nom?: string;
+    metadata?: any;
     detailsEnfants?: Array<{
         id: string;
         firstName: string;
@@ -65,7 +68,10 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
         phone2: '',
         whatsapp1: '',
         whatsapp2: '',
-        detailsEnfants: []
+        village_origin: '',
+        quartier_nom: '',
+        detailsEnfants: [],
+        metadata: {}
     });
 
     useEffect(() => {
@@ -101,6 +107,15 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     phone_2: formData.phone2,
                     whatsapp_1: formData.whatsapp1,
                     whatsapp_2: formData.whatsapp2,
+                    village_origin: formData.village_origin,
+                    quartier_nom: formData.quartier_nom,
+                    metadata: {
+                        ...(formData.metadata || {}),
+                        father_first_name: formData.metadata?.father_first_name || '',
+                        father_last_name: formData.metadata?.father_last_name || '',
+                        mother_first_name: formData.metadata?.mother_first_name || '',
+                        mother_last_name: formData.metadata?.mother_last_name || '',
+                    },
                     details_enfants: formData.detailsEnfants
                 })
                 .eq('id', userId);
@@ -165,12 +180,41 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Date de naissance <span className="text-red-500">*</span></label>
                                     <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all text-gray-700" required />
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Village d'origine <span className="text-red-500">*</span></label>
+                                    <input type="text" value={formData.village_origin} onChange={e => setFormData({ ...formData, village_origin: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="Ex: Toa-Zéo" required />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Quartier <span className="text-red-500">*</span></label>
+                                    <input type="text" value={formData.quartier_nom} onChange={e => setFormData({ ...formData, quartier_nom: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="Ex: Gbalê-Kouadio" required />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Lignée Héritage */}
+                        <div>
+                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Lignée & Héritage (Indispensable pour l'IA)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Paternelle</p>
+                                    <div className="space-y-3">
+                                        <input type="text" value={formData.metadata?.father_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom du Père" />
+                                        <input type="text" value={formData.metadata?.father_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom du Père" />
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Maternelle</p>
+                                    <div className="space-y-3">
+                                        <input type="text" value={formData.metadata?.mother_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom de la Mère" />
+                                        <input type="text" value={formData.metadata?.mother_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom de la Mère" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         {/* Éducation & Vie PRO */}
                         <div>
-                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Éducation & Situation Professionnelle</h3>
+                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">3. Éducation & Situation Professionnelle</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Niveau d'études <span className="text-red-500">*</span></label>
@@ -208,7 +252,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
 
                         {/* Famille & Résidence */}
                         <div>
-                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">3. Famille & Résidence</h3>
+                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">4. Famille & Résidence</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Nombre d&apos;enfants (total enregistré)</label>
@@ -268,7 +312,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                         {/* Gestion des enfants détaillés */}
                         <div>
                             <div className="flex justify-between items-center border-b pb-2 mb-4">
-                                <h3 className="text-sm font-bold text-[#FF6600]">4. Détails des Enfants</h3>
+                                <h3 className="text-sm font-bold text-[#FF6600]">5. Détails des Enfants</h3>
                                 <button
                                     type="button"
                                     onClick={() => {

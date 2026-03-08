@@ -187,3 +187,30 @@ L'application Racines+ est désormais pleinement opérationnelle pour l'ensemble
 - **Vérification & Déploiement** :
     - Succès total du build de production (`npm run build`) validé avec TypeScript.
     - Commit et Push automatique vers le dépôt principal.
+
+
+Voici les explications détaillées concernant le workflow de validation de Racines+ :
+
+1. Workflow de l'inscription à la validation finale
+La démarche est structurée en 5 étapes clés pour garantir l'authenticité des lignées :
+
+Inscription (Utilisateur) : Le membre crée son compte. Son profil reçoit automatiquement le statut pending (En attente).
+Visibilité CHOa (L'Adjoint) : Le dossier apparaît uniquement dans le tableau "À valider" des adjoints (CHOa) rattachés au même village.
+Première Approbation (CHOa n°1) : Un adjoint vérifie et "appose son sceau". Le statut passe à pre_approved. Le dossier reste visible pour les autres adjoints.
+Deuxième Approbation (CHOa n°2) : Un second adjoint (différent du premier) doit également valider. Dès cette 2ème signature, le statut passe à probable (Dossier Probable). À ce stade, le dossier est transmis automatiquement au Chef (CHO).
+Validation Finale (Le CHO) : Le Chef de village (CHO) reçoit les dossiers ayant le statut probable. Après vérification ultime, il clique sur "Certifier". Le statut devient confirmed (Certifié ✅).
+2. Vérification de l'application réelle
+Oui, la validation est strictement appliquée et sécurisée dans le code :
+
+Traçabilité : Chaque clic de validation déclenche une fonction SQL record_validation qui enregistre qui a validé quel profil, à quelle heure, et avec quelles observations.
+Étanchéité : Un CHO ne peut pas voir ou certifier un dossier qui n'a pas encore reçu ses deux validations par les adjoints (sauf s'il est en statut probable).
+Base de données : Le changement de statut est instantané dans la table profiles de Supabase.
+3. Pourquoi les utilisateurs n'apparaissent pas chez les CHOa d'abord ?
+Techniquement, ils apparaissent bien chez les CHOa en premier. Si vous ne les voyez pas, cela peut être dû à deux raisons :
+
+Filtrage par Village : Le CHOa ne voit que les membres qui ont déclaré le même village d'origine que lui. Si l'orthographe du village diffère (ex: "Toa Zéo" vs "Toazéo"), le filtrage peut bloquer l'affichage.
+Rôle à l'inscription : Seuls les utilisateurs ayant le rôle user sont soumis à ce flux.
+Conseil : Vérifiez que le village renseigné par l'utilisateur lors de son inscription correspond exactement à celui assigné au CHOa.
+
+Est-ce que ces éclaircissements répondent à vos attentes ?
+
