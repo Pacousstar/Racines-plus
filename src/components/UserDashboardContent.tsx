@@ -59,11 +59,14 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
         !profileData.extendedData.birthDate ||
         !profileData.quartier ||
         !profileData.extendedData.residenceCity ||
+        !profileData.extendedData.adresseResidence ||
         profileData.village === 'Toa-Zéo' ||
         !profileData.metadata?.father_first_name ||
         !profileData.metadata?.father_last_name ||
+        !profileData.metadata?.father_birth_date ||
         !profileData.metadata?.mother_first_name ||
-        !profileData.metadata?.mother_last_name
+        !profileData.metadata?.mother_last_name ||
+        !profileData.metadata?.mother_birth_date
     );
 
     const fetchProfile = async () => {

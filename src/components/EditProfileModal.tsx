@@ -24,7 +24,15 @@ export interface ExtendedProfileData {
     whatsapp2?: string;
     village_origin?: string;
     quartier_nom?: string;
-    metadata?: any;
+    metadata?: {
+        father_first_name?: string;
+        father_last_name?: string;
+        father_birth_date?: string;
+        mother_first_name?: string;
+        mother_last_name?: string;
+        mother_birth_date?: string;
+        [key: string]: any;
+    };
     detailsEnfants?: Array<{
         id: string;
         firstName: string;
@@ -45,9 +53,23 @@ interface EditProfileModalProps {
     userId: string;
 }
 
+interface Village {
+    id: string;
+    nom: string;
+}
+
+interface Quartier {
+    id: string;
+    village_id: string;
+    nom: string;
+}
+
 export default function EditProfileModal({ isOpen, onClose, onSuccess, initialData, userId }: EditProfileModalProps) {
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
+    const [villages, setVillages] = useState<Village[]>([]);
+    const [quartiers, setQuartiers] = useState<Quartier[]>([]);
+    const [filteredQuartiers, setFilteredQuartiers] = useState<Quartier[]>([]);
 
     // Valeurs par défaut vides
     const [formData, setFormData] = useState<ExtendedProfileData>({
@@ -71,14 +93,64 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
         village_origin: '',
         quartier_nom: '',
         detailsEnfants: [],
-        metadata: {}
+        metadata: {
+            father_first_name: '',
+            father_last_name: '',
+            father_birth_date: '',
+            mother_first_name: '',
+            mother_last_name: '',
+            mother_birth_date: '',
+        }
     });
 
     useEffect(() => {
+        if (isOpen) {
+            fetchVillagesAndQuartiers();
+        }
+    }, [isOpen]);
+
+    const fetchVillagesAndQuartiers = async () => {
+        try {
+            const [vRes, qRes] = await Promise.all([
+                supabase.from('villages').select('id, nom'),
+                supabase.from('quartiers').select('id, village_id, nom')
+            ]);
+            if (vRes.data) setVillages(vRes.data);
+            if (qRes.data) setQuartiers(qRes.data);
+        } catch (err) {
+            console.error("Error fetching villages/quartiers:", err);
+        }
+    };
+
+    useEffect(() => {
         if (initialData && isOpen) {
-            setFormData(initialData);
+            setFormData({
+                ...initialData,
+                metadata: {
+                    father_first_name: '',
+                    father_last_name: '',
+                    father_birth_date: '',
+                    mother_first_name: '',
+                    mother_last_name: '',
+                    mother_birth_date: '',
+                    ...(initialData.metadata || {})
+                }
+            });
         }
     }, [initialData, isOpen]);
+
+    useEffect(() => {
+        if (formData.village_origin) {
+            const village = villages.find(v => v.nom === formData.village_origin);
+            if (village) {
+                setFilteredQuartiers(quartiers.filter(q => q.village_id === village.id));
+            } else {
+                setFilteredQuartiers([]);
+            }
+        } else {
+            setFilteredQuartiers([]);
+        }
+    }, [formData.village_origin, villages, quartiers]);
 
     if (!isOpen) return null;
 
@@ -109,13 +181,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     whatsapp_2: formData.whatsapp2,
                     village_origin: formData.village_origin,
                     quartier_nom: formData.quartier_nom,
-                    metadata: {
-                        ...(formData.metadata || {}),
-                        father_first_name: formData.metadata?.father_first_name || '',
-                        father_last_name: formData.metadata?.father_last_name || '',
-                        mother_first_name: formData.metadata?.mother_first_name || '',
-                        mother_last_name: formData.metadata?.mother_last_name || '',
-                    },
+                    metadata: formData.metadata,
                     details_enfants: formData.detailsEnfants
                 })
                 .eq('id', userId);
@@ -182,11 +248,32 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Village d'origine <span className="text-red-500">*</span></label>
-                                    <input type="text" value={formData.village_origin} onChange={e => setFormData({ ...formData, village_origin: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="Ex: Toa-Zéo" required />
+                                    <select
+                                        value={formData.village_origin}
+                                        onChange={e => setFormData({ ...formData, village_origin: e.target.value, quartier_nom: '' })}
+                                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white"
+                                        required
+                                    >
+                                        <option value="">Sélectionner un village</option>
+                                        {villages.map(v => (
+                                            <option key={v.id} value={v.nom}>{v.nom}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Quartier <span className="text-red-500">*</span></label>
-                                    <input type="text" value={formData.quartier_nom} onChange={e => setFormData({ ...formData, quartier_nom: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" placeholder="Ex: Gbalê-Kouadio" required />
+                                    <select
+                                        value={formData.quartier_nom}
+                                        onChange={e => setFormData({ ...formData, quartier_nom: e.target.value })}
+                                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white disabled:opacity-50"
+                                        required
+                                        disabled={!formData.village_origin}
+                                    >
+                                        <option value="">Sélectionner un quartier</option>
+                                        {filteredQuartiers.map(q => (
+                                            <option key={q.id} value={q.nom}>{q.nom}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -194,19 +281,25 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                         {/* Lignée Héritage */}
                         <div>
                             <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Lignée & Héritage (Indispensable pour l'IA)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Paternelle</p>
-                                    <div className="space-y-3">
-                                        <input type="text" value={formData.metadata?.father_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom du Père" />
-                                        <input type="text" value={formData.metadata?.father_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom du Père" />
+                            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Paternelle</p>
+                                <div className="space-y-3">
+                                    <input type="text" value={formData.metadata?.father_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom du Père" required />
+                                    <input type="text" value={formData.metadata?.father_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom du Père" required />
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Date de naissance <span className="text-red-500">*</span></label>
+                                        <input type="date" value={formData.metadata?.father_birth_date || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_birth_date: e.target.value } })} className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]" required />
                                     </div>
                                 </div>
-                                <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Maternelle</p>
-                                    <div className="space-y-3">
-                                        <input type="text" value={formData.metadata?.mother_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom de la Mère" />
-                                        <input type="text" value={formData.metadata?.mother_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom de la Mère" />
+                            </div>
+                            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Maternelle</p>
+                                <div className="space-y-3">
+                                    <input type="text" value={formData.metadata?.mother_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom de la Mère" required />
+                                    <input type="text" value={formData.metadata?.mother_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom de la Mère" required />
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Date de naissance <span className="text-red-500">*</span></label>
+                                        <input type="date" value={formData.metadata?.mother_birth_date || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_birth_date: e.target.value } })} className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]" required />
                                     </div>
                                 </div>
                             </div>
@@ -259,11 +352,12 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     <input type="number" min="0" value={formData.nombreEnfants} onChange={e => setFormData({ ...formData, nombreEnfants: parseInt(e.target.value) || 0 })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all" />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Pays de résidence</label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Pays de résidence <span className="text-red-500">*</span></label>
                                     <select
                                         value={formData.residenceCountry}
                                         onChange={e => setFormData({ ...formData, residenceCountry: e.target.value })}
                                         className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white"
+                                        required
                                     >
                                         <option value="CI">🇨🇮 Côte d&apos;Ivoire</option>
                                         <option value="FR">🇫🇷 France</option>
@@ -281,12 +375,12 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     </select>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Ville de résidence (pour la carte)</label>
-                                    <input type="text" value={formData.residenceCity} onChange={e => setFormData({ ...formData, residenceCity: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" placeholder="Ex: Abidjan, Paris, Lyon..." />
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Ville de résidence (pour la carte) <span className="text-red-500">*</span></label>
+                                    <input type="text" value={formData.residenceCity} onChange={e => setFormData({ ...formData, residenceCity: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" placeholder="Ex: Abidjan, Paris, Lyon..." required />
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Complément d&apos;adresse</label>
-                                    <textarea value={formData.adresseResidence} onChange={e => setFormData({ ...formData, adresseResidence: e.target.value })} rows={2} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all resize-none" placeholder="Quartier, Précisions..."></textarea>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Complément d&apos;adresse <span className="text-red-500">*</span></label>
+                                    <textarea value={formData.adresseResidence} onChange={e => setFormData({ ...formData, adresseResidence: e.target.value })} rows={2} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all resize-none" placeholder="Quartier, Précisions..." required></textarea>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:col-span-2">
                                     <div>
