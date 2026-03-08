@@ -28,9 +28,11 @@ export interface ExtendedProfileData {
         father_first_name?: string;
         father_last_name?: string;
         father_birth_date?: string;
+        father_status?: string;
         mother_first_name?: string;
         mother_last_name?: string;
         mother_birth_date?: string;
+        mother_status?: string;
         [key: string]: any;
     };
     detailsEnfants?: Array<{
@@ -97,9 +99,11 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
             father_first_name: '',
             father_last_name: '',
             father_birth_date: '',
+            father_status: '',
             mother_first_name: '',
             mother_last_name: '',
             mother_birth_date: '',
+            mother_status: '',
         }
     });
 
@@ -130,9 +134,11 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     father_first_name: '',
                     father_last_name: '',
                     father_birth_date: '',
+                    father_status: '',
                     mother_first_name: '',
                     mother_last_name: '',
                     mother_birth_date: '',
+                    mother_status: '',
                     ...(initialData.metadata || {})
                 }
             });
@@ -281,25 +287,51 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                         {/* Lignée Héritage */}
                         <div>
                             <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Lignée & Héritage (Indispensable pour l'IA)</h3>
-                            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Paternelle</p>
-                                <div className="space-y-3">
-                                    <input type="text" value={formData.metadata?.father_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom du Père" required />
-                                    <input type="text" value={formData.metadata?.father_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom du Père" required />
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Date de naissance <span className="text-red-500">*</span></label>
-                                        <input type="date" value={formData.metadata?.father_birth_date || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_birth_date: e.target.value } })} className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]" required />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Paternelle</p>
+                                    <div className="space-y-3">
+                                        <input type="text" value={formData.metadata?.father_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom du Père" required />
+                                        <input type="text" value={formData.metadata?.father_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom du Père" required />
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Date de naissance <span className="text-red-500">*</span></label>
+                                            <input type="date" value={formData.metadata?.father_birth_date || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_birth_date: e.target.value } })} className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]" required />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Statut (si décédé)</label>
+                                            <select
+                                                value={formData.metadata?.father_status || ''}
+                                                onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, father_status: e.target.value } })}
+                                                className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]"
+                                            >
+                                                <option value="">Vivant</option>
+                                                <option value="Décédé">Décédé</option>
+                                                <option value="Victime crise 2010">Victime crise 2010</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                                <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Maternelle</p>
-                                <div className="space-y-3">
-                                    <input type="text" value={formData.metadata?.mother_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom de la Mère" required />
-                                    <input type="text" value={formData.metadata?.mother_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom de la Mère" required />
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Date de naissance <span className="text-red-500">*</span></label>
-                                        <input type="date" value={formData.metadata?.mother_birth_date || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_birth_date: e.target.value } })} className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]" required />
+                                <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Maternelle</p>
+                                    <div className="space-y-3">
+                                        <input type="text" value={formData.metadata?.mother_first_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_first_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Prénom de la Mère" required />
+                                        <input type="text" value={formData.metadata?.mother_last_name || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_last_name: e.target.value } })} className="w-full px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF6600]" placeholder="Nom de la Mère" required />
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Date de naissance <span className="text-red-500">*</span></label>
+                                            <input type="date" value={formData.metadata?.mother_birth_date || ''} onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_birth_date: e.target.value } })} className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]" required />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-bold text-gray-400 uppercase ml-1">Statut (si décédée)</label>
+                                            <select
+                                                value={formData.metadata?.mother_status || ''}
+                                                onChange={e => setFormData({ ...formData, metadata: { ...formData.metadata, mother_status: e.target.value } })}
+                                                className="w-full px-4 py-2 bg-white rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF6600]"
+                                            >
+                                                <option value="">Vivante</option>
+                                                <option value="Décédée">Décédée</option>
+                                                <option value="Victime crise 2010">Victime crise 2010</option>
+                                            </select>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
