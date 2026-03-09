@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserCog, Loader2, Save } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import { DIASPORA_COUNTRIES } from '@/lib/countries';
 
 export interface ExtendedProfileData {
     firstName: string;
@@ -72,6 +73,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
     const [villages, setVillages] = useState<Village[]>([]);
     const [quartiers, setQuartiers] = useState<Quartier[]>([]);
     const [filteredQuartiers, setFilteredQuartiers] = useState<Quartier[]>([]);
+    const [residenceCountryCustom, setResidenceCountryCustom] = useState('');
 
     // Valeurs par défaut vides
     const [formData, setFormData] = useState<ExtendedProfileData>({
@@ -128,6 +130,8 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
 
     useEffect(() => {
         if (initialData && isOpen) {
+            const countryExists = DIASPORA_COUNTRIES.some(c => c.code === initialData.residenceCountry);
+
             setFormData({
                 ...initialData,
                 metadata: {
@@ -140,8 +144,15 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     mother_birth_date: '',
                     mother_status: '',
                     ...(initialData.metadata || {})
-                }
+                },
+                residenceCountry: countryExists ? initialData.residenceCountry : (initialData.residenceCountry ? 'OTHER' : 'CI')
             });
+
+            if (!countryExists && initialData.residenceCountry) {
+                setResidenceCountryCustom(initialData.residenceCountry);
+            } else {
+                setResidenceCountryCustom('');
+            }
         }
     }, [initialData, isOpen]);
 
@@ -180,7 +191,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     nombre_enfants: formData.nombreEnfants,
                     adresse_residence: formData.adresseResidence,
                     residence_city: formData.residenceCity,
-                    residence_country: formData.residenceCountry,
+                    residence_country: formData.residenceCountry === 'OTHER' ? residenceCountryCustom : formData.residenceCountry,
                     phone_1: formData.phone1,
                     phone_2: formData.phone2,
                     whatsapp_1: formData.whatsapp1,
@@ -219,7 +230,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <p className="text-xs text-gray-600">Mettez à jour vos informations pour l'arbre généalogique</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
+                    <button onClick={onClose} type="button" className="p-2 text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
@@ -391,21 +402,25 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                         className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white"
                                         required
                                     >
-                                        <option value="CI">🇨🇮 Côte d&apos;Ivoire</option>
-                                        <option value="FR">🇫🇷 France</option>
-                                        <option value="BE">🇧🇪 Belgique</option>
-                                        <option value="CH">🇨🇭 Suisse</option>
-                                        <option value="CA">🇨🇦 Canada</option>
-                                        <option value="US">🇺🇸 États-Unis</option>
-                                        <option value="GB">🇬🇧 Royaume-Uni</option>
-                                        <option value="SN">🇸🇳 Sénégal</option>
-                                        <option value="ML">🇲🇱 Mali</option>
-                                        <option value="BF">🇧🇫 Burkina Faso</option>
-                                        <option value="GH">🇬🇭 Ghana</option>
-                                        <option value="CM">🇨🇲 Cameroun</option>
+                                        {DIASPORA_COUNTRIES.map(c => (
+                                            <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                                        ))}
                                         <option value="OTHER">🌍 Autre pays</option>
                                     </select>
                                 </div>
+                                {formData.residenceCountry === 'OTHER' && (
+                                    <div className="md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Précisez le pays <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="text"
+                                            value={residenceCountryCustom}
+                                            onChange={e => setResidenceCountryCustom(e.target.value)}
+                                            className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all"
+                                            placeholder="Ex: Canada, Belgique, Togo..."
+                                            required
+                                        />
+                                    </div>
+                                )}
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Ville de résidence (pour la carte) <span className="text-red-500">*</span></label>
                                     <input type="text" value={formData.residenceCity} onChange={e => setFormData({ ...formData, residenceCity: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all placeholder:text-gray-400" placeholder="Ex: Abidjan, Paris, Lyon..." required />

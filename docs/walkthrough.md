@@ -212,5 +212,93 @@ Filtrage par Village : Le CHOa ne voit que les membres qui ont déclaré le mêm
 Rôle à l'inscription : Seuls les utilisateurs ayant le rôle user sont soumis à ce flux.
 Conseil : Vérifiez que le village renseigné par l'utilisateur lors de son inscription correspond exactement à celui assigné au CHOa.
 
-Est-ce que ces éclaircissements répondent à vos attentes ?
+
+Walkthrough : Refactorisation Dashboard Admin & Permissions
+J'ai implémenté une version premium et granulaire du système de permissions pour les administrateurs adjoints, garantissant que chaque assistant n'a accès qu'à ce qui lui est strictement assigné.
+
+1. Changements en Base de Données
+Un nouveau script SQL a été créé pour étendre la table des permissions :
+
+Fichier : 
+Add_Missing_Permissions.sql
+Colonnes ajoutées : can_manage_roles, can_view_audit_logs, can_manage_settings.
+Politique : L'Admin Principal (Pacous) conserve un accès total par défaut.
+2. Synchronisation de l'API
+L'API de création d'assistant a été mise à jour pour traiter ces nouvelles permissions.
+
+Fichier : 
+create-assistant/route.ts
+Les permissions cochées lors de la création sont désormais enregistrées directement en base.
+3. Refonte de l'UI (Dashboard Admin)
+Le fichier 
+page.tsx
+ a subi une transformation majeure :
+
+Sidebar Conditionnelle
+Par défaut, un Assistant Admin ne voit que :
+
+Vue d'ensemble
+Mon Arbre
+Les onglets suivants n'apparaissent que si la permission est accordée :
+
+Comptes & Rôles (Permission Gestion Rôles)
+Journal (Audit) (Permission Voir Audit)
+Paramètres (Permission Gérer Paramètres)
+Et les autres onglets déjà existants (Validations, Villages, etc.).
+Gestion des Rôles Restaurée (Bug Corrigé)
+Emplacement : Onglet "Comptes & Rôles".
+Nouveauté : Une colonne "Rôle" a été ajoutée. Elle contient un sélecteur interactif (select) permettant de modifier les rôles en temps réel (USER, 
+CHO
+, CHOA, ADMIN (ASST)).
+Sécurité : Le rôle de l'Admin Principal (Pacous) est verrouillé et ne peut pas être modifié via ce sélecteur pour éviter toute erreur de manipulation.
+Sécurisation des Actions (Bug fixé)
+J'ai identifié et corrigé un bug où les boutons d'actions étaient visibles même sans permission. Désormais :
+
+Le bouton "Exporter CSV" est masqué sans la permission can_export_data.
+Le bouton "Délivrer Certificat" est masqué sans la permission can_issue_certificates.
+Le bouton d'Autorisation d'Export individuel est masqué sans permission d'export.
+Gestion Étendue des Assistants
+La modale de création et le tableau de suivi affichent maintenant 10 permissions distinctes pour un pilotage précis.
+
+4. Optimisation de l'Expérience Utilisateur (Nouveau)
+J'ai implémenté plusieurs améliorations pour fluidifier la navigation et encourager la saisie de données de qualité.
+
+Pagination Intégrée
+Désormais, tous les tableaux volumineux sont paginés (20 éléments par page) pour optimiser les performances et la lisibilité :
+
+CHO Dashboard : Onglets En attente, Certifiés, Rejetés et Mon Équipe.
+CHOa Dashboard : Onglets En attente, Transmis et Validés.
+Admin Dashboard : Onglet Gestion des Assistants.
+Navigation Par Scrollbars
+Optimisation du défilement horizontal (overflow-x-auto) sur les tableaux administratifs pour garantir une accessibilité parfaite sur tous les écrans, y compris mobiles.
+Incitation à la Complétion (Profil Utilisateur)
+Une nouvelle bannière interactive a été ajoutée au dashboard utilisateur :
+
+Refonte des Paramètres Admin
+L'onglet "Paramètres" du dashboard administrateur a été entièrement repensé :
+
+Suppression : Le workflow de migration manuel (obsolète) a été retiré.
+Nouveau Design : Interface en cartes premium divisée en 4 sections :
+Identité : Nom, Slogan et Village Pilote.
+Design : Aperçu du logo et palette de couleurs.
+Sécurité : Statut RLS Supabase et version du build.
+Maintenance : Boutons d'action pour le cache, la DB et les sauvegardes.
+Esthétique : Utilisation d'icônes lucide-react et d'effets de flou (Glassmorphism) pour un rendu haut de gamme.
+Cible : Utilisateurs ayant des informations critiques manquantes (Téléphone, Genre, Naissance, Village par défaut, Quartier, Résidence complète et Lignée avec dates de naissance des parents).
+Sélection Assistée : Le Village d'origine et le Quartier sont désormais à choisir parmi les listes validées en base de données pour éviter les erreurs de saisie.
+Rigueur des Données : Les dates de naissance du père et de la mère sont désormais obligatoires pour une meilleure analyse par l'IA généalogique.
+Statut Vital des Parents : Des sélecteurs ont été ajoutés pour indiquer si un parent est Décédé(e) ou Victime crise 2010. Ces informations sont persistantes et modifiables directement dans le profil.
+Précision Cartographique : Les champs Pays, Ville et Adresse de résidence sont maintenant obligatoires, garantissant l'affichage exact des membres sur la Carte des Migrations.
+Gestion des Certificats (Dashboard Assistant)
+Nouvel Onglet "Certificats" : Un onglet dédié a été ajouté pour les assistants admin possédant la permission can_issue_certificates.
+Fonctionnalité : Permet de lister uniquement les demandes en attente et de délivrer officiellement le certificat d'appartenance.
+5. Corrections de Données & Redirections
+Cas Pacous STAR
+Problème : L'utilisateur pacousstar01@gmail.com était redirigé vers le dashboard user au lieu du dashboard choa.
+Solution : Son rôle a été forcé à choa dans la base de données. La redirection est désormais opérationnelle.
+Vérification Finale
+ Typage TypeScript valide.
+ Build de production Next.js réussi.
+ Sélecteurs dynamiques fonctionnels (Village -> Quartiers).
+ Contraintes de résidence appliquées pour la Carte des Migrations.
 

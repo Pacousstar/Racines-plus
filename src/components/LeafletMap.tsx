@@ -194,11 +194,20 @@ export default function LeafletMap({ markers }: LeafletMapProps) {
                 </Popup>
             </Marker>
 
-            {/* 🟩 Villes de Côte d'Ivoire */}
+            {/* 🟩 Villes de Côte d'Ivoire + lignes de migration internes */}
             {ciMarkers.map((item, idx) => (
-                <Marker key={`ci-${idx}`} position={[item.lat!, item.lng!]} icon={createCIIcon(item.count)}>
-                    <Popup><MemberPopup item={item} /></Popup>
-                </Marker>
+                <React.Fragment key={`ci-wrap-${idx}`}>
+                    <Polyline
+                        positions={[TOA_ZEO, [item.lat!, item.lng!]]}
+                        color="#1f6b4a"
+                        weight={1.5}
+                        opacity={0.45}
+                        dashArray="6, 8"
+                    />
+                    <Marker position={[item.lat!, item.lng!]} icon={createCIIcon(item.count)}>
+                        <Popup><MemberPopup item={item} /></Popup>
+                    </Marker>
+                </React.Fragment>
             ))}
 
             {/* 🟠 Diaspora internationale + lignes de migration */}

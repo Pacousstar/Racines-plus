@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowLeft, Camera, ShieldCheck, MapPin, Loader2, Eye, EyeOff, Check, X, ZoomIn, ZoomOut, RotateCcw, Home, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import { DIASPORA_COUNTRIES } from '@/lib/countries';
 
 // ─────────────────────────────────────
 // Composant de recadrage de photo
@@ -559,9 +560,9 @@ export default function Onboarding() {
                                     <label className="block text-xs font-bold text-white/90 uppercase tracking-wide mb-1">Pays de résidence</label>
                                     <select value={formData.residenceCountry} onChange={(e) => updateFormData('residenceCountry', e.target.value)}
                                         className="w-full px-4 py-3 rounded-2xl border-2 border-gray-100 focus:border-[#FF6600] outline-none transition-all bg-gray-50 hover:bg-white text-gray-900">
-                                        <option value="CI">🇨🇮 Côte d&apos;Ivoire</option>
-                                        <option value="FR">🇫🇷 France (Diaspora)</option>
-                                        <option value="US">🇺🇸 États-Unis (Diaspora)</option>
+                                        {DIASPORA_COUNTRIES.map(c => (
+                                            <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                                        ))}
                                         <option value="OTHER">🌍 Autre pays</option>
                                     </select>
                                 </div>

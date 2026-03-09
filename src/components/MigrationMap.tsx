@@ -26,13 +26,21 @@ export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; flag: st
     'BE': { lat: 50.5039, lng: 4.4699, flag: '🇧🇪', name: 'Belgique' },
     'GB': { lat: 55.3781, lng: -3.4360, flag: '🇬🇧', name: 'Royaume-Uni' },
     'DE': { lat: 51.1657, lng: 10.4515, flag: '🇩🇪', name: 'Allemagne' },
+    'IT': { lat: 41.8719, lng: 12.5674, flag: '🇮🇹', name: 'Italie' },
+    'ES': { lat: 40.4637, lng: -3.7492, flag: '🇪🇸', name: 'Espagne' },
+    'NL': { lat: 52.1326, lng: 5.2913, flag: '🇳🇱', name: 'Pays-Bas' },
+    'CH': { lat: 46.8182, lng: 8.2275, flag: '🇨🇭', name: 'Suisse' },
     'SN': { lat: 14.4974, lng: -14.4524, flag: '🇸🇳', name: 'Sénégal' },
     'CM': { lat: 7.3697, lng: 12.3547, flag: '🇨🇲', name: 'Cameroun' },
     'MA': { lat: 31.7917, lng: -7.0926, flag: '🇲🇦', name: 'Maroc' },
+    'TN': { lat: 33.8869, lng: 9.5375, flag: '🇹🇳', name: 'Tunisie' },
     'GN': { lat: 9.9456, lng: -11.1874, flag: '🇬🇳', name: 'Guinée' },
     'BF': { lat: 12.3641, lng: -1.5275, flag: '🇧🇫', name: 'Burkina Faso' },
     'ML': { lat: 17.5707, lng: -3.9962, flag: '🇲🇱', name: 'Mali' },
     'GH': { lat: 7.9465, lng: -1.0232, flag: '🇬🇭', name: 'Ghana' },
+    'TG': { lat: 8.6195, lng: 0.8248, flag: '🇹🇬', name: 'Togo' },
+    'BJ': { lat: 9.3077, lng: 2.3158, flag: '🇧🇯', name: 'Bénin' },
+    'GA': { lat: -0.8037, lng: 11.6094, flag: '🇬🇦', name: 'Gabon' },
 };
 
 export const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
