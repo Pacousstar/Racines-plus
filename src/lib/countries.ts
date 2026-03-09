@@ -20,4 +20,5 @@ export const DIASPORA_COUNTRIES = [
     { code: 'GA', name: 'Gabon', flag: '🇬🇦' },
     { code: 'MA', name: 'Maroc', flag: '🇲🇦' },
     { code: 'TN', name: 'Tunisie', flag: '🇹🇳' },
+    { code: 'CN', name: 'Chine', flag: '🇨🇳' },
 ];

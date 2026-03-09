@@ -41,6 +41,20 @@ export const COUNTRY_COORDS: Record<string, { lat: number; lng: number; flag: st
     'TG': { lat: 8.6195, lng: 0.8248, flag: '🇹🇬', name: 'Togo' },
     'BJ': { lat: 9.3077, lng: 2.3158, flag: '🇧🇯', name: 'Bénin' },
     'GA': { lat: -0.8037, lng: 11.6094, flag: '🇬🇦', name: 'Gabon' },
+    'GABON': { lat: -0.8037, lng: 11.6094, flag: '🇬🇦', name: 'Gabon' },
+    'CN': { lat: 35.8617, lng: 104.1954, flag: '🇨🇳', name: 'Chine' },
+    'CHINE': { lat: 35.8617, lng: 104.1954, flag: '🇨🇳', name: 'Chine' },
+    'CHINA': { lat: 35.8617, lng: 104.1954, flag: '🇨🇳', name: 'Chine' },
+    'MALI': { lat: 17.5707, lng: -3.9962, flag: '🇲🇱', name: 'Mali' },
+    'BENIN': { lat: 9.3077, lng: 2.3158, flag: '🇧🇯', name: 'Bénin' },
+    'TOGO': { lat: 8.6195, lng: 0.8248, flag: '🇹🇬', name: 'Togo' },
+    'SENEGAL': { lat: 14.4974, lng: -14.4524, flag: '🇸🇳', name: 'Sénégal' },
+    'BURKINA': { lat: 12.3641, lng: -1.5275, flag: '🇧🇫', name: 'Burkina Faso' },
+    'USA': { lat: 37.0902, lng: -95.7129, flag: '🇺🇸', name: 'États-Unis' },
+    'GERMANY': { lat: 51.1657, lng: 10.4515, flag: '🇩🇪', name: 'Allemagne' },
+    'ALLEMAGNE': { lat: 51.1657, lng: 10.4515, flag: '🇩🇪', name: 'Allemagne' },
+    'BELGIQUE': { lat: 50.5039, lng: 4.4699, flag: '🇧🇪', name: 'Belgique' },
+    'CANADA': { lat: 56.1304, lng: -106.3468, flag: '🇨🇦', name: 'Canada' },
 };
 
 export const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
@@ -76,6 +90,9 @@ export const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
     'ACCRA': { lat: 5.603717, lng: -0.186964 },
     'LOMÉ': { lat: 6.137482, lng: 1.212451 },
     'LOME': { lat: 6.137482, lng: 1.212451 },
+    'PÉKIN': { lat: 39.9042, lng: 116.4074 },
+    'PEKIN': { lat: 39.9042, lng: 116.4074 },
+    'BEIJING': { lat: 39.9042, lng: 116.4074 },
     'TOA-ZÉO': { lat: 6.805080, lng: -7.329396 },
     'TOA-ZEO': { lat: 6.805080, lng: -7.329396 }
 };
