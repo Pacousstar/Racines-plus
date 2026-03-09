@@ -118,7 +118,10 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     phone1: data.phone_1 || '',
                     phone2: data.phone_2 || '',
                     whatsapp1: data.whatsapp_1 || '',
-                    whatsapp2: data.whatsapp_2 || ''
+                    whatsapp2: data.whatsapp_2 || '',
+                    village_origin: data.village_origin || '',
+                    quartier_nom: data.quartier_nom || '',
+                    metadata: data.metadata || {}
                 }
             });
 
@@ -197,14 +200,8 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     </div>
                     <div className="flex-1 text-center md:text-left relative z-10">
                         <h3 className="text-gray-900 font-black text-2xl leading-tight mb-2">Héritage incomplet ! 🌳</h3>
-                        <p className="text-base text-gray-600 font-medium max-w-2xl">Certaines informations essentielles (téléphone, genre, naissance) manquent. Complétez-les pour obtenir votre <span className="text-[#FF6600] font-black italic">Certification CHO d&apos;Honneur</span>.</p>
+                        <p className="text-base text-gray-600 font-medium max-w-2xl">Certaines informations essentielles (téléphone, genre, naissance) manquent. Complétez-les via votre <span className="text-[#FF6600] font-black italic">Fiche détaillée</span> pour obtenir votre certification.</p>
                     </div>
-                    <button
-                        onClick={() => setIsEditProfileOpen(true)}
-                        className="bg-[#FF6600] text-white px-10 py-5 rounded-[2rem] font-black text-sm hover:bg-[#e55c00] transition-all shadow-2xl shadow-orange-200 hover:scale-[1.05] active:scale-95 uppercase tracking-widest whitespace-nowrap relative z-10"
-                    >
-                        Compléter maintenant ✍️
-                    </button>
                 </div>
             )}
 

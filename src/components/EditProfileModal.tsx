@@ -145,7 +145,9 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                     mother_status: '',
                     ...(initialData.metadata || {})
                 },
-                residenceCountry: countryExists ? initialData.residenceCountry : (initialData.residenceCountry ? 'OTHER' : 'CI')
+                residenceCountry: countryExists ? initialData.residenceCountry : (initialData.residenceCountry ? 'OTHER' : 'CI'),
+                village_origin: initialData.village_origin || '',
+                quartier_nom: initialData.quartier_nom || ''
             });
 
             if (!countryExists && initialData.residenceCountry) {
