@@ -7,6 +7,7 @@ import { ArrowRight, ArrowLeft, Camera, ShieldCheck, MapPin, Loader2, Eye, EyeOf
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { DIASPORA_COUNTRIES } from '@/lib/countries';
+import { toast } from 'react-hot-toast';
 
 // ─────────────────────────────────────
 // Composant de recadrage de photo
@@ -317,9 +318,11 @@ export default function Onboarding() {
             });
 
             if (signInError) {
+                toast.success('Inscription réussie ! Veuillez vous connecter.');
                 // L'user est créé mais la connexion auto a échoué → page login
                 router.push('/login?registered=1');
             } else {
+                toast.success('Inscription réussie ! Bienvenue sur Racines+ ! 🌳');
                 router.push('/dashboard');
             }
 

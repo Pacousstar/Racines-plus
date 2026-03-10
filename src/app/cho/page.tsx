@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
+import AppLayout from '@/components/AppLayout';
 import InternalMessaging from '@/components/InternalMessaging';
 
 interface PendingProfile {
@@ -506,393 +507,347 @@ export default function ChoBoard() {
     );
 
     return (
-        <div className="min-h-screen bg-[#fafafa] text-foreground relative overflow-hidden">
-            {/* Éléments de design d'arrière-plan (Mesh Gradient) */}
-            <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-100/30 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-100/20 rounded-full blur-[120px]" />
+        <AppLayout
+            role="cho"
+            activeTab={activeTab}
+            onTabChange={(id) => setActiveTab(id as any)}
+            userName={`${myProfile?.first_name ?? ''} ${myProfile?.last_name ?? ''}`}
+            userAvatar={myProfile?.avatar_url ?? null}
+            onLogout={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+            village={myProfile?.village_origin || 'Toa-Zéo'}
+        >
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+                <div>
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="px-3 py-1 bg-[#FF6600]/10 backdrop-blur-md rounded-full border border-orange-100/50">
+                            <p className="text-[10px] font-black text-[#FF6600] uppercase tracking-[0.2em]">Tableau de Validation Alpha</p>
+                        </div>
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight mb-2">
+                        Gestion du <span className="text-[#FF6600]">Patrimoine</span>
+                    </h1>
+                    <p className="text-gray-500 font-medium max-w-md">
+                        Bienvenue, Commandant. Votre expertise assure l&apos;intégrité et la pérennité de l&apos;arbre de <span className="text-gray-900 font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>.
+                    </p>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                    <div className="p-4 bg-white shadow-sm rounded-[2rem] border border-gray-100 text-right">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Session active</p>
+                        <p className="text-sm font-bold text-gray-900">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                </div>
             </div>
 
-            <div className="relative z-10 animate-in fade-in duration-700">
-                {/* Navbar Glassmorphism Premium Orange */}
-                <header className="fixed top-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-b border-orange-50 flex items-center justify-between px-8 z-[100] shadow-sm">
-                    <div className="flex items-center gap-6">
-                        <Link href="/" className="group relative">
-                            <div className="absolute -inset-2 bg-gradient-to-r from-orange-400 to-amber-400 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-all duration-500" />
-                            <Image src="/LOGO_Racines.png" alt="Racines+" width={120} height={40} className="relative object-contain" />
-                        </Link>
-                        <div className="h-10 w-[1px] bg-gray-100 hidden md:block" />
-                        <div className="hidden md:flex items-center gap-3 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FF6600]/10 to-transparent border border-orange-100/50">
-                            <div className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
-                            <span className="text-[10px] font-black tracking-[0.2em] text-[#FF6600] uppercase">Chef d&apos;Organisation</span>
+            <div className="flex gap-4 mb-12 overflow-x-auto pb-6 px-2 scrollbar-hide no-scrollbar uppercase tracking-[0.1em]">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                        className={`flex items-center gap-3 px-8 py-5 rounded-[2rem] text-[11px] font-black tracking-[0.15em] transition-all duration-500 whitespace-nowrap relative group ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-2xl shadow-gray-400 -translate-y-1' : 'bg-white/50 backdrop-blur-md border border-white/60 text-gray-500 hover:bg-white hover:text-[#FF6600] hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5'}`}
+                    >
+                        <div className={`p-2 rounded-xl transition-colors duration-500 ${activeTab === tab.key ? 'bg-[#FF6600]/20 text-[#FF6600]' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF6600]'}`}>
+                            <tab.icon className="w-4 h-4" />
                         </div>
+                        {tab.label}
+                        {tab.count > 0 && (
+                            <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg animate-in zoom-in duration-500`}>
+                                {tab.count}
+                            </span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {
+                activeTab === 'mon_arbre' && currentUserId && (
+                    <div className="mt-4">
+                        <UserDashboardContent userId={currentUserId} />
                     </div>
+                )
+            }
 
-                    <div className="flex items-center gap-4">
-                        <div className="relative group cursor-pointer" onClick={() => setActiveTab('team')}>
-                            <div className="p-3 rounded-2xl bg-gray-50 text-gray-400 group-hover:text-[#FF6600] group-hover:bg-orange-50 transition-all duration-300">
-                                <MessageSquare className={`w-5 h-5 ${unreadCount > 0 ? 'text-[#FF6600] scale-110' : ''}`} />
-                            </div>
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF6600] text-white text-[10px] flex items-center justify-center rounded-xl border-2 border-white font-black shadow-lg animate-bounce">
-                                    {unreadCount}
-                                </span>
-                            )}
-                        </div>
-
-                        <div className="h-8 w-[1px] bg-gray-100" />
-
-                        <div className="flex items-center gap-3 pl-2">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-black text-gray-900 leading-none">{myProfile?.first_name} {myProfile?.last_name}</p>
-                                <p className="text-[10px] font-bold text-[#FF6600] mt-1 uppercase tracking-widest">{myProfile?.village_origin || 'Village'}</p>
-                            </div>
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-all" />
-                                <img
-                                    src={myProfile?.avatar_url || `https://ui-avatars.com/api/?name=${myProfile?.first_name}+${myProfile?.last_name}&background=FF6600&color=fff&bold=true`}
-                                    alt="Avatar"
-                                    className="relative w-11 h-11 rounded-2xl border-2 border-white shadow-xl object-cover"
-                                />
-                            </div>
-                            <button
-                                onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
-                                className="p-3 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
-                                title="Déconnexion"
-                            >
-                                <LogOut className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="pt-32 px-4 md:px-8 max-w-7xl mx-auto pb-24">
-                    {/* Hero Section with ouf effect */}
-                    <div className="relative mb-12 p-10 rounded-[3rem] bg-gray-900 overflow-hidden shadow-2xl shadow-orange-900/10 border border-white/5">
-                        <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-[#FF6600]/20 to-transparent pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-600/20 rounded-full blur-[100px] pointer-events-none" />
-
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                            <div>
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
-                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em]">Tableau de Validation Alpha</p>
-                                    </div>
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                                </div>
-                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-                                    Gestion du <span className="text-[#FF6600]">Patrimoine</span>
-                                </h1>
-                                <p className="text-gray-400 font-medium max-w-md">
-                                    Bienvenue, Commandant. Votre expertise assure l&apos;intégrité et la pérennité de l&apos;arbre de <span className="text-white font-bold">{myProfile?.village_origin || 'Toa-Zéo'}</span>.
-                                </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <div className="p-4 bg-white/5 backdrop-blur-lg rounded-[2rem] border border-white/10 text-right">
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Session active</p>
-                                    <p className="text-sm font-bold text-white">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4 mb-12 overflow-x-auto pb-6 px-2 scrollbar-hide no-scrollbar">
-                        {tabs.map(tab => (
-                            <button
-                                key={tab.key}
-                                onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                                className={`flex items-center gap-3 px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-500 whitespace-nowrap relative group ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-2xl shadow-gray-400 -translate-y-1' : 'bg-white/50 backdrop-blur-md border border-white/60 text-gray-500 hover:bg-white hover:text-[#FF6600] hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5'}`}
-                            >
-                                <div className={`p-2 rounded-xl transition-colors duration-500 ${activeTab === tab.key ? 'bg-[#FF6600]/20 text-[#FF6600]' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF6600]'}`}>
-                                    <tab.icon className="w-4 h-4" />
-                                </div>
-                                {tab.label}
-                                {tab.count > 0 && (
-                                    <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg animate-in zoom-in duration-500`}>
-                                        {tab.count}
-                                    </span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-
-                    {activeTab === 'mon_arbre' && currentUserId && (
-                        <div className="mt-4">
-                            <UserDashboardContent userId={currentUserId} />
-                        </div>
-                    )}
-
-                    {/* À valider */}
-                    {activeTab === 'tasks' && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center mb-2">
-                                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
-                                    <Clock className="w-3 h-3" /> Dossiers en attente ({pendingProfiles.length})
-                                </h2>
-                                {myProfile?.export_authorized ? (
-                                    <button
-                                        onClick={() => handleExport(pendingProfiles, 'en_attente')}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition-all active:scale-95"
-                                    >
-                                        <Download className="w-3 h-3" /> Exporter
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleRequestExport}
-                                        disabled={myProfile?.export_requested}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95 ${myProfile?.export_requested ? 'bg-gray-50 text-gray-600 border border-gray-100' : 'bg-orange-50 text-[#FF6600] border border-orange-100 hover:bg-orange-100'}`}
-                                    >
-                                        <Lock className="w-3 h-3" /> {myProfile?.export_requested ? 'Export demandé' : 'Demander accès export'}
-                                    </button>
-                                )}
-                            </div>
-                            {isLoading && <p className="text-sm text-gray-600 text-center py-8">Chargement...</p>}
-                            {!isLoading && pendingProfiles.length === 0 && (
-                                <div className="bg-white rounded-3xl p-10 text-center border border-gray-100">
-                                    <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
-                                    <p className="font-semibold text-gray-700">Aucun profil en attente !</p>
-                                    <p className="text-sm text-gray-600 mt-1">Tous les profils ont été traités.</p>
-                                </div>
-                            )}
-                            {(() => {
-                                const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
-                                const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
-                                return (
-                                    <>
-                                        {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
-                                        {totalPages > 1 && (
-                                            <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
-                                                <button disabled={pendingPage === 1} onClick={() => setPendingPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
-                                                <span className="text-sm font-semibold text-gray-600">Page {pendingPage} sur {totalPages}</span>
-                                                <button disabled={pendingPage === totalPages} onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
-                                            </div>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    )}
-
-                    {/* Confirmés */}
-                    {activeTab === 'confirmed' && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center mb-2">
-                                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
-                                    <CheckCircle className="w-3 h-3" /> Dossiers Certifiés ✅ ({confirmedProfiles.length})
-                                </h2>
-                                {myProfile?.export_authorized && (
-                                    <button
-                                        onClick={() => handleExport(confirmedProfiles, 'confirmes')}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition-all active:scale-95"
-                                    >
-                                        <Download className="w-3 h-3" /> Exporter
-                                    </button>
-                                )}
-                            </div>
-                            {confirmedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil confirmé pour l&apos;instant.</p>}
-                            {(() => {
-                                const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
-                                const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
-                                return (
-                                    <>
-                                        {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                        {totalPages > 1 && (
-                                            <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
-                                                <button disabled={confirmedPage === 1} onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
-                                                <span className="text-sm font-semibold text-gray-600">Page {confirmedPage} sur {totalPages}</span>
-                                                <button disabled={confirmedPage === totalPages} onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
-                                            </div>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    )}
-
-                    {/* Rejetés */}
-                    {activeTab === 'rejected' && (
-                        <div className="space-y-4">
-                            {rejectedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil rejeté.</p>}
-                            {(() => {
-                                const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
-                                const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
-                                return (
-                                    <>
-                                        {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                        {totalPages > 1 && (
-                                            <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
-                                                <button disabled={rejectedPage === 1} onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
-                                                <span className="text-sm font-semibold text-gray-600">Page {rejectedPage} sur {totalPages}</span>
-                                                <button disabled={rejectedPage === totalPages} onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
-                                            </div>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    )}
-
-                    {activeTab === 'ancestor' && (
-                        <div className="max-w-2xl mx-auto bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-2xl shadow-purple-100 flex flex-col items-center text-center relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500" />
-
-                            <div className="w-24 h-24 bg-purple-50 rounded-[2rem] flex items-center justify-center mb-6 rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                                <TreePine className="w-12 h-12 text-purple-600" />
-                            </div>
-
-                            <h2 className="font-black text-3xl text-gray-900 mb-2">Inscrire l'Ancêtre Fondateur</h2>
-                            <p className="text-gray-500 font-medium mb-10 max-w-sm">Cette action certifie immuablement l'origine du village dans le Grand Registre Patrimonial.</p>
-
-                            {ancestreSaved ? (
-                                <div className="animate-in zoom-in duration-500 flex flex-col items-center">
-                                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                                        <CheckCircle className="w-10 h-10 text-green-600" />
-                                    </div>
-                                    <h3 className="font-black text-2xl text-gray-900 mb-2">Ancêtre Certifié !</h3>
-                                    <p className="text-gray-500 font-medium">L'ancêtre <strong>{ancestreNom}</strong> est désormais le socle de ce village.</p>
-                                    <button onClick={() => setAncretreSaved(false)} className="mt-8 text-sm font-black text-purple-600 hover:underline">Inscrire un autre ancêtre</button>
-                                </div>
+            {/* À valider */}
+            {
+                activeTab === 'tasks' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
+                                <Clock className="w-3 h-3" /> Dossiers en attente ({pendingProfiles.length})
+                            </h2>
+                            {myProfile?.export_authorized ? (
+                                <button
+                                    onClick={() => handleExport(pendingProfiles, 'en_attente')}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition-all active:scale-95"
+                                >
+                                    <Download className="w-3 h-3" /> Exporter
+                                </button>
                             ) : (
-                                <div className="w-full space-y-5 text-left">
+                                <button
+                                    onClick={handleRequestExport}
+                                    disabled={myProfile?.export_requested}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95 ${myProfile?.export_requested ? 'bg-gray-50 text-gray-600 border border-gray-100' : 'bg-orange-50 text-[#FF6600] border border-orange-100 hover:bg-orange-100'}`}
+                                >
+                                    <Lock className="w-3 h-3" /> {myProfile?.export_requested ? 'Export demandé' : 'Demander accès export'}
+                                </button>
+                            )}
+                        </div>
+                        {isLoading && <p className="text-sm text-gray-600 text-center py-8">Chargement...</p>}
+                        {!isLoading && pendingProfiles.length === 0 && (
+                            <div className="bg-white rounded-3xl p-10 text-center border border-gray-100">
+                                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-3" />
+                                <p className="font-semibold text-gray-700">Aucun profil en attente !</p>
+                                <p className="text-sm text-gray-600 mt-1">Tous les profils ont été traités.</p>
+                            </div>
+                        )}
+                        {(() => {
+                            const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
+                            const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={pendingPage === 1} onClick={() => setPendingPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {pendingPage} sur {totalPages}</span>
+                                            <button disabled={pendingPage === totalPages} onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                )
+            }
+
+            {/* Confirmés */}
+            {
+                activeTab === 'confirmed' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
+                                <CheckCircle className="w-3 h-3" /> Dossiers Certifiés ✅ ({confirmedProfiles.length})
+                            </h2>
+                            {myProfile?.export_authorized && (
+                                <button
+                                    onClick={() => handleExport(confirmedProfiles, 'confirmes')}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition-all active:scale-95"
+                                >
+                                    <Download className="w-3 h-3" /> Exporter
+                                </button>
+                            )}
+                        </div>
+                        {confirmedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil confirmé pour l&apos;instant.</p>}
+                        {(() => {
+                            const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
+                            const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={confirmedPage === 1} onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {confirmedPage} sur {totalPages}</span>
+                                            <button disabled={confirmedPage === totalPages} onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                )
+            }
+
+            {/* Rejetés */}
+            {
+                activeTab === 'rejected' && (
+                    <div className="space-y-4">
+                        {rejectedProfiles.length === 0 && <p className="text-sm text-gray-600 text-center py-8">Aucun profil rejeté.</p>}
+                        {(() => {
+                            const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
+                            const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-2 mt-4">
+                                            <button disabled={rejectedPage === 1} onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                            <span className="text-sm font-semibold text-gray-600">Page {rejectedPage} sur {totalPages}</span>
+                                            <button disabled={rejectedPage === totalPages} onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                )
+            }
+
+            {
+                activeTab === 'ancestor' && (
+                    <div className="max-w-2xl mx-auto bg-white rounded-[2.5rem] p-10 border border-gray-100 shadow-2xl shadow-purple-100 flex flex-col items-center text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500" />
+
+                        <div className="w-24 h-24 bg-purple-50 rounded-[2rem] flex items-center justify-center mb-6 rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                            <TreePine className="w-12 h-12 text-purple-600" />
+                        </div>
+
+                        <h2 className="font-black text-3xl text-gray-900 mb-2">Inscrire l'Ancêtre Fondateur</h2>
+                        <p className="text-gray-500 font-medium mb-10 max-w-sm">Cette action certifie immuablement l'origine du village dans le Grand Registre Patrimonial.</p>
+
+                        {ancestreSaved ? (
+                            <div className="animate-in zoom-in duration-500 flex flex-col items-center">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                                    <CheckCircle className="w-10 h-10 text-green-600" />
+                                </div>
+                                <h3 className="font-black text-2xl text-gray-900 mb-2">Ancêtre Certifié !</h3>
+                                <p className="text-gray-500 font-medium">L'ancêtre <strong>{ancestreNom}</strong> est désormais le socle de ce village.</p>
+                                <button onClick={() => setAncretreSaved(false)} className="mt-8 text-sm font-black text-purple-600 hover:underline">Inscrire un autre ancêtre</button>
+                            </div>
+                        ) : (
+                            <div className="w-full space-y-5 text-left">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identité Nominale</label>
+                                    <input
+                                        type="text"
+                                        value={ancestreNom}
+                                        onChange={e => setAncetreNom(e.target.value)}
+                                        placeholder="Ex: Fondateur TAESSOO..."
+                                        className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-base font-bold transition-all"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Identité Nominale</label>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Époque / Siècle</label>
                                         <input
                                             type="text"
-                                            value={ancestreNom}
-                                            onChange={e => setAncetreNom(e.target.value)}
-                                            placeholder="Ex: Fondateur TAESSOO..."
-                                            className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-base font-bold transition-all"
+                                            value={ancestrePeriode}
+                                            onChange={e => setAncretrePeriode(e.target.value)}
+                                            placeholder="Ex: ~1850"
+                                            className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-sm font-bold transition-all"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Époque / Siècle</label>
-                                            <input
-                                                type="text"
-                                                value={ancestrePeriode}
-                                                onChange={e => setAncretrePeriode(e.target.value)}
-                                                placeholder="Ex: ~1850"
-                                                className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-sm font-bold transition-all"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Source du Savoir</label>
-                                            <input
-                                                type="text"
-                                                value={ancestreSource}
-                                                onChange={e => setAncetreSource(e.target.value)}
-                                                placeholder="Tradition Orale..."
-                                                className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-sm font-bold transition-all"
-                                            />
-                                        </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Source du Savoir</label>
+                                        <input
+                                            type="text"
+                                            value={ancestreSource}
+                                            onChange={e => setAncetreSource(e.target.value)}
+                                            placeholder="Tradition Orale..."
+                                            className="w-full px-6 py-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none text-sm font-bold transition-all"
+                                        />
                                     </div>
+                                </div>
 
-                                    <button
-                                        disabled={!ancestreNom.trim() || isSavingAncetre}
-                                        onClick={async () => {
-                                            if (!ancestreNom.trim()) return;
-                                            setIsSavingAncetre(true);
-                                            const { data: village } = await supabase.from('villages').select('id').eq('nom', myProfile?.village_origin || 'Toa-Zéo').single();
-                                            if (village) {
-                                                await supabase.from('ancestres').insert({
-                                                    village_id: village.id,
-                                                    nom_complet: ancestreNom,
-                                                    periode: ancestrePeriode,
-                                                    source: ancestreSource,
-                                                    is_certified: true,
-                                                    certified_by: (await supabase.auth.getUser()).data.user?.id,
-                                                    certified_at: new Date().toISOString()
-                                                });
-                                            }
-                                            setIsSavingAncetre(false);
-                                            setAncretreSaved(true);
-                                        }}
-                                        className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-100 disabled:text-gray-400 text-white py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl shadow-gray-200 active:scale-[0.98] mt-4"
-                                    >
-                                        {isSavingAncetre
-                                            ? <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                                            : <><Stamp className="w-6 h-6 text-[#FF6600]" /> SCELLER L'HISTOIRE</>
+                                <button
+                                    disabled={!ancestreNom.trim() || isSavingAncetre}
+                                    onClick={async () => {
+                                        if (!ancestreNom.trim()) return;
+                                        setIsSavingAncetre(true);
+                                        const { data: village } = await supabase.from('villages').select('id').eq('nom', myProfile?.village_origin || 'Toa-Zéo').single();
+                                        if (village) {
+                                            await supabase.from('ancestres').insert({
+                                                village_id: village.id,
+                                                nom_complet: ancestreNom,
+                                                periode: ancestrePeriode,
+                                                source: ancestreSource,
+                                                is_certified: true,
+                                                certified_by: (await supabase.auth.getUser()).data.user?.id,
+                                                certified_at: new Date().toISOString()
+                                            });
                                         }
-                                    </button>
-                                    <p className="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase mt-4">Action irréversible • Protocole CHO de Grade S</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Équipe */}
-                    {activeTab === 'team' && (
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h1 className="text-2xl font-bold">Mon Équipe villageoise</h1>
-                                    <p className="text-sm text-gray-600">Adjoints (CHOa) certifiés pour le village de {myProfile?.village_origin}</p>
-                                </div>
+                                        setIsSavingAncetre(false);
+                                        setAncretreSaved(true);
+                                    }}
+                                    className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-100 disabled:text-gray-400 text-white py-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl shadow-gray-200 active:scale-[0.98] mt-4"
+                                >
+                                    {isSavingAncetre
+                                        ? <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                                        : <><Stamp className="w-6 h-6 text-[#FF6600]" /> SCELLER L'HISTOIRE</>
+                                    }
+                                </button>
+                                <p className="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase mt-4">Action irréversible • Protocole CHO de Grade S</p>
                             </div>
+                        )}
+                    </div>
+                )
+            }
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {(() => {
-                                    const paginatedTeam = team.slice((teamPage - 1) * itemsPerPage, teamPage * itemsPerPage);
-                                    return paginatedTeam.map(member => (
-                                        <div key={member.id} className="group bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden">
-                                            <div className="flex items-center gap-4 mb-6">
-                                                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform">
-                                                    {member.avatar_url ? (
-                                                        <img src={member.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        (member.first_name?.[0] || '?').toUpperCase()
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-black text-gray-900 leading-tight">{member.first_name} {member.last_name}</h3>
-                                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-0.5">{member.quartier_nom || 'Secteur Libre'}</p>
-                                                </div>
+            {/* Équipe */}
+            {
+                activeTab === 'team' && (
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h1 className="text-2xl font-bold">Mon Équipe villageoise</h1>
+                                <p className="text-sm text-gray-600">Adjoints (CHOa) certifiés pour le village de {myProfile?.village_origin}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {(() => {
+                                const paginatedTeam = team.slice((teamPage - 1) * itemsPerPage, teamPage * itemsPerPage);
+                                return paginatedTeam.map(member => (
+                                    <div key={member.id} className="group bg-white rounded-[2.5rem] p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden">
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform">
+                                                {member.avatar_url ? (
+                                                    <img src={member.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    (member.first_name?.[0] || '?').toUpperCase()
+                                                )}
                                             </div>
-                                            <div className="flex items-center justify-between pt-5 border-t border-gray-50">
-                                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Certifié le {new Date(member.created_at).toLocaleDateString('fr-FR')}</span>
-                                                <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-100">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                                    <span className="text-[8px] font-black text-green-600 uppercase">Actif</span>
-                                                </div>
+                                            <div>
+                                                <h3 className="font-black text-gray-900 leading-tight">{member.first_name} {member.last_name}</h3>
+                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-0.5">{member.quartier_nom || 'Secteur Libre'}</p>
                                             </div>
                                         </div>
-                                    ));
-                                })()}
-
-                                {team.length === 0 && (
-                                    <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-                                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                            <Users className="w-10 h-10 text-gray-300" />
+                                        <div className="flex items-center justify-between pt-5 border-t border-gray-50">
+                                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none">Certifié le {new Date(member.created_at).toLocaleDateString('fr-FR')}</span>
+                                            <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                                                <span className="text-[8px] font-black text-green-600 uppercase">Actif</span>
+                                            </div>
                                         </div>
-                                        <p className="text-gray-900 font-black text-xl">Aucun Adjoint Détecté</p>
-                                        <p className="text-gray-500 font-medium max-w-xs mx-auto mt-2 text-sm italic">Les CHOa certifiés apparaîtront ici pour coordonner la validation.</p>
-                                        <button className="mt-8 text-[10px] font-black text-[#FF6600] px-6 py-3 bg-orange-50 rounded-full border border-orange-100 uppercase tracking-widest">Contacter l'Administration</button>
                                     </div>
-                                )}
-                            </div>
+                                ));
+                            })()}
 
-                            {/* Pagination Équipe */}
-                            {Math.ceil(team.length / itemsPerPage) > 1 && (
-                                <div className="p-4 flex justify-center items-center gap-2 mt-2">
-                                    <button disabled={teamPage === 1} onClick={() => setTeamPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
-                                    <span className="text-sm font-semibold text-gray-600">Page {teamPage} sur {Math.ceil(team.length / itemsPerPage)}</span>
-                                    <button disabled={teamPage === Math.ceil(team.length / itemsPerPage)} onClick={() => setTeamPage(prev => Math.min(Math.ceil(team.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                            {team.length === 0 && (
+                                <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+                                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                        <Users className="w-10 h-10 text-gray-300" />
+                                    </div>
+                                    <p className="text-gray-900 font-black text-xl">Aucun Adjoint Détecté</p>
+                                    <p className="text-gray-500 font-medium max-w-xs mx-auto mt-2 text-sm italic">Les CHOa certifiés apparaîtront ici pour coordonner la validation.</p>
+                                    <button className="mt-8 text-[10px] font-black text-[#FF6600] px-6 py-3 bg-orange-50 rounded-full border border-orange-100 uppercase tracking-widest">Contacter l'Administration</button>
                                 </div>
                             )}
+                        </div>
 
-                            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mt-4">
-                                <ShieldCheck className="w-5 h-5 text-blue-500 mt-0.5" />
-                                <div className="text-xs text-blue-700 leading-relaxed">
-                                    <p className="font-bold mb-1">Rappel de Gouvernance</p>
-                                    Les CHOa sont vos adjoints locaux. Ils effectuent les pré-validations (Statut Probable) au sein de leurs quartiers respectifs. En tant que CHO, vous validez définitivement (Bascule Patrimoniale) après leur passage.
-                                </div>
+                        {/* Pagination Équipe */}
+                        {Math.ceil(team.length / itemsPerPage) > 1 && (
+                            <div className="p-4 flex justify-center items-center gap-2 mt-2">
+                                <button disabled={teamPage === 1} onClick={() => setTeamPage(prev => Math.max(1, prev - 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Précédent</button>
+                                <span className="text-sm font-semibold text-gray-600">Page {teamPage} sur {Math.ceil(team.length / itemsPerPage)}</span>
+                                <button disabled={teamPage === Math.ceil(team.length / itemsPerPage)} onClick={() => setTeamPage(prev => Math.min(Math.ceil(team.length / itemsPerPage), prev + 1))} className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-gray-600 disabled:opacity-50 hover:bg-gray-50 bg-white">Suivant</button>
+                            </div>
+                        )}
+
+                        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3 mt-4">
+                            <ShieldCheck className="w-5 h-5 text-blue-500 mt-0.5" />
+                            <div className="text-xs text-blue-700 leading-relaxed">
+                                <p className="font-bold mb-1">Rappel de Gouvernance</p>
+                                Les CHOa sont vos adjoints locaux. Ils effectuent les pré-validations (Statut Probable) au sein de leurs quartiers respectifs. En tant que CHO, vous validez définitivement (Bascule Patrimoniale) après leur passage.
                             </div>
                         </div>
-                    )}
-                </main>
+                    </div>
+                )
+            }
 
-                {/* Modale Dossier Complet CHO */}
-                {infoModalProfile && (
+            {/* Modale Dossier Complet CHO */}
+            {
+                infoModalProfile && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                         <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
                             <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
@@ -1031,10 +986,12 @@ export default function ChoBoard() {
                             </div>
                         </div>
                     </div>
-                )}
+                )
+            }
 
-                {/* Modale Motif de Rejet */}
-                {motifModal && (
+            {/* Modale Motif de Rejet */}
+            {
+                motifModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
                             <div className="flex items-center gap-3 mb-4">
@@ -1076,24 +1033,26 @@ export default function ChoBoard() {
                             </div>
                         </div>
                     </div>
-                )}
+                )
+            }
 
-                {/* Nav mobile */}
-                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 flex justify-around md:hidden shadow-lg">
-                    {tabs.slice(0, 4).map(tab => (
-                        <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)} className={`flex flex-col items-center gap-1 ${activeTab === tab.key ? 'text-[#FF6600]' : 'text-gray-600'}`}>
-                            <tab.icon className="w-5 h-5" />
-                            <span className="text-[9px] font-bold uppercase">{tab.label.split(' ')[0]}</span>
-                        </button>
-                    ))}
-                    <button onClick={() => setIsInviteOpen(true)} className="flex flex-col items-center gap-1 text-gray-600">
-                        <Share2 className="w-5 h-5" />
-                        <span className="text-[9px] font-bold uppercase">Inviter</span>
+            {/* Nav mobile */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 py-3 flex justify-around md:hidden shadow-lg">
+                {tabs.slice(0, 4).map(tab => (
+                    <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)} className={`flex flex-col items-center gap-1 ${activeTab === tab.key ? 'text-[#FF6600]' : 'text-gray-600'}`}>
+                        <tab.icon className="w-5 h-5" />
+                        <span className="text-[9px] font-bold uppercase">{tab.label.split(' ')[0]}</span>
                     </button>
-                </div>
+                ))}
+                <button onClick={() => setIsInviteOpen(true)} className="flex flex-col items-center gap-1 text-gray-600">
+                    <Share2 className="w-5 h-5" />
+                    <span className="text-[9px] font-bold uppercase">Inviter</span>
+                </button>
+            </div>
 
-                {/* Modale Commentaires */}
-                {viewingCommentsProfile && (
+            {/* Modale Commentaires */}
+            {
+                viewingCommentsProfile && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
                         <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in duration-500 border border-white/20">
                             <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white/95 backdrop-blur-md">
@@ -1153,8 +1112,9 @@ export default function ChoBoard() {
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
+                )
+            }
+
 
             <InviteModal
                 isOpen={isInviteOpen}
@@ -1164,6 +1124,6 @@ export default function ChoBoard() {
             />
 
             {currentUserId && myProfile && <InternalMessaging currentUserRole={myProfile.role} currentUserId={currentUserId} />}
-        </div>
+        </AppLayout >
     );
 }

@@ -53,21 +53,6 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
     const [invitesCount, setInvitesCount] = useState(0);
     const photoInputRef = useRef<HTMLInputElement>(null);
 
-    const isProfileIncomplete = profileData && (
-        !profileData.extendedData.phone1 ||
-        !profileData.extendedData.gender ||
-        !profileData.extendedData.birthDate ||
-        !profileData.quartier ||
-        !profileData.extendedData.residenceCity ||
-        !profileData.extendedData.adresseResidence ||
-        profileData.village === 'Toa-Zéo' ||
-        !profileData.metadata?.father_first_name ||
-        !profileData.metadata?.father_last_name ||
-        !profileData.metadata?.father_birth_date ||
-        !profileData.metadata?.mother_first_name ||
-        !profileData.metadata?.mother_last_name ||
-        !profileData.metadata?.mother_birth_date
-    );
 
     const fetchProfile = async () => {
         // Ne pas mettre isLoading à true si on a déjà des données pour éviter le clignotement
@@ -189,21 +174,6 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
 
     return (
         <div className="w-full max-w-7xl mx-auto py-6 px-4">
-            {/* Bannière de complétion de profil */}
-            {isProfileIncomplete && (
-                <div className="mb-8 bg-orange-50 border border-orange-100 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center gap-8 animate-in fade-in slide-in-from-top-4 duration-500 shadow-xl shadow-orange-100/20 group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 scale-150 rotate-12 group-hover:scale-110 transition-transform">
-                        <AlertTriangle className="w-24 h-24 text-[#FF6600]" />
-                    </div>
-                    <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center flex-shrink-0 shadow-xl border-4 border-white">
-                        <AlertTriangle className="w-10 h-10 text-[#FF6600]" />
-                    </div>
-                    <div className="flex-1 text-center md:text-left relative z-10">
-                        <h3 className="text-gray-900 font-black text-2xl leading-tight mb-2">Héritage incomplet ! 🌳</h3>
-                        <p className="text-base text-gray-600 font-medium max-w-2xl">Certaines informations essentielles (téléphone, genre, naissance) manquent. Complétez-les via votre <span className="text-[#FF6600] font-black italic">Fiche détaillée</span> pour obtenir votre certification.</p>
-                    </div>
-                </div>
-            )}
 
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Sidebar Gauche */}

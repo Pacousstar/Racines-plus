@@ -13,6 +13,7 @@ import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import InternalMessaging from '@/components/InternalMessaging';
+import AppLayout from '@/components/AppLayout';
 
 interface PendingProfile {
     id: string;
@@ -49,6 +50,7 @@ interface MyProfile {
     quartier_nom?: string;
     export_authorized: boolean;
     export_requested: boolean;
+    avatar_url?: string | null;
 }
 
 export default function ChoBoard() {
@@ -520,349 +522,298 @@ export default function ChoBoard() {
     };
 
     return (
-        <div className="min-h-screen bg-[#fafafa] text-foreground relative overflow-hidden">
-            {/* Éléments de design d'arrière-plan (Mesh Gradient) */}
-            <div className="fixed inset-0 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-100/30 rounded-full blur-[120px] animate-pulse" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-amber-100/20 rounded-full blur-[120px]" />
+        <AppLayout
+            role="choa"
+            activeTab={activeTab}
+            onTabChange={(id) => setActiveTab(id as any)}
+            userName={`${myProfile?.first_name ?? ''} ${myProfile?.last_name ?? ''}`}
+            userAvatar={myProfile?.avatar_url ?? null}
+            onLogout={async () => { await supabase.auth.signOut(); router.push('/login'); }}
+            village={myProfile?.village_origin || 'Toa-Zéo'}
+        >
+            {/* Hero Section with ouf effect */}
+            <div className="relative mb-12 p-10 rounded-[3rem] bg-gray-900 overflow-hidden shadow-2xl shadow-orange-900/10 border border-white/5">
+                <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-[#FF6600]/10 to-transparent pointer-events-none" />
+                <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                    <div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+                                <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em]">Tableau de Validation Alpha (CHOa)</p>
+                            </div>
+                            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(251,146,60,0.5)]" />
+                        </div>
+                        <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+                            Espace de <span className="text-[#FF6600]">Pré-Validation</span>
+                        </h1>
+                        <p className="text-gray-400 font-medium max-w-md">
+                            En tant que CHOa, vous êtes le garant de la lignée. Votre sceau permet de transférer les dossiers au CHO pour validation finale.
+                        </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-3 text-right">
+                        <div className="flex flex-wrap gap-3 items-center">
+                            <button
+                                onClick={load}
+                                className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors group"
+                                title="Rafraîchir les dossiers"
+                            >
+                                <Activity className={`w-5 h-5 text-white ${isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                            </button>
+                            <div className="p-5 bg-white/5 backdrop-blur-lg rounded-[2.5rem] border border-white/10 min-w-[200px]">
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Circonscription</p>
+                                <div className="flex items-center justify-end gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    <p className="text-sm font-black text-white">{myProfile?.village_origin || 'NON RENSEIGNÉE'}</p>
+                                </div>
+                                <p className="text-[10px] font-bold text-orange-400 mt-1 uppercase tracking-widest">{myProfile?.quartier_nom || 'Secteur Central'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="relative z-10 animate-in fade-in duration-700">
-                {/* Navbar Glassmorphism Premium Orange */}
-                <header className="fixed top-0 left-0 right-0 h-24 bg-white/80 backdrop-blur-2xl border-b border-orange-50 flex items-center justify-between px-8 z-[100] shadow-sm">
-                    <div className="flex items-center gap-6">
-                        <Link href="/" className="group relative">
-                            <div className="absolute -inset-2 bg-gradient-to-r from-orange-400 to-amber-400 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-all duration-500" />
-                            <Image src="/LOGO_Racines.png" alt="Racines+" width={120} height={40} className="relative object-contain" />
-                        </Link>
-                        <div className="h-10 w-[1px] bg-gray-100 hidden md:block" />
-                        <div className="hidden md:flex items-center gap-3 px-5 py-2 rounded-2xl bg-gradient-to-r from-[#FF6600]/10 to-transparent border border-orange-100/50">
-                            <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                            <span className="text-[10px] font-black tracking-[0.2em] text-[#FF6600] uppercase">Validateur de Quartier</span>
+            <div className="flex gap-4 mb-12 overflow-x-auto pb-6 px-2 scrollbar-hide no-scrollbar uppercase tracking-[0.1em]">
+                {tabs.map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                        className={`flex items-center gap-3 px-8 py-5 rounded-[2rem] text-[11px] font-black tracking-[0.15em] transition-all duration-500 whitespace-nowrap relative group ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-2xl shadow-gray-400 -translate-y-1' : 'bg-white/50 backdrop-blur-md border border-white/60 text-gray-500 hover:bg-white hover:text-[#FF6600] hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5'}`}
+                    >
+                        <div className={`p-2 rounded-xl transition-colors duration-500 ${activeTab === tab.key ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF6600]'}`}>
+                            <tab.icon className="w-4 h-4" />
                         </div>
-                    </div>
+                        {tab.label}
+                        {tab.count > 0 && <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg animate-in zoom-in duration-500`}>{tab.count}</span>}
+                    </button>
+                ))}
+            </div>
 
-                    <div className="flex items-center gap-4">
-                        <div className="relative group cursor-pointer" onClick={() => setActiveTab('quartier')}>
-                            <div className="p-3 rounded-2xl bg-gray-50 text-gray-400 group-hover:text-[#FF6600] group-hover:bg-orange-50 transition-all duration-300">
-                                <MessageSquare className={`w-5 h-5 ${unreadCount > 0 ? 'text-[#FF6600] scale-110' : ''}`} />
-                            </div>
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#FF6600] text-white text-[10px] flex items-center justify-center rounded-xl border-2 border-white font-black shadow-lg animate-bounce">
-                                    {unreadCount}
-                                </span>
-                            )}
+            {activeTab === 'mon_arbre' && currentUserId && (
+                <div className="mt-4">
+                    <UserDashboardContent userId={currentUserId} />
+                </div>
+            )}
+
+            {/* Contenu des onglets dynamique */}
+            <div className="space-y-4">
+                {isLoading && activeTab !== 'mon_arbre' && <p className="text-sm text-gray-600 text-center py-8">Chargement...</p>}
+
+                {activeTab === 'tasks' && !isLoading && (
+                    <>
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
+                                <Clock className="w-3 h-3" /> Dossiers Quartier ({pendingProfiles.length})
+                            </h2>
                         </div>
-
-                        <div className="h-8 w-[1px] bg-gray-100" />
-
-                        <div className="flex items-center gap-3 pl-2">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-black text-gray-900 leading-none">{myProfile?.first_name} {myProfile?.last_name}</p>
-                                <p className="text-[10px] font-bold text-[#FF6600] mt-1 uppercase tracking-widest">{myProfile?.village_origin || 'Village'}</p>
-                            </div>
-                            <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition-all" />
-                                <div className="relative w-11 h-11 rounded-2xl border-2 border-white shadow-xl bg-orange-100 flex items-center justify-center text-[#FF6600] font-black">
-                                    {myProfile?.first_name?.[0] || '?'}{myProfile?.last_name?.[0] || '?'}
+                        {pendingProfiles.length === 0 && (
+                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+                                <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
+                                    <Search className="w-10 h-10 text-orange-200 group-hover:scale-110 group-hover:text-orange-400 transition-all duration-500" />
                                 </div>
-                            </div>
-                            <button
-                                onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }}
-                                className="p-3 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all active:scale-90"
-                                title="Déconnexion"
-                            >
-                                <LogOut className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="pt-32 px-4 md:px-8 max-w-7xl mx-auto pb-24">
-                    {/* Hero Section with ouf effect */}
-                    <div className="relative mb-12 p-10 rounded-[3rem] bg-gray-900 overflow-hidden shadow-2xl shadow-orange-900/10 border border-white/5">
-                        <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-[#FF6600]/10 to-transparent pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-600/10 rounded-full blur-[100px] pointer-events-none" />
-
-                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                            <div>
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10">
-                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em]">Tableau de Validation Alpha (CHOa)</p>
-                                    </div>
-                                    <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(251,146,60,0.5)]" />
-                                </div>
-                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-                                    Espace de <span className="text-[#FF6600]">Pré-Validation</span>
-                                </h1>
-                                <p className="text-gray-400 font-medium max-w-md">
-                                    En tant que CHOa, vous êtes le garant de la lignée. Votre sceau permet de transférer les dossiers au CHO pour validation finale.
+                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier à traiter</h2>
+                                <p className="text-gray-500 max-w-sm mx-auto font-medium mb-10">
+                                    La file d&apos;attente pour <span className="text-[#FF6600] font-black">{myProfile?.village_origin || 'votre village'}</span> est actuellement vide.
                                 </p>
-                            </div>
-                            <div className="flex flex-col items-end gap-3 text-right">
-                                <div className="flex flex-wrap gap-3 items-center">
-                                    <button
-                                        onClick={load}
-                                        className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors group"
-                                        title="Rafraîchir les dossiers"
-                                    >
-                                        <Activity className={`w-5 h-5 text-white ${isLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-                                    </button>
-                                    <div className="p-5 bg-white/5 backdrop-blur-lg rounded-[2.5rem] border border-white/10 min-w-[200px]">
-                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Circonscription</p>
-                                        <div className="flex items-center justify-end gap-2">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                            <p className="text-sm font-black text-white">{myProfile?.village_origin || 'NON RENSEIGNÉE'}</p>
+
+                                <div className="max-w-md mx-auto p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100/50 text-left">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                        <Activity className="w-3.5 h-3.5 text-orange-400" /> Auto-Diagnostic Système
+                                    </p>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
+                                            <span className="text-xs font-bold text-gray-500">Votre Village</span>
+                                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${myProfile?.village_origin ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {myProfile?.village_origin || 'ABSENT'}
+                                            </span>
                                         </div>
-                                        <p className="text-[10px] font-bold text-orange-400 mt-1 uppercase tracking-widest">{myProfile?.quartier_nom || 'Secteur Central'}</p>
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
+                                            <span className="text-xs font-bold text-gray-500">Filtrage Village</span>
+                                            <span className="text-[10px] font-black bg-orange-100 text-orange-700 px-3 py-1 rounded-full uppercase">ACTIF (CASSE TOLÉRÉE)</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
+                                            <span className="text-xs font-bold text-gray-500">Dernière Sync</span>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase">{new Date().toLocaleTimeString()}</span>
+                                        </div>
+                                    </div>
+                                    <p className="mt-6 text-[11px] text-gray-400 font-medium italic text-center">
+                                        💡 Conseil : Si vous attendez des dossiers, assurez-vous que l&apos;Admin a bien lancé la &quot;Migration CHOa&quot; dans les paramètres.
+                                    </p>
+                                </div>
+
+                                <button
+                                    onClick={load}
+                                    className="mt-10 px-10 py-5 bg-[#FF6600] text-white rounded-2xl font-black text-sm shadow-2xl shadow-orange-200 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
+                                >
+                                    Forcer la synchronisation
+                                </button>
+                            </div>
+                        )}
+                        {(() => {
+                            const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
+                            const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                            <button
+                                                disabled={pendingPage === 1}
+                                                onClick={() => setPendingPage(prev => Math.max(1, prev - 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Précédent
+                                            </button>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {pendingPage} / {totalPages}</span>
+                                            <button
+                                                disabled={pendingPage === totalPages}
+                                                onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Suivant
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </>
+                )}
+
+                {activeTab === 'sent_cho' && (
+                    <>
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Transmis au CHO ({sentToChoProfiles.length})</h2>
+                        </div>
+                        {(() => {
+                            const paginatedSent = sentToChoProfiles.slice((sentToChoPage - 1) * itemsPerPage, sentToChoPage * itemsPerPage);
+                            const totalPages = Math.ceil(sentToChoProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedSent.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                            <button
+                                                disabled={sentToChoPage === 1}
+                                                onClick={() => setSentToChoPage(prev => Math.max(1, prev - 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Précédent
+                                            </button>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {sentToChoPage} / {totalPages}</span>
+                                            <button
+                                                disabled={sentToChoPage === totalPages}
+                                                onClick={() => setSentToChoPage(prev => Math.min(totalPages, prev + 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Suivant
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </>
+                )}
+
+                {activeTab === 'confirmed' && (
+                    <>
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Validés ({confirmedProfiles.length})</h2>
+                        </div>
+                        {(() => {
+                            const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
+                            const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                            <button
+                                                disabled={confirmedPage === 1}
+                                                onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Précédent
+                                            </button>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {confirmedPage} / {totalPages}</span>
+                                            <button
+                                                disabled={confirmedPage === totalPages}
+                                                onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Suivant
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </>
+                )}
+
+                {activeTab === 'rejected' && (
+                    <>
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Rejetés ({rejectedProfiles.length})</h2>
+                        </div>
+                        {(() => {
+                            const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
+                            const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
+                            return (
+                                <>
+                                    {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                    {totalPages > 1 && (
+                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
+                                            <button
+                                                disabled={rejectedPage === 1}
+                                                onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Précédent
+                                            </button>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {rejectedPage} / {totalPages}</span>
+                                            <button
+                                                disabled={rejectedPage === totalPages}
+                                                onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))}
+                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
+                                            >
+                                                Suivant
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </>
+                )}
+
+                {activeTab === 'quartier' && (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Activité du Quartier</h2>
+                            <button onClick={loadQuartierActivity} className="text-[10px] font-black text-[#FF6600] uppercase tracking-widest">{isLoadingActivity ? '...' : 'Actualiser'}</button>
+                        </div>
+                        {quartierActivity.map(act => (
+                            <div key={act.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between gap-4 shadow-sm animate-in fade-in">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400">{act.validator_name?.[0] || '?'}</div>
+                                    <div>
+                                        <p className="font-bold text-sm text-gray-900">{act.validator_name}</p>
+                                        <p className="text-[10px] text-gray-500 uppercase font-black">{act.cible_first_name} {act.cible_last_name}</p>
                                     </div>
                                 </div>
+                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${act.statut === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                                    {act.statut === 'confirmed' ? 'Certifié' : 'Sceau Apposé'}
+                                </span>
                             </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4 mb-12 overflow-x-auto pb-6 px-2 scrollbar-hide no-scrollbar uppercase tracking-[0.1em]">
-                        {tabs.map(tab => (
-                            <button
-                                key={tab.key}
-                                onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                                className={`flex items-center gap-3 px-8 py-5 rounded-[2rem] text-[11px] font-black tracking-[0.15em] transition-all duration-500 whitespace-nowrap relative group ${activeTab === tab.key ? 'bg-gray-900 text-white shadow-2xl shadow-gray-400 -translate-y-1' : 'bg-white/50 backdrop-blur-md border border-white/60 text-gray-500 hover:bg-white hover:text-[#FF6600] hover:shadow-xl hover:shadow-orange-100 hover:-translate-y-0.5'}`}
-                            >
-                                <div className={`p-2 rounded-xl transition-colors duration-500 ${activeTab === tab.key ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-100 text-gray-400 group-hover:bg-orange-100 group-hover:text-[#FF6600]'}`}>
-                                    <tab.icon className="w-4 h-4" />
-                                </div>
-                                {tab.label}
-                                {tab.count > 0 && <span className={`${tab.countColor} text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-black shadow-lg animate-in zoom-in duration-500`}>{tab.count}</span>}
-                            </button>
                         ))}
                     </div>
-
-                    {activeTab === 'mon_arbre' && currentUserId && (
-                        <div className="mt-4">
-                            <UserDashboardContent userId={currentUserId} />
-                        </div>
-                    )}
-
-                    {/* Contenu des onglets dynamique */}
-                    <div className="space-y-4">
-                        {isLoading && activeTab !== 'mon_arbre' && <p className="text-sm text-gray-600 text-center py-8">Chargement...</p>}
-
-                        {activeTab === 'tasks' && !isLoading && (
-                            <>
-                                <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
-                                        <Clock className="w-3 h-3" /> Dossiers Quartier ({pendingProfiles.length})
-                                    </h2>
-                                </div>
-                                {pendingProfiles.length === 0 && (
-                                    <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
-                                        <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
-                                            <Search className="w-10 h-10 text-orange-200 group-hover:scale-110 group-hover:text-orange-400 transition-all duration-500" />
-                                        </div>
-                                        <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier à traiter</h2>
-                                        <p className="text-gray-500 max-w-sm mx-auto font-medium mb-10">
-                                            La file d&apos;attente pour <span className="text-[#FF6600] font-black">{myProfile?.village_origin || 'votre village'}</span> est actuellement vide.
-                                        </p>
-
-                                        <div className="max-w-md mx-auto p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100/50 text-left">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                                <Activity className="w-3.5 h-3.5 text-orange-400" /> Auto-Diagnostic Système
-                                            </p>
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
-                                                    <span className="text-xs font-bold text-gray-500">Votre Village</span>
-                                                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${myProfile?.village_origin ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                        {myProfile?.village_origin || 'ABSENT'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
-                                                    <span className="text-xs font-bold text-gray-500">Filtrage Village</span>
-                                                    <span className="text-[10px] font-black bg-orange-100 text-orange-700 px-3 py-1 rounded-full uppercase">ACTIF (CASSE TOLÉRÉE)</span>
-                                                </div>
-                                                <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
-                                                    <span className="text-xs font-bold text-gray-500">Dernière Sync</span>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase">{new Date().toLocaleTimeString()}</span>
-                                                </div>
-                                            </div>
-                                            <p className="mt-6 text-[11px] text-gray-400 font-medium italic text-center">
-                                                💡 Conseil : Si vous attendez des dossiers, assurez-vous que l&apos;Admin a bien lancé la &quot;Migration CHOa&quot; dans les paramètres.
-                                            </p>
-                                        </div>
-
-                                        <button
-                                            onClick={load}
-                                            className="mt-10 px-10 py-5 bg-[#FF6600] text-white rounded-2xl font-black text-sm shadow-2xl shadow-orange-200 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
-                                        >
-                                            Forcer la synchronisation
-                                        </button>
-                                    </div>
-                                )}
-                                {(() => {
-                                    const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
-                                    const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
-                                    return (
-                                        <>
-                                            {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
-                                            {totalPages > 1 && (
-                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                                    <button
-                                                        disabled={pendingPage === 1}
-                                                        onClick={() => setPendingPage(prev => Math.max(1, prev - 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Précédent
-                                                    </button>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {pendingPage} / {totalPages}</span>
-                                                    <button
-                                                        disabled={pendingPage === totalPages}
-                                                        onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Suivant
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </>
-                        )}
-
-                        {activeTab === 'sent_cho' && (
-                            <>
-                                <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Transmis au CHO ({sentToChoProfiles.length})</h2>
-                                </div>
-                                {(() => {
-                                    const paginatedSent = sentToChoProfiles.slice((sentToChoPage - 1) * itemsPerPage, sentToChoPage * itemsPerPage);
-                                    const totalPages = Math.ceil(sentToChoProfiles.length / itemsPerPage);
-                                    return (
-                                        <>
-                                            {paginatedSent.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                            {totalPages > 1 && (
-                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                                    <button
-                                                        disabled={sentToChoPage === 1}
-                                                        onClick={() => setSentToChoPage(prev => Math.max(1, prev - 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Précédent
-                                                    </button>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {sentToChoPage} / {totalPages}</span>
-                                                    <button
-                                                        disabled={sentToChoPage === totalPages}
-                                                        onClick={() => setSentToChoPage(prev => Math.min(totalPages, prev + 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Suivant
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </>
-                        )}
-
-                        {activeTab === 'confirmed' && (
-                            <>
-                                <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Validés ({confirmedProfiles.length})</h2>
-                                </div>
-                                {(() => {
-                                    const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
-                                    const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
-                                    return (
-                                        <>
-                                            {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                            {totalPages > 1 && (
-                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                                    <button
-                                                        disabled={confirmedPage === 1}
-                                                        onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Précédent
-                                                    </button>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {confirmedPage} / {totalPages}</span>
-                                                    <button
-                                                        disabled={confirmedPage === totalPages}
-                                                        onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Suivant
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </>
-                        )}
-
-                        {activeTab === 'rejected' && (
-                            <>
-                                <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Rejetés ({rejectedProfiles.length})</h2>
-                                </div>
-                                {(() => {
-                                    const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
-                                    const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
-                                    return (
-                                        <>
-                                            {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                            {totalPages > 1 && (
-                                                <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                                    <button
-                                                        disabled={rejectedPage === 1}
-                                                        onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Précédent
-                                                    </button>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {rejectedPage} / {totalPages}</span>
-                                                    <button
-                                                        disabled={rejectedPage === totalPages}
-                                                        onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))}
-                                                        className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                                    >
-                                                        Suivant
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </>
-                        )}
-
-                        {activeTab === 'quartier' && (
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Activité du Quartier</h2>
-                                    <button onClick={loadQuartierActivity} className="text-[10px] font-black text-[#FF6600] uppercase tracking-widest">{isLoadingActivity ? '...' : 'Actualiser'}</button>
-                                </div>
-                                {quartierActivity.map(act => (
-                                    <div key={act.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between gap-4 shadow-sm animate-in fade-in">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400">{act.validator_name?.[0] || '?'}</div>
-                                            <div>
-                                                <p className="font-bold text-sm text-gray-900">{act.validator_name}</p>
-                                                <p className="text-[10px] text-gray-500 uppercase font-black">{act.cible_first_name} {act.cible_last_name}</p>
-                                            </div>
-                                        </div>
-                                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${act.statut === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                            {act.statut === 'confirmed' ? 'Certifié' : 'Sceau Apposé'}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </main>
-
-                {/* Modale Motif de Rejet */}
-                {motifModal && (
+                )}
+            </div>
+            {/* Modale Motif de Rejet */}
+            {
+                motifModal && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in">
                         <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl animate-in zoom-in">
                             <h3 className="text-xl font-black text-gray-900 mb-2 leading-tight">Motif de Rejet</h3>
@@ -879,7 +830,7 @@ export default function ChoBoard() {
                             <div className="flex gap-3">
                                 <button onClick={() => setMotifModal(null)} className="flex-1 py-4 rounded-2xl border border-gray-100 text-sm font-black text-gray-400 hover:bg-gray-50 transition-all">ANNULER</button>
                                 <button
-                                    onClick={() => handleStatusChange(motifModal.id, 'rejected')}
+                                    onClick={() => motifModal && handleStatusChange(motifModal.id, 'rejected')}
                                     disabled={!motifText.trim()}
                                     className="flex-1 py-4 rounded-2xl bg-red-500 text-white text-sm font-black hover:bg-red-600 disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-xl shadow-red-100"
                                 >
@@ -888,10 +839,12 @@ export default function ChoBoard() {
                             </div>
                         </div>
                     </div>
-                )}
+                )
+            }
 
-                {/* Modale Infos Complètes */}
-                {infoModalProfile && (
+            {/* Modale Infos Complètes */}
+            {
+                infoModalProfile && (
                     <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[160] p-4 animate-in fade-in">
                         <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in border border-white/20">
                             <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-10">
@@ -947,21 +900,23 @@ export default function ChoBoard() {
                             </div>
 
                             <div className="p-8 border-t border-gray-100 bg-white/95 backdrop-blur-md sticky bottom-0 flex gap-4">
-                                <button onClick={() => { setInfoModalProfile(null); setMotifModal({ id: infoModalProfile.id, action: 'rejected' }); }} className="flex-1 py-5 rounded-[1.5rem] bg-red-50 text-red-500 font-black text-sm hover:bg-red-100 transition-all border border-red-100 uppercase tracking-widest">REJETER</button>
+                                <button onClick={() => { if (infoModalProfile) { setInfoModalProfile(null); setMotifModal({ id: infoModalProfile.id, action: 'rejected' }); } }} className="flex-1 py-5 rounded-[1.5rem] bg-red-50 text-red-500 font-black text-sm hover:bg-red-100 transition-all border border-red-100 uppercase tracking-widest">REJETER</button>
                                 <button
-                                    onClick={() => { setInfoModalProfile(null); handleStatusChange(infoModalProfile.id, 'probable'); }}
-                                    disabled={Array.isArray(infoModalProfile.choa_approvals) && currentUserId ? infoModalProfile.choa_approvals.includes(currentUserId) : false}
+                                    onClick={() => { if (infoModalProfile) { setInfoModalProfile(null); handleStatusChange(infoModalProfile.id, 'probable'); } }}
+                                    disabled={infoModalProfile && Array.isArray(infoModalProfile.choa_approvals) && currentUserId ? infoModalProfile.choa_approvals.includes(currentUserId) : false}
                                     className="flex-1 py-5 rounded-[1.5rem] bg-[#FF6600] text-white font-black text-sm hover:bg-[#e55c00] disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-xl shadow-orange-100 active:scale-[0.98] uppercase tracking-widest"
                                 >
-                                    {Array.isArray(infoModalProfile.choa_approvals) && currentUserId && infoModalProfile.choa_approvals.includes(currentUserId) ? 'APPROUVÉ ✓' : 'APPOSER MON SCEAU'}
+                                    {infoModalProfile && Array.isArray(infoModalProfile.choa_approvals) && currentUserId && infoModalProfile.choa_approvals.includes(currentUserId) ? 'APPROUVÉ ✓' : 'APPOSER MON SCEAU'}
                                 </button>
                             </div>
                         </div>
                     </div>
-                )}
+                )
+            }
 
-                {/* Modale Commentaires */}
-                {viewingCommentsProfile && (
+            {/* Modale Commentaires */}
+            {
+                viewingCommentsProfile && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
                         <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in duration-500 border border-white/20">
                             <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -1005,11 +960,11 @@ export default function ChoBoard() {
                                         value={newComment}
                                         onChange={e => setNewComment(e.target.value)}
                                         placeholder="Répondre au CHO..."
-                                        onKeyUp={e => e.key === 'Enter' && handlePostComment(viewingCommentsProfile.id)}
+                                        onKeyUp={e => e.key === 'Enter' && viewingCommentsProfile && handlePostComment(viewingCommentsProfile.id)}
                                         className="flex-1 px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-[#FF6600] focus:ring-4 focus:ring-orange-50 outline-none transition-all text-sm font-medium"
                                     />
                                     <button
-                                        onClick={() => handlePostComment(viewingCommentsProfile.id)}
+                                        onClick={() => viewingCommentsProfile && handlePostComment(viewingCommentsProfile.id)}
                                         disabled={!newComment.trim() || isPostingComment}
                                         className="px-8 py-4 bg-[#FF6600] text-white rounded-2xl font-black text-sm hover:bg-[#e55c00] shadow-xl shadow-orange-100 active:scale-95 transition-all"
                                     >
@@ -1019,17 +974,8 @@ export default function ChoBoard() {
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
-
-            <InviteModal
-                isOpen={isInviteOpen}
-                onClose={() => setIsInviteOpen(false)}
-                inviterName={`${myProfile?.first_name || ''} ${myProfile?.last_name || ''}`}
-                villageNom={myProfile?.village_origin || 'Toa-Zéo'}
-            />
-
-            {currentUserId && myProfile && <InternalMessaging currentUserRole={myProfile.role} currentUserId={currentUserId} />}
-        </div>
+                )
+            }
+        </AppLayout >
     );
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, UserCog, Loader2, Save } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { DIASPORA_COUNTRIES } from '@/lib/countries';
+import { toast } from 'react-hot-toast';
 
 export interface ExtendedProfileData {
     firstName: string;
@@ -208,6 +209,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
             if (error) throw error;
 
             console.log('Profil mis à jour avec succès');
+            toast.success('Profil mis à jour avec succès ! 🌳');
             onSuccess();
         } catch (error) {
             console.error(error);

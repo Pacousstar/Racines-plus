@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Share2, X, Mail, Copy, CheckCircle, Send, Link2, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
+import { toast } from 'react-hot-toast';
 
 interface InviteModalProps {
     isOpen: boolean;
@@ -78,6 +79,9 @@ export default function InviteModal({
 
             const result = await resp.json();
             setEmailSentForReal(result.success === true);
+            if (result.success) {
+                toast.success('Invitation envoyée avec succès ! 📧');
+            }
             setSent(true);
             setEmail('');
         } catch {

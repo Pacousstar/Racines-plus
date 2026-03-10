@@ -49,6 +49,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import { Toaster } from 'react-hot-toast';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -64,6 +66,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Racines+" />
       </head>
       <body className="antialiased text-foreground bg-background">
+        <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#333', color: '#fff' } }} />
         {children}
       </body>
     </html>
