@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from "next/image";
@@ -50,17 +50,14 @@ export default function Dashboard() {
 
             // Redirection immédiate basée sur le rôle
             if (data.role === 'admin') {
-                console.log("➡️ [Dashboard Debug] Redirecting to /admin");
                 router.push('/admin');
                 return;
             }
             if (data.role === 'cho') {
-                console.log("➡️ [Dashboard Debug] Redirecting to /cho");
                 router.push('/cho');
                 return;
             }
             if (data.role === 'choa') {
-                console.log("➡️ [Dashboard Debug] Redirecting to /choa");
                 router.push('/choa');
                 return;
             }

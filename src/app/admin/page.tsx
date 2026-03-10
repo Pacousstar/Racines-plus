@@ -421,13 +421,14 @@ export default function AdminDashboard() {
         setIsLoading(true);
         const updateData: any = { role: newRole };
 
-        // CHO, CHOa et admin sont validés d'office par l'admin sur proposition du conseil
-        // Ils reçoivent status='confirmed' immédiatement + confirmed_source='admin_prelim'
         if (['cho', 'choa', 'admin'].includes(newRole)) {
-            updateData.status = 'confirmed';
-        } else if (newRole === 'user') {
-            // Rétrograder un collaborateur vers user le replace dans le pipeline CHOa
-            updateData.status = 'pending_choa';
+            // Vérifier si l'utilisateur est déjà certifié par le CHO
+            const profile = profiles.find(p => p.id === userId);
+            if (profile?.status !== 'confirmed' && newRole !== 'user') {
+                alert(`⚠️ Action impossible : L'utilisateur doit d'abord être "Certifié ✅" par le CHO avant de recevoir un rôle de collaborateur (${newRole.toUpperCase()}).`);
+                setIsLoading(false);
+                return;
+            }
         }
 
         const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
@@ -441,9 +442,9 @@ export default function AdminDashboard() {
         setProfiles(prev => prev.map(p => p.id === userId ? { ...p, ...updateData } : p));
 
         if (['cho', 'choa'].includes(newRole)) {
-            alert(`Rôle ${newRole.toUpperCase()} assigné et confirmé préalablement par l'Admin ✔️`);
+            alert(`Rôle ${newRole.toUpperCase()} assigné avec succès ✔️`);
         } else if (newRole === 'admin') {
-            alert(`Promu Administrateur (Assistant) ✔️`);
+            alert(`Promu Administrateur Assistant ✔️`);
         } else {
             alert(`Rôle changé en ${newRole.toUpperCase()}.`);
         }
@@ -1113,7 +1114,7 @@ export default function AdminDashboard() {
                                                     <option value="user">USER</option>
                                                     <option value="cho">CHO</option>
                                                     <option value="choa">CHOA</option>
-                                                    <option value="admin">ADMIN (ASST)</option>
+                                                    <option value="admin">{p.email?.toLowerCase() === 'pacous2000@gmail.com' ? 'ADMIN PRINCIPAL' : 'ADMIN ASSISTANT'}</option>
                                                 </select>
                                             </td>
                                             <td className="py-3 px-4">
