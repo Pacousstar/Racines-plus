@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         email,
         phone_1: phone || null,
         role: 'admin',
-        status: 'confirmed',
+        status: 'pending_choa',
         poste: poste || null,
         village_origin: village_origin || null,
         created_at: new Date().toISOString(),
