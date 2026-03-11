@@ -169,12 +169,11 @@ export default function ChoBoard() {
     }, []);
 
     useEffect(() => {
-        if (activeTab === 'quartier') {
+        if (activeTab === 'quartier' && myProfile) {
             loadQuartierActivity();
-        } else if (activeTab !== 'mon_arbre') {
-            load();
         }
-    }, [activeTab]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, myProfile]);
 
     const handleRequestExport = async () => {
         if (!myProfile) return;
@@ -691,11 +690,22 @@ export default function ChoBoard() {
                     </>
                 )}
 
-                {activeTab === 'sent_cho' && (
+                {activeTab === 'sent_cho' && !isLoading && (
                     <>
                         <div className="flex justify-between items-center mb-2">
                             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Transmis au CHO ({sentToChoProfiles.length})</h2>
                         </div>
+                        {sentToChoProfiles.length === 0 && (
+                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+                                <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-blue-100 shadow-inner">
+                                    <ShieldCheck className="w-10 h-10 text-blue-200" />
+                                </div>
+                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier transmis</h2>
+                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
+                                    Les dossiers validés par 2 CHOa et transmis au <span className="text-blue-600 font-black">CHO</span> apparaîtront ici.
+                                </p>
+                            </div>
+                        )}
                         {(() => {
                             const paginatedSent = sentToChoProfiles.slice((sentToChoPage - 1) * itemsPerPage, sentToChoPage * itemsPerPage);
                             const totalPages = Math.ceil(sentToChoProfiles.length / itemsPerPage);
@@ -727,11 +737,22 @@ export default function ChoBoard() {
                     </>
                 )}
 
-                {activeTab === 'confirmed' && (
+                {activeTab === 'confirmed' && !isLoading && (
                     <>
                         <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Validés ({confirmedProfiles.length})</h2>
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Certifiés ({confirmedProfiles.length})</h2>
                         </div>
+                        {confirmedProfiles.length === 0 && (
+                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+                                <div className="w-24 h-24 bg-green-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-green-100 shadow-inner">
+                                    <CheckCircle className="w-10 h-10 text-green-200" />
+                                </div>
+                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun membre certifié</h2>
+                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
+                                    Les membres dont le dossier a été <span className="text-green-600 font-black">certifié</span> par le CHO apparaîtront ici.
+                                </p>
+                            </div>
+                        )}
                         {(() => {
                             const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
                             const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
@@ -763,11 +784,22 @@ export default function ChoBoard() {
                     </>
                 )}
 
-                {activeTab === 'rejected' && (
+                {activeTab === 'rejected' && !isLoading && (
                     <>
                         <div className="flex justify-between items-center mb-2">
                             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Rejetés ({rejectedProfiles.length})</h2>
                         </div>
+                        {rejectedProfiles.length === 0 && (
+                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+                                <div className="w-24 h-24 bg-red-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-red-100 shadow-inner">
+                                    <XCircle className="w-10 h-10 text-red-200" />
+                                </div>
+                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier rejeté</h2>
+                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
+                                    Les dossiers <span className="text-red-500 font-black">refusés</span> apparaîtront ici.
+                                </p>
+                            </div>
+                        )}
                         {(() => {
                             const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
                             const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
@@ -805,7 +837,24 @@ export default function ChoBoard() {
                             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Activité du Quartier</h2>
                             <button onClick={loadQuartierActivity} className="text-[10px] font-black text-[#FF6600] uppercase tracking-widest">{isLoadingActivity ? '...' : 'Actualiser'}</button>
                         </div>
-                        {quartierActivity.map(act => (
+                        {isLoadingActivity && (
+                            <div className="text-center py-10">
+                                <div className="w-8 h-8 border-4 border-orange-200 border-t-[#FF6600] rounded-full animate-spin mx-auto mb-3" />
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Chargement de l&apos;activité...</p>
+                            </div>
+                        )}
+                        {!isLoadingActivity && quartierActivity.length === 0 && (
+                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+                                <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner">
+                                    <Activity className="w-10 h-10 text-orange-200" />
+                                </div>
+                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucune activité récente</h2>
+                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
+                                    Les actions de validation du quartier <span className="text-[#FF6600] font-black">{myProfile?.village_origin || ''}</span> apparaîtront ici.
+                                </p>
+                            </div>
+                        )}
+                        {!isLoadingActivity && quartierActivity.map(act => (
                             <div key={act.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between gap-4 shadow-sm animate-in fade-in">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400">{act.validator_name?.[0] || '?'}</div>
