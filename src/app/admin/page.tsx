@@ -519,7 +519,20 @@ export default function AdminDashboard() {
     const handleAddVillage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newVillageName) return;
-        const { data, error } = await supabase.from('villages').insert({ nom: newVillageName, region: newVillageRegion }).select().single();
+
+        const nom = newVillageName.trim();
+        const normalizedNom = nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        const exists = villages.some(v =>
+            v.nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normalizedNom
+        );
+
+        if (exists) {
+            alert(`⚠️ Le village "${nom}" existe déjà.`);
+            return;
+        }
+
+        const { data, error } = await supabase.from('villages').insert({ nom, region: newVillageRegion }).select().single();
         if (error) {
             alert("Erreur lors de l'ajout du village : " + error.message);
             return;
@@ -527,7 +540,7 @@ export default function AdminDashboard() {
         if (data) setVillages(prev => [...prev, data]);
         setNewVillageName('');
         setNewVillageRegion('');
-        alert(`Village "${newVillageName}" ajouté avec succès !`);
+        alert(`Village "${nom}" ajouté avec succès !`);
     };
 
     const handleDeleteVillage = async (id: string, name: string) => {
@@ -542,8 +555,23 @@ export default function AdminDashboard() {
     };
 
     const handleAddQuartier = async (villageId: string) => {
-        const nom = prompt("Nom du nouveau quartier :");
-        if (!nom) return;
+        const input = prompt("Nom du nouveau quartier :");
+        if (!input) return;
+
+        const nom = input.trim();
+        const normalizedNom = nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        // Vérifier si le quartier existe déjà dans cet état de l'UI (simple check client)
+        const exists = quartiers.some(q =>
+            q.village_id === villageId &&
+            q.nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === normalizedNom
+        );
+
+        if (exists) {
+            alert(`⚠️ Le quartier "${nom}" semble déjà exister pour ce village.`);
+            return;
+        }
+
         const { data, error } = await supabase.from('quartiers').insert({ village_id: villageId, nom }).select().single();
         if (error) {
             alert(error.message);
