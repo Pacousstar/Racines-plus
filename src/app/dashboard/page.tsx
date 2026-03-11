@@ -48,16 +48,19 @@ export default function Dashboard() {
         if (data) {
             console.log("🚀 [Dashboard Debug] User role detected:", data.role, "for email:", user.email);
 
-            // Redirection immédiate basée sur le rôle
-            if (data.role === 'admin') {
+            // Redirection immédiate basée sur le rôle (avec trim pour éviter les espaces invisibles)
+            const actualRole = data.role?.toLowerCase().trim();
+            console.log("🛠️ [Dashboard Redirect Check] Actual role:", `"${actualRole}"`);
+
+            if (actualRole === 'admin') {
                 router.push('/admin');
                 return;
             }
-            if (data.role === 'cho') {
+            if (actualRole === 'cho') {
                 router.push('/cho');
                 return;
             }
-            if (data.role === 'choa') {
+            if (actualRole === 'choa') {
                 router.push('/choa');
                 return;
             }

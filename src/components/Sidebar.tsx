@@ -73,7 +73,7 @@ export default function Sidebar({
         if (role === 'choa') {
             return [
                 ...common,
-                { id: 'tasks', label: 'Pré-validations', icon: ShieldCheck },
+                { id: 'tasks', label: 'À valider', icon: ShieldCheck },
                 { id: 'sent_cho', label: 'Envoyés au CHO', icon: ChevronRight },
                 { id: 'quartier', label: 'Activité Quartier', icon: Users },
             ];
