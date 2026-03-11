@@ -122,35 +122,32 @@ export default function ChoBoard() {
         setMyProfile(profile);
         console.log("🔍 [CHOa Debug] CHOa Profile:", profile);
 
-        // Charger les profils utilisateurs
+        // Charger les profils utilisateurs (on charge tout et on filtre proprement côté client pour éviter les soucis d'accents/collation)
         let q = supabase
             .from('profiles')
             .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals')
             .order('created_at', { ascending: false });
 
-        // Assouplissement du filtre village pour le diagnostic
-        if (profile.village_origin) {
-            const cleanVillage = profile.village_origin.trim();
-            console.log("🔍 [CHOa Debug] Filtering by village (cleaned):", `"${cleanVillage}"`);
-            q = q.ilike('village_origin', `%${cleanVillage}%`); // Recherche plus souple
-        }
-
-        const { data: allUsers, error: usersErr } = await q;
+        const { data: allUsersRaw, error: usersErr } = await q;
 
         if (usersErr) {
             console.error('[choa] Error fetching profiles:', usersErr);
-        } else {
-            console.log("📊 [CHOa Debug] Query results for", profile.village_origin, ":", allUsers?.map(u => `${u.first_name} ${u.last_name} (${u.village_origin})`));
-            console.log("📊 [CHOa Debug] Total relevant users found:", allUsers?.length || 0);
         }
 
-        if (allUsers) {
+        if (allUsersRaw) {
+            const myVillageNormalized = (profile.village_origin || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            
+            const allUsers = allUsersRaw.filter(u => {
+                const userVillageNormalized = (u.village_origin || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                return !myVillageNormalized || userVillageNormalized.includes(myVillageNormalized);
+            });
+
+            console.log(`📊 [CHOa Debug] Filters: Village="${profile.village_origin}" (${myVillageNormalized})`);
+            console.log("📊 [CHOa Debug] Total relevant users found:", allUsers.length);
+
             const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
             const pending = allUsers.filter(u => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
             const probable = allUsers.filter(u => u.status === 'probable');
-
-            console.log("📊 [CHOa Debug] Pending profiles:", pending.length);
-            console.log("📊 [CHOa Debug] Probable profiles:", probable.length);
 
             setPendingProfiles(pending);
             setSentToChoProfiles(probable);
@@ -170,6 +167,14 @@ export default function ChoBoard() {
         load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'quartier') {
+            loadQuartierActivity();
+        } else if (activeTab !== 'mon_arbre') {
+            load();
+        }
+    }, [activeTab]);
 
     const handleRequestExport = async () => {
         if (!myProfile) return;
@@ -303,10 +308,19 @@ export default function ChoBoard() {
     const loadQuartierActivity = async () => {
         if (!myProfile) return;
         setIsLoadingActivity(true);
-        const { data, error } = await supabase
+        let q = supabase
             .from('v_validations_quartier')
             .select('*')
+            .order('created_at', { ascending: false })
             .limit(50);
+        
+        if (myProfile.village_origin) {
+            // Filtrer par village pour l'activité si possible
+            // Note: v_validations_quartier contient validator_village
+            q = q.ilike('validator_village', `%${myProfile.village_origin.trim()}%`);
+        }
+
+        const { data, error } = await q;
         if (!error && data) setQuartierActivity(data as QuartierActivity[]);
         setIsLoadingActivity(false);
     };
