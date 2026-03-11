@@ -52,7 +52,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
             setIsLoading(true);
             const { data, error } = await supabase
                 .from('internal_messages')
-                .select('*, sender:sender_id(first_name, last_name, role)')
+                .select('*, sender:sender_id(first_name, last_name, role, avatar_url)')
                 .in('receiver_role', [selectedRole, currentUserRole])
                 .order('created_at', { ascending: true })
                 // Limit to recent to avoid heavy loads initially
@@ -71,7 +71,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
                 // Fetch profiles for sender_id since foreign key relation might be named differently or fail
                 const enhancedMessages = await Promise.all(filtered.map(async (m) => {
                     if (!m.sender) {
-                        const { data: profile } = await supabase.from('profiles').select('first_name, last_name, role').eq('id', m.sender_id).single();
+                        const { data: profile } = await supabase.from('profiles').select('first_name, last_name, role, avatar_url').eq('id', m.sender_id).single();
                         return { ...m, sender: profile };
                     }
                     return m;
@@ -173,12 +173,24 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
                                 messages.map((m, i) => {
                                     const isMe = m.sender_id === currentUserId;
                                     return (
-                                        <div key={m.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[85%] ${isMe ? 'ml-auto' : 'mr-auto'}`}>
+                                        <div key={m.id} className={`flex items-start gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} max-w-[90%] ${isMe ? 'ml-auto' : 'mr-auto'}`}>
                                             {!isMe && (
-                                                <span className="text-[9px] font-bold text-gray-400 mb-1 ml-1 uppercase">
-                                                    {m.sender?.first_name} {m.sender?.last_name} ({m.sender?.role})
-                                                </span>
+                                                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 border border-white shadow-sm">
+                                                    {m.sender?.avatar_url ? (
+                                                        <img src={m.sender.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center bg-gray-300 text-[10px] font-bold text-white">
+                                                            {m.sender?.first_name?.[0]?.toUpperCase() || '?'}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
+                                            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                                {!isMe && (
+                                                    <span className="text-[9px] font-bold text-gray-400 mb-1 ml-1 uppercase">
+                                                        {m.sender?.first_name} {m.sender?.last_name} ({m.sender?.role})
+                                                    </span>
+                                                )}
                                             <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-[#FF6600] text-white rounded-br-sm shadow-md shadow-orange-100' : 'bg-white border border-gray-100 rounded-bl-sm shadow-sm'}`}>
                                                 {m.content}
                                             </div>
