@@ -110,7 +110,7 @@ export default function Sidebar({
                 <div className="p-8 pb-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3">
                         <div className="relative w-10 h-10 overflow-hidden">
-                            <Image src="/LOGO_Racines.png" alt="Racines+" fill className="object-contain mix-blend-multiply" />
+                            <Image src="/LOGO_Racines.png" alt="Racines+" fill className="object-contain mix-blend-multiply" sizes="40px" priority />
                         </div>
                         <span className="font-black text-xl tracking-tighter text-[#124e35]">RACINES<span className="text-[#FF6600]">+</span></span>
                     </Link>

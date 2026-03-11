@@ -55,7 +55,7 @@ const CertificateView: React.FC<CertificateProps> = ({ userData, onClose }) => {
 
                         <div className="text-center relative z-10">
                             <div className="flex justify-center mb-6">
-                                <img src="/LOGO_Racines.png" alt="Racines+" className="h-16 object-contain" />
+                                <img src="/LOGO_Racines.png" alt="Racines+" className="h-16 w-auto object-contain" />
                             </div>
 
                             <h1 className="text-3xl md:text-4xl font-serif font-black text-gray-900 mb-2 uppercase tracking-tighter">
