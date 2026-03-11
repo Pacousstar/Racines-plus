@@ -10,7 +10,7 @@ interface InternalMessage {
     receiver_role: string;
     content: string;
     created_at: string;
-    sender?: { first_name: string; last_name: string; role: string };
+    sender?: { first_name: string; last_name: string; role: string; avatar_url?: string | null };
 }
 
 interface InternalMessagingProps {
