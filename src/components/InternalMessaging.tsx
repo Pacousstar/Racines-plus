@@ -191,12 +191,13 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
                                                         {m.sender?.first_name} {m.sender?.last_name} ({m.sender?.role})
                                                     </span>
                                                 )}
-                                            <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-[#FF6600] text-white rounded-br-sm shadow-md shadow-orange-100' : 'bg-white border border-gray-100 rounded-bl-sm shadow-sm'}`}>
-                                                {m.content}
+                                                <div className={`p-3 rounded-2xl text-sm ${isMe ? 'bg-[#FF6600] text-white rounded-br-sm shadow-md shadow-orange-100' : 'bg-white border border-gray-100 rounded-bl-sm shadow-sm'}`}>
+                                                    {m.content}
+                                                </div>
+                                                <span className="text-[8px] font-bold text-gray-400 mt-1 uppercase">
+                                                    {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
                                             </div>
-                                            <span className="text-[8px] font-bold text-gray-400 mt-1 uppercase">
-                                                {new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
                                         </div>
                                     );
                                 })
