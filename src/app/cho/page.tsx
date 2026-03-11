@@ -73,8 +73,6 @@ interface CHOa {
 export default function ChoBoard() {
     const router = useRouter();
     const supabase = createClient();
-    // Double protection côté client
-    useRoleRedirect(['cho']);
     const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'confirmed' | 'rejected' | 'ancestor' | 'team'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);

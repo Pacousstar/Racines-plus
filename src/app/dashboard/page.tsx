@@ -48,6 +48,11 @@ export default function Dashboard() {
         if (data) {
             console.log("🚀 [Dashboard Debug] User role detected:", data.role, "for email:", user.email);
 
+            // Mise à jour de l'identité visuelle avec les données réelles du profil AVANT la redirection
+            setUserProfile(data);
+            setProfileName(`${data.first_name || ''} ${data.last_name || ''}`.trim() || user.email?.split('@')[0] || 'Utilisateur');
+            setAvatarUrl(data.avatar_url || null);
+
             // Redirection immédiate basée sur le rôle (avec trim pour éviter les espaces invisibles)
             const actualRole = data.role?.toLowerCase().trim();
             console.log("🛠️ [Dashboard Redirect Check] Actual role:", `"${actualRole}"`);
@@ -66,7 +71,6 @@ export default function Dashboard() {
             }
 
             console.log("➡️ [Dashboard Debug] Staying on /dashboard for user role");
-            setUserProfile(data);
 
             // Charger le nombre de notifications non lues
             const { count } = await supabase

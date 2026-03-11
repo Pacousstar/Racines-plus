@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import InternalMessaging from '@/components/InternalMessaging';
@@ -56,8 +55,6 @@ interface MyProfile {
 export default function ChoBoard() {
     const router = useRouter();
     const supabase = createClient();
-    // Double protection côté client
-    useRoleRedirect(['choa']);
     const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'sent_cho' | 'confirmed' | 'rejected' | 'quartier'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
