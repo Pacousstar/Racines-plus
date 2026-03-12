@@ -121,42 +121,38 @@ export default function ChoBoard() {
             console.log('[cho] CHO profile loaded:', profile);
             setMyProfile(profile);
 
-            // Charger tous les profils utilisateurs (avec choa_approvals pour voir les CHOa signataires)
-            const { data: allUsers, error: usersErr } = await supabase
-                .from('profiles')
-                .select(`
-                    id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, 
-                    residence_city, residence_country, metadata,
-                    choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction,
-                    validations!profile_id(validator_id, profiles!validator_id(first_name, last_name))
-                `)
-                .eq('role', 'user')
-                .order('created_at', { ascending: false });
+            // Charger les profils via l'API Route (bypass RLS)
+            const { data: { session: choSession } } = await supabase.auth.getSession();
+            const choApiRes = await fetch('/api/cho/profiles', {
+                headers: { Authorization: `Bearer ${choSession?.access_token}` }
+            });
 
-            if (usersErr) console.error('[cho] Error fetching users:', usersErr);
+            if (!choApiRes.ok) {
+                console.error('[cho] Error fetching profiles via API:', await choApiRes.text());
+            } else {
+                const { profiles: allUsersRaw, team: teamData } = await choApiRes.json();
+                const allUsers = allUsersRaw || [];
 
-            if (allUsers) {
                 // Récupérer tous les IDs CHOa uniques depuis choa_approvals
                 const allChoaIds = [...new Set(
-                    allUsers.flatMap(u => Array.isArray(u.choa_approvals) ? u.choa_approvals : [])
-                )];
+                    allUsers.flatMap((u: any) => Array.isArray(u.choa_approvals) ? u.choa_approvals : [])
+                )] as string[];
 
-                // Charger les noms des CHOa signataires
+                // Charger les noms des CHOa signataires (propre profil visible via RLS propre)
                 const choaNamesMap: Record<string, string> = {};
                 if (allChoaIds.length > 0) {
                     const { data: choaProfiles } = await supabase
                         .from('profiles')
-                        .select('id, first_name, last_name, avatar_url')
+                        .select('id, first_name, last_name')
                         .in('id', allChoaIds);
-
                     if (choaProfiles) {
-                        choaProfiles.forEach(cp => {
+                        choaProfiles.forEach((cp: any) => {
                             choaNamesMap[cp.id] = `${cp.first_name || ''} ${cp.last_name || ''}`.trim();
                         });
                     }
                 }
 
-                const enhancedUsers = allUsers.map(u => ({
+                const enhancedUsers = allUsers.map((u: any) => ({
                     ...u,
                     choa_names: Array.isArray(u.choa_approvals)
                         ? u.choa_approvals.map((id: string) => choaNamesMap[id] || id)
@@ -166,20 +162,9 @@ export default function ChoBoard() {
                         : null
                 }));
 
-                // CHO voit uniquement les dossiers doublement validés par les CHOa (probable)
-                setPendingProfiles(enhancedUsers.filter(u =>
-                    u.status === 'probable'
-                ));
-                setConfirmedProfiles(enhancedUsers.filter(u => u.status === 'confirmed'));
-                setRejectedProfiles(enhancedUsers.filter(u => u.status === 'rejected'));
-
-                // Charger l'équipe (CHOa du village)
-                const { data: teamData } = await supabase
-                    .from('profiles')
-                    .select('id, first_name, last_name, quartier_nom, avatar_url, created_at, status')
-                    .eq('role', 'choa')
-                    .eq('village_origin', profile.village_origin)
-                    .order('created_at', { ascending: false });
+                setPendingProfiles(enhancedUsers.filter((u: any) => u.status === 'probable'));
+                setConfirmedProfiles(enhancedUsers.filter((u: any) => u.status === 'confirmed'));
+                setRejectedProfiles(enhancedUsers.filter((u: any) => u.status === 'rejected'));
 
                 if (teamData) setTeam(teamData);
 
@@ -189,7 +174,6 @@ export default function ChoBoard() {
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', user.id)
                     .eq('is_read', false);
-
                 setUnreadCount(count || 0);
             }
             setIsLoading(false);

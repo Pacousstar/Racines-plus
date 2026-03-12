@@ -266,12 +266,14 @@ export default function AdminDashboard() {
                     }
                 });
 
+            // Obtenir le token pour l'API Route
+            const { data: { session: adminSession } } = await supabase.auth.getSession();
+
             // Charger le reste des données en parallèle
-            const [profilesRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
-                supabase
-                    .from('profiles')
-                    .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email, residence_city, residence_country, metadata, emploi, fonction')
-                    .order('created_at', { ascending: false }),
+            const [profilesApiRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
+                fetch('/api/admin/profiles', {
+                    headers: { Authorization: `Bearer ${adminSession?.access_token}` }
+                }),
                 supabase
                     .from('villages')
                     .select('*')
@@ -284,11 +286,14 @@ export default function AdminDashboard() {
                 supabase.from('memorial_victims').select('*').order('created_at', { ascending: false })
             ]);
 
-            if (profilesRes.data) {
-                setProfiles(profilesRes.data);
+            const profilesApiData = profilesApiRes.ok ? await profilesApiRes.json() : null;
+            const profilesData = profilesApiData?.profiles || [];
+
+            if (profilesData.length > 0) {
+                setProfiles(profilesData);
                 // Séparer les simples membres (role='user') des collaborateurs
-                const usersOnly = profilesRes.data.filter(p => p.role === 'user');
-                const collaborateurs = profilesRes.data.filter(p => ['cho', 'choa', 'admin'].includes(p.role) || p.is_ambassadeur);
+                const usersOnly = profilesData.filter((p: any) => p.role === 'user');
+                const collaborateurs = profilesData.filter((p: any) => ['cho', 'choa', 'admin'].includes(p.role) || p.is_ambassadeur);
 
                 setStats({
                     // Membres (users uniquement)
@@ -296,34 +301,34 @@ export default function AdminDashboard() {
                     totalCollaborateurs: collaborateurs.length,
 
                     // Certifiés via workflow CHOa (users confirmés + on distingue des préalables)
-                    confirmedUsers: usersOnly.filter(p => p.status === 'confirmed').length,
+                    confirmedUsers: usersOnly.filter((p: any) => p.status === 'confirmed').length,
 
                     // CHO/CHOa/admin confirmés d'office
-                    confirmedPrelim: profilesRes.data.filter(p =>
+                    confirmedPrelim: profilesData.filter((p: any) =>
                         ['cho', 'choa', 'admin'].includes(p.role) && p.status === 'confirmed'
                     ).length,
 
-                    pendingUsers: usersOnly.filter(p =>
+                    pendingUsers: usersOnly.filter((p: any) =>
                         !p.status ||
                         p.status === 'pending' ||
                         p.status === 'pending_choa' ||
                         p.status === 'pre_approved' ||
                         p.status === 'probable'
                     ).length,
-                    rejectedUsers: usersOnly.filter(p => p.status === 'rejected').length,
+                    rejectedUsers: usersOnly.filter((p: any) => p.status === 'rejected').length,
 
                     genderStats: {
-                        male: usersOnly.filter(p => p.gender === 'Homme').length,
-                        female: usersOnly.filter(p => p.gender === 'Femme').length,
-                        unknown: usersOnly.filter(p => !p.gender).length
+                        male: usersOnly.filter((p: any) => p.gender === 'Homme').length,
+                        female: usersOnly.filter((p: any) => p.gender === 'Femme').length,
+                        unknown: usersOnly.filter((p: any) => !p.gender).length
                     },
-                    educationStats: usersOnly.reduce((acc: Record<string, number>, p) => {
+                    educationStats: usersOnly.reduce((acc: Record<string, number>, p: any) => {
                         const level = p.niveau_etudes || 'Non renseigné';
                         acc[level] = (acc[level] || 0) + 1;
                         return acc;
                     }, {}),
-                    pendingCertificates: usersOnly.filter(p => p.certificate_requested && !p.certificate_issued).length,
-                    pendingExports: usersOnly.filter(p => p.export_requested && !p.export_authorized).length,
+                    pendingCertificates: usersOnly.filter((p: any) => p.certificate_requested && !p.certificate_issued).length,
+                    pendingExports: usersOnly.filter((p: any) => p.export_requested && !p.export_authorized).length,
                     contactStats: {
                         hasPhone: usersOnly.filter((p: any) => p.phone_1).length,
                         hasWhatsapp: usersOnly.filter((p: any) => p.whatsapp_1).length
