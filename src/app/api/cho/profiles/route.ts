@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/cho/profiles
  * Retourne tous les profils utilisateurs (role='user') du village du CHO connecté.

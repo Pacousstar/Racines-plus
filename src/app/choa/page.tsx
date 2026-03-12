@@ -147,17 +147,22 @@ export default function ChoBoard() {
 
         if (allUsersRaw) {
             console.log(`📊 [CHOa Debug] Profils reçus de l'API: ${allUsersRaw.length}`);
+            if (allUsersRaw.length === 0) {
+                console.warn("⚠️ [CHOa Debug] L'API a renvoyé 0 profils pour le village:", profile.village_origin);
+            } else {
+                console.log("✅ [CHOa Debug] Premier profil reçu:", allUsersRaw[0]);
+            }
 
             const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
-            const pending = allUsersRaw.filter((u: { status?: string }) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
-            const probable = allUsersRaw.filter((u: { status?: string }) => u.status === 'probable');
+            const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
+            const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
 
+            console.log(`📊 [CHOa Debug] Après filtrage local -> À valider: ${pending.length}, Envoyés CHO: ${probable.length}`);
+            
             setPendingProfiles(pending);
             setSentToChoProfiles(probable);
-            setConfirmedProfiles(allUsersRaw.filter((u: { status?: string }) => u.status === 'confirmed'));
-            setRejectedProfiles(allUsersRaw.filter((u: { status?: string }) => u.status === 'rejected'));
-
-            console.log(`📊 [CHOa Debug] À valider: ${pending.length}, Envoyés CHO: ${probable.length}`);
+            setConfirmedProfiles(allUsersRaw.filter((u: any) => u.status === 'confirmed'));
+            setRejectedProfiles(allUsersRaw.filter((u: any) => u.status === 'rejected'));
         }
 
         const { count } = await supabase
@@ -312,20 +317,21 @@ export default function ChoBoard() {
     const loadQuartierActivity = async () => {
         if (!myProfile) return;
         setIsLoadingActivity(true);
-        let q = supabase
-            .from('v_validations_quartier')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
-        
-        if (myProfile.village_origin) {
-            // Filtrer par village pour l'activité si possible
-            // Note: v_validations_quartier contient validator_village
-            q = q.ilike('validator_village', `%${myProfile.village_origin.trim()}%`);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const res = await fetch('/api/choa/activity', {
+                headers: { Authorization: `Bearer ${session?.access_token}` }
+            });
+            if (res.ok) {
+                const { activity } = await res.json();
+                setQuartierActivity(activity || []);
+                console.log(`📊 [CHOa Debug] Activités reçues: ${activity?.length || 0}`);
+            } else {
+                console.error('[choa] Error fetching activity:', await res.text());
+            }
+        } catch (err) {
+            console.error('[choa] Activity fetch exception:', err);
         }
-
-        const { data, error } = await q;
-        if (!error && data) setQuartierActivity(data as QuartierActivity[]);
         setIsLoadingActivity(false);
     };
 

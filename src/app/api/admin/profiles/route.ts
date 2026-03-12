@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/admin/profiles
  * Retourne tous les profils (admin uniquement, via service role).

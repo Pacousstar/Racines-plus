@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/choa/profiles
  * Retourne tous les profils du village du CHOa connecté.
@@ -45,6 +47,7 @@ export async function GET(request: Request) {
     let query = supabaseAdmin
         .from('profiles')
         .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals')
+        .eq('role', 'user')
         .order('created_at', { ascending: false });
 
     // Filtrer par village si défini
