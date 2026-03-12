@@ -63,5 +63,8 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: usersErr.message }, { status: 500 });
     }
 
-    return NextResponse.json({ profiles: profiles || [] });
+    return NextResponse.json({ 
+        profiles: profiles || [],
+        me: choaProfile 
+    });
 }

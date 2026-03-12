@@ -107,32 +107,16 @@ export default function ChoBoard() {
         setCurrentUserId(user.id);
         console.log("🔍 [CHOa Debug] User ID:", user.id);
 
-        // Charger le profil CHOa
-        const { data: profile, error: profileErr } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, role, village_origin, quartier_nom, quartiers_assignes, export_authorized, export_requested, avatar_url')
-            .eq('id', user.id).single();
-
-        if (profileErr) console.error('[choa] Error fetching CHOa profile:', profileErr);
-        if (!profile || profile.role !== 'choa') {
-            console.warn("⚠️ [CHOa Debug] Profil non CHOa ou inexistant. Redirection...");
-            router.push('/dashboard');
-            return;
-        }
-        setMyProfile(profile);
-        console.log("🔍 [CHOa Debug] CHOa Profile:", profile);
-
-        // Charger les profils via l'API Route serveur (bypass RLS avec service role)
-        const { data: { session } } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
-
-        if (!accessToken) {
-            console.error('[choa] No access token available');
-            setIsLoading(false);
-            return;
-        }
-
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const accessToken = session?.access_token;
+            if (!accessToken) {
+                console.error('[choa] No access token available');
+                setIsLoading(false);
+                return;
+            }
+
+            console.log("🚀 [CHOa Page] Fetching data via API...");
             const response = await fetch(`/api/choa/profiles?t=${Date.now()}`, {
                 headers: { Authorization: `Bearer ${accessToken}` },
                 cache: 'no-store'
@@ -140,17 +124,27 @@ export default function ChoBoard() {
 
             if (!response.ok) {
                 const errText = await response.text();
-                console.error('[choa] API Error Response:', errText);
+                console.error('❌ [CHOa Page] API Error Response:', errText);
                 setIsLoading(false);
                 return;
             }
 
-            const { profiles: allUsersRaw } = await response.json();
+            const { profiles: allUsersRaw, me } = await response.json();
+
+            if (me) {
+                console.log("✅ [CHOa Page] Profile loaded from API:", me);
+                setMyProfile(me);
+            } else {
+                console.warn("⚠️ [CHOa Page] No profile data ('me') in API response!");
+                // Fallback direct sur supabase si l'API ne l'a pas renvoyé pour une raison X
+                const { data: fallbackProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                if (fallbackProfile) setMyProfile(fallbackProfile);
+            }
 
             if (allUsersRaw) {
                 console.log(`📊 [CHOa Debug] Profils reçus de l'API: ${allUsersRaw.length}`);
                 if (allUsersRaw.length === 0) {
-                    console.warn("⚠️ [CHOa Debug] L'API a renvoyé 0 profils pour le village:", profile.village_origin);
+                    console.warn("⚠️ [CHOa Debug] L'API a renvoyé 0 profils pour le village:", me?.village_origin);
                 } else {
                     console.log("✅ [CHOa Debug] Premier profil reçu:", allUsersRaw[0]);
                 }

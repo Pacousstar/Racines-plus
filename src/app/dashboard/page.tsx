@@ -58,15 +58,18 @@ export default function Dashboard() {
             console.log("🛠️ [Dashboard Redirect Check] Actual role:", `"${actualRole}"`);
 
             if (actualRole === 'admin') {
-                router.push('/admin');
+                console.log("🚀 [Dashboard] Redirecting to /admin...");
+                window.location.href = '/admin';
                 return;
             }
             if (actualRole === 'cho') {
-                router.push('/cho');
+                console.log("🚀 [Dashboard] Redirecting to /cho...");
+                window.location.href = '/cho';
                 return;
             }
             if (actualRole === 'choa') {
-                router.push('/choa');
+                console.log("🚀 [Dashboard] Redirecting to /choa...");
+                window.location.href = '/choa';
                 return;
             }
 

@@ -24,28 +24,38 @@ export function useRoleRedirect(allowedRoles: AllowedRole[]) {
 
     useEffect(() => {
         const checkRole = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
                 router.replace('/login');
                 return;
             }
 
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
+            try {
+                const response = await fetch('/api/me', {
+                    headers: { Authorization: `Bearer ${session.access_token}` }
+                });
 
-            const userRole = profile?.role as AllowedRole | undefined;
+                if (!response.ok) {
+                    console.error('🛡️ [useRoleRedirect] API Error:', await response.text());
+                    return;
+                }
 
-            if (!userRole || !allowedRoles.includes(userRole)) {
-                // Redirection vers le bon dashboard selon le rôle réel
-                if (userRole === 'admin') router.replace('/admin');
-                else if (userRole === 'cho') router.replace('/cho');
-                else if (userRole === 'choa') router.replace('/choa');
-                else if (userRole === 'ambassadeur') router.replace('/dashboard'); // Les ambassadeurs voient le dashboard standard plus options
-                else router.replace('/dashboard');
+                const { profile } = await response.json();
+                const userRole = profile?.role as AllowedRole | undefined;
+                
+                console.log(`🛡️ [useRoleRedirect] User: ${session.user.email}, Role detected: "${userRole}", Allowed: [${allowedRoles.join(', ')}]`);
+
+                if (!userRole || !allowedRoles.includes(userRole)) {
+                    console.warn(`🛡️ [useRoleRedirect] Access denied. Redirecting...`);
+                    if (userRole === 'admin') router.replace('/admin');
+                    else if (userRole === 'cho') router.replace('/cho');
+                    else if (userRole === 'choa') router.replace('/choa');
+                    else router.replace('/dashboard');
+                } else {
+                    console.log('🛡️ [useRoleRedirect] Access granted ✅');
+                }
+            } catch (err) {
+                console.error('🛡️ [useRoleRedirect] Fetch error:', err);
             }
         };
 

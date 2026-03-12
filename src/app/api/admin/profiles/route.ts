@@ -34,5 +34,8 @@ export async function GET(request: Request) {
         .order('created_at', { ascending: false });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ profiles: profiles || [] });
+    return NextResponse.json({ 
+        profiles: profiles || [],
+        me: { id: user.id, role: 'admin' } // On peut renvoyer plus si besoin
+    });
 }

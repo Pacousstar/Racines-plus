@@ -121,17 +121,31 @@ export default function ChoBoard() {
             console.log('[cho] CHO profile loaded:', profile);
             setMyProfile(profile);
 
-            // Charger les profils via l'API Route (bypass RLS)
-            const { data: { session: choSession } } = await supabase.auth.getSession();
-            const choApiRes = await fetch('/api/cho/profiles', {
-                headers: { Authorization: `Bearer ${choSession?.access_token}` }
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const accessToken = session?.access_token;
+            if (!accessToken) {
+                console.error('[cho] No access token');
+                setIsLoading(false);
+                return;
+            }
+
+            const response = await fetch(`/api/cho/profiles?t=${Date.now()}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                cache: 'no-store'
             });
 
-            if (!choApiRes.ok) {
-                console.error('[cho] Error fetching profiles via API:', await choApiRes.text());
-            } else {
-                const { profiles: allUsersRaw, team: teamData } = await choApiRes.json();
-                const allUsers = allUsersRaw || [];
+            if (!response.ok) {
+                console.error('[cho] API error:', await response.text());
+                setIsLoading(false);
+                return;
+            }
+
+            const { profiles: allUsers, team, me } = await response.json();
+            console.log(`📊 [CHO] Profiles: ${allUsers?.length}, Team: ${team?.length}, Me:`, me);
+            
+            if (me) setMyProfile(me);
+            const profiles = allUsers || [];
 
                 // Récupérer tous les IDs CHOa uniques depuis choa_approvals
                 const allChoaIds = [...new Set(
@@ -166,7 +180,7 @@ export default function ChoBoard() {
                 setConfirmedProfiles(enhancedUsers.filter((u: any) => u.status === 'confirmed'));
                 setRejectedProfiles(enhancedUsers.filter((u: any) => u.status === 'rejected'));
 
-                if (teamData) setTeam(teamData);
+                if (team) setTeam(team);
 
                 // Charger le nombre de notifications non lues
                 const { count } = await supabase
@@ -175,6 +189,8 @@ export default function ChoBoard() {
                     .eq('user_id', user.id)
                     .eq('is_read', false);
                 setUnreadCount(count || 0);
+            } catch (err) {
+                console.error('[cho] Exception in load():', err);
             }
             setIsLoading(false);
         };

@@ -54,5 +54,9 @@ export async function GET(request: Request) {
         .ilike('village_origin', `%${choProfile.village_origin?.trim() || ''}%`)
         .order('created_at', { ascending: false });
 
-    return NextResponse.json({ profiles: profiles || [], team: team || [] });
+    return NextResponse.json({ 
+        profiles: profiles || [], 
+        team: team || [],
+        me: choProfile
+    });
 }

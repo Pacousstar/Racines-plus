@@ -248,32 +248,44 @@ export default function AdminDashboard() {
             if (!user) { router.push('/login'); return; }
             setCurrentUserId(user.id);
 
-            // Charger le profil admin séparément et rapidement
-            supabase.from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single()
-                .then(({ data: adminProfile, error: profileErr }) => {
-                    if (profileErr) console.error('[admin] Error fetching admin profile:', profileErr);
-                    if (adminProfile) {
-                        console.log('[admin] Admin profile found:', adminProfile);
-                        if (adminProfile.role !== 'admin') { router.push('/dashboard'); return; }
-                        const name = `${adminProfile.first_name || ''} ${adminProfile.last_name || ''}`.trim();
-                        setAdminName(name || user.email?.split('@')[0] || 'Admin');
-                        setAdminAvatar(adminProfile.avatar_url);
-                        setCurrentUserId(user.id);
-                    } else {
-                        console.warn('[admin] No admin profile found for id:', user.id);
-                        setAdminName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin');
-                        setAdminAvatar(user.user_metadata?.avatar_url || null);
-                    }
-                });
-
             // Obtenir le token pour l'API Route
-            const { data: { session: adminSession } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabase.auth.getSession();
+            const accessToken = session?.access_token;
+            if (!accessToken) {
+                console.error('[admin] No access token');
+                setIsLoading(false);
+                return;
+            }
+
+            const response = await fetch(`/api/admin/profiles?t=${Date.now()}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                cache: 'no-store'
+            });
+
+            if (!response.ok) {
+                console.error('[admin] API error:', await response.text());
+                setIsLoading(false);
+                return;
+            }
+
+            const { profiles: profilesData, me } = await response.json();
+            console.log(`📊 [Admin] Profiles: ${profilesData?.length}, Me:`, me);
+            
+            if (me) {
+                // Pas de setMyProfile ici, on utilise les états existants
+                if (me.role !== 'admin') { router.push('/dashboard'); return; }
+                const name = `${me.first_name || ''} ${me.last_name || ''}`.trim();
+                setAdminName(name || user.email?.split('@')[0] || 'Admin');
+                setAdminAvatar(me.avatar_url);
+            } else {
+                console.warn('[admin] No admin profile found for id:', user.id);
+                setAdminName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin');
+                setAdminAvatar(user.user_metadata?.avatar_url || null);
+            }
+            setProfiles(profilesData || []);
 
             // Charger le reste des données en parallèle
-            const [profilesApiRes, villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
-                fetch('/api/admin/profiles', {
-                    headers: { Authorization: `Bearer ${adminSession?.access_token}` }
-                }),
+            const [villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
                 supabase
                     .from('villages')
                     .select('*')
@@ -286,10 +298,7 @@ export default function AdminDashboard() {
                 supabase.from('memorial_victims').select('*').order('created_at', { ascending: false })
             ]);
 
-            const profilesApiData = profilesApiRes.ok ? await profilesApiRes.json() : null;
-            const profilesData = profilesApiData?.profiles || [];
-
-            if (profilesData.length > 0) {
+            if (profilesData && profilesData.length > 0) {
                 setProfiles(profilesData);
                 // Séparer les simples membres (role='user') des collaborateurs
                 const usersOnly = profilesData.filter((p: any) => p.role === 'user');
