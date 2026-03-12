@@ -122,37 +122,42 @@ export default function ChoBoard() {
         setMyProfile(profile);
         console.log("🔍 [CHOa Debug] CHOa Profile:", profile);
 
-        // Charger les profils utilisateurs (on charge tout et on filtre proprement côté client pour éviter les soucis d'accents/collation)
-        let q = supabase
-            .from('profiles')
-            .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals')
-            .order('created_at', { ascending: false });
+        // Charger les profils via l'API Route serveur (bypass RLS avec service role)
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
 
-        const { data: allUsersRaw, error: usersErr } = await q;
-
-        if (usersErr) {
-            console.error('[choa] Error fetching profiles:', usersErr);
+        if (!accessToken) {
+            console.error('[choa] No access token available');
+            setIsLoading(false);
+            return;
         }
 
-        if (allUsersRaw) {
-            const myVillageNormalized = (profile.village_origin || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-            
-            const allUsers = allUsersRaw.filter(u => {
-                const userVillageNormalized = (u.village_origin || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-                return !myVillageNormalized || userVillageNormalized.includes(myVillageNormalized);
-            });
+        const response = await fetch('/api/choa/profiles', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
 
-            console.log(`📊 [CHOa Debug] Filters: Village="${profile.village_origin}" (${myVillageNormalized})`);
-            console.log("📊 [CHOa Debug] Total relevant users found:", allUsers.length);
+        if (!response.ok) {
+            const errData = await response.json();
+            console.error('[choa] Error fetching profiles via API:', errData);
+            setIsLoading(false);
+            return;
+        }
+
+        const { profiles: allUsersRaw } = await response.json();
+
+        if (allUsersRaw) {
+            console.log(`📊 [CHOa Debug] Profils reçus de l'API: ${allUsersRaw.length}`);
 
             const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
-            const pending = allUsers.filter(u => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
-            const probable = allUsers.filter(u => u.status === 'probable');
+            const pending = allUsersRaw.filter((u: { status?: string }) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
+            const probable = allUsersRaw.filter((u: { status?: string }) => u.status === 'probable');
 
             setPendingProfiles(pending);
             setSentToChoProfiles(probable);
-            setConfirmedProfiles(allUsers.filter(u => u.status === 'confirmed'));
-            setRejectedProfiles(allUsers.filter(u => u.status === 'rejected'));
+            setConfirmedProfiles(allUsersRaw.filter((u: { status?: string }) => u.status === 'confirmed'));
+            setRejectedProfiles(allUsersRaw.filter((u: { status?: string }) => u.status === 'rejected'));
+
+            console.log(`📊 [CHOa Debug] À valider: ${pending.length}, Envoyés CHO: ${probable.length}`);
         }
 
         const { count } = await supabase
