@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
@@ -57,7 +58,12 @@ export async function middleware(request: NextRequest) {
     }
 
     if (user && (pathname === '/login' || pathname === '/')) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        )
+        const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
         const role = profile?.role || 'user'
         const url = request.nextUrl.clone()
         if (role === 'admin') url.pathname = '/admin'
@@ -70,7 +76,12 @@ export async function middleware(request: NextRequest) {
     // Vérification du rôle spécifique
     if (user && roleRouteEntry) {
         const [, allowedRoles] = roleRouteEntry
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        )
+        const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
         const userRole = profile?.role || 'user'
         if (!allowedRoles.includes(userRole)) {
             const url = request.nextUrl.clone()

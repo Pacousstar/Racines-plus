@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -55,7 +56,12 @@ export async function updateSession(request: NextRequest) {
         // Note: getUser() est rapide, mais fetcher le profil à chaque requête middleware 
         // peut ralentir. On peut aussi stocker le rôle dans les user_metadata.
 
-        const { data: profile } = await supabase
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        )
+        const { data: profile } = await supabaseAdmin
             .from('profiles')
             .select('role')
             .eq('id', user.id)
