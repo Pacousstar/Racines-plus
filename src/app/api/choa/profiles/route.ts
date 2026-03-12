@@ -46,16 +46,18 @@ export async function GET(request: Request) {
     // Récupérer tous les profils du même village (service role bypass RLS)
     let query = supabaseAdmin
         .from('profiles')
-        .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals')
-        .eq('role', 'user')
-        .order('created_at', { ascending: false });
+        .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction')
+        .eq('role', 'user');
 
-    // Filtrer par village si défini
+    // Filtrer par village si défini (plus souple)
     if (choaProfile.village_origin) {
-        query = query.ilike('village_origin', `%${choaProfile.village_origin.trim()}%`);
+        const v = choaProfile.village_origin.trim();
+        console.log(`[api/choa/profiles] Filtering for village: "${v}"`);
+        // On utilise ilike avec des % pour être très souple sur les accents/espaces si possible
+        query = query.ilike('village_origin', `%${v}%`);
     }
 
-    const { data: profiles, error: usersErr } = await query;
+    const { data: profiles, error: usersErr } = await query.order('created_at', { ascending: false });
 
     if (usersErr) {
         return NextResponse.json({ error: usersErr.message }, { status: 500 });

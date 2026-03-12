@@ -33,11 +33,14 @@ export async function GET(request: Request) {
         return NextResponse.json({ activity: [] });
     }
 
-    // Charger l'activité du quartier/village via la vue
+    // Charger l'activité du quartier/village via la vue (filtrage souple)
+    const v = choaProfile.village_origin.trim();
+    console.log(`[api/choa/activity] Filtering activity for village: "${v}"`);
+    
     const { data: activity, error } = await supabaseAdmin
         .from('v_validations_quartier')
         .select('*')
-        .ilike('validator_village', `%${choaProfile.village_origin.trim()}%`)
+        .ilike('validator_village', `%${v}%`)
         .order('created_at', { ascending: false })
         .limit(50);
 

@@ -132,45 +132,51 @@ export default function ChoBoard() {
             return;
         }
 
-        const response = await fetch('/api/choa/profiles', {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
+        try {
+            const response = await fetch(`/api/choa/profiles?t=${Date.now()}`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+                cache: 'no-store'
+            });
 
-        if (!response.ok) {
-            const errData = await response.json();
-            console.error('[choa] Error fetching profiles via API:', errData);
-            setIsLoading(false);
-            return;
-        }
-
-        const { profiles: allUsersRaw } = await response.json();
-
-        if (allUsersRaw) {
-            console.log(`📊 [CHOa Debug] Profils reçus de l'API: ${allUsersRaw.length}`);
-            if (allUsersRaw.length === 0) {
-                console.warn("⚠️ [CHOa Debug] L'API a renvoyé 0 profils pour le village:", profile.village_origin);
-            } else {
-                console.log("✅ [CHOa Debug] Premier profil reçu:", allUsersRaw[0]);
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('[choa] API Error Response:', errText);
+                setIsLoading(false);
+                return;
             }
 
-            const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
-            const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
-            const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
+            const { profiles: allUsersRaw } = await response.json();
 
-            console.log(`📊 [CHOa Debug] Après filtrage local -> À valider: ${pending.length}, Envoyés CHO: ${probable.length}`);
-            
-            setPendingProfiles(pending);
-            setSentToChoProfiles(probable);
-            setConfirmedProfiles(allUsersRaw.filter((u: any) => u.status === 'confirmed'));
-            setRejectedProfiles(allUsersRaw.filter((u: any) => u.status === 'rejected'));
+            if (allUsersRaw) {
+                console.log(`📊 [CHOa Debug] Profils reçus de l'API: ${allUsersRaw.length}`);
+                if (allUsersRaw.length === 0) {
+                    console.warn("⚠️ [CHOa Debug] L'API a renvoyé 0 profils pour le village:", profile.village_origin);
+                } else {
+                    console.log("✅ [CHOa Debug] Premier profil reçu:", allUsersRaw[0]);
+                }
+
+                const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
+                const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
+                const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
+
+                console.log(`📊 [CHOa Debug] Après filtrage local -> À valider: ${pending.length}, Envoyés CHO: ${probable.length}`);
+                
+                setPendingProfiles(pending);
+                setSentToChoProfiles(probable);
+                setConfirmedProfiles(allUsersRaw.filter((u: any) => u.status === 'confirmed'));
+                setRejectedProfiles(allUsersRaw.filter((u: any) => u.status === 'rejected'));
+            }
+
+            const { count } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id).eq('is_read', false);
+            setUnreadCount(count || 0);
+            setIsLoading(false);
+        } catch (err) {
+            console.error('[choa] Exception in load():', err);
+            setIsLoading(false);
         }
-
-        const { count } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id).eq('is_read', false);
-        setUnreadCount(count || 0);
-        setIsLoading(false);
     };
 
     useEffect(() => {
@@ -319,15 +325,17 @@ export default function ChoBoard() {
         setIsLoadingActivity(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch('/api/choa/activity', {
-                headers: { Authorization: `Bearer ${session?.access_token}` }
+            const res = await fetch(`/api/choa/activity?t=${Date.now()}`, {
+                headers: { Authorization: `Bearer ${session?.access_token}` },
+                cache: 'no-store'
             });
             if (res.ok) {
                 const { activity } = await res.json();
                 setQuartierActivity(activity || []);
                 console.log(`📊 [CHOa Debug] Activités reçues: ${activity?.length || 0}`);
             } else {
-                console.error('[choa] Error fetching activity:', await res.text());
+                const errText = await res.text();
+                console.error('[choa] Activity API Error:', errText);
             }
         } catch (err) {
             console.error('[choa] Activity fetch exception:', err);
