@@ -39,7 +39,7 @@ export async function middleware(request: NextRequest) {
     const ROLE_ROUTES: Record<string, string[]> = {
         '/admin': ['admin'],
         '/cho': ['cho', 'admin'],
-        '/choa': ['choa', 'cho', 'admin'],
+        '/choa': ['choa', 'cho', 'admin', 'assistant cho', 'assistant_cho'],
     }
 
     // Routes qui nécessitent simplement d'être connecté
@@ -64,12 +64,14 @@ export async function middleware(request: NextRequest) {
             { auth: { autoRefreshToken: false, persistSession: false } }
         )
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
-        const role = profile?.role || 'user'
+        const role = (profile?.role || 'user').toLowerCase().trim()
         const url = request.nextUrl.clone()
         if (role === 'admin') url.pathname = '/admin'
         else if (role === 'cho') url.pathname = '/cho'
-        else if (role === 'choa') url.pathname = '/choa'
+        else if (role === 'choa' || role === 'assistant cho' || role === 'assistant_cho') url.pathname = '/choa'
         else url.pathname = '/dashboard'
+        
+        console.log(`[Middleware] Redirecting ${user.email} from ${pathname} to ${url.pathname} (role: ${role})`)
         return NextResponse.redirect(url)
     }
 
@@ -82,8 +84,10 @@ export async function middleware(request: NextRequest) {
             { auth: { autoRefreshToken: false, persistSession: false } }
         )
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
-        const userRole = profile?.role || 'user'
+        const userRole = (profile?.role || 'user').toLowerCase().trim()
+        
         if (!allowedRoles.includes(userRole)) {
+            console.warn(`[Middleware] Access denied for ${user.email} to ${pathname}. Role: ${userRole}. Redirecting to /dashboard`)
             const url = request.nextUrl.clone()
             url.pathname = '/dashboard'
             return NextResponse.redirect(url)

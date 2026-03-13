@@ -256,9 +256,8 @@ export default function PyramidTree() {
             // Ancêtres certifiés CHO du village Toa-Zéo (table ancestres, pas profiles)
             const { data: ancestres } = await supabase
                 .from('ancestres')
-                .select('id, nom_complet, periode, is_certified, village_nom')
+                .select('id, nom_complet, periode, is_certified')
                 .eq('is_certified', true)
-                .ilike('village_nom', '%Toa%') // filtre par village pour éviter les ancêtres d'autres villages
                 .order('created_at', { ascending: true })
                 .limit(3);
 
@@ -284,7 +283,7 @@ export default function PyramidTree() {
                     birthYear: a.periode ? a.periode.match(/\d{4}/)?.[0] || 'Inconnue' : 'Inconnue',
                     status: 'confirmed',
                     isDeceased: false,
-                    village: a.village_nom || 'Toa-Zéo',
+                    village: 'Toa-Zéo',
                 });
             });
 

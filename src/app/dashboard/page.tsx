@@ -59,17 +59,20 @@ export default function Dashboard() {
 
             if (actualRole === 'admin') {
                 console.log("🚀 [Dashboard] Redirecting to /admin...");
-                window.location.href = '/admin';
+                setIsLoading(true);
+                router.replace('/admin');
                 return;
             }
             if (actualRole === 'cho') {
                 console.log("🚀 [Dashboard] Redirecting to /cho...");
-                window.location.href = '/cho';
+                setIsLoading(true);
+                router.replace('/cho');
                 return;
             }
             if (actualRole === 'choa') {
                 console.log("🚀 [Dashboard] Redirecting to /choa...");
-                window.location.href = '/choa';
+                setIsLoading(true);
+                router.replace('/choa');
                 return;
             }
 

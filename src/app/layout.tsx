@@ -65,7 +65,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Racines+" />
       </head>
-      <body className="antialiased text-foreground bg-background">
+      <body className="antialiased text-foreground bg-background" suppressHydrationWarning>
         <Toaster position="top-right" toastOptions={{ duration: 4000, style: { background: '#333', color: '#fff' } }} />
         {children}
       </body>

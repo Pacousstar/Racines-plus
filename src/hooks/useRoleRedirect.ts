@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 
-type AllowedRole = 'admin' | 'cho' | 'choa' | 'user' | 'ambassadeur';
+type AllowedRole = 'admin' | 'cho' | 'choa' | 'user' | 'ambassadeur' | 'assistant cho' | 'assistant_cho';
 
 /**
  * Hook useRoleRedirect
@@ -47,10 +47,18 @@ export function useRoleRedirect(allowedRoles: AllowedRole[]) {
 
                 if (!userRole || !allowedRoles.includes(userRole)) {
                     console.warn(`🛡️ [useRoleRedirect] Access denied. Redirecting...`);
-                    if (userRole === 'admin') router.replace('/admin');
-                    else if (userRole === 'cho') router.replace('/cho');
-                    else if (userRole === 'choa') router.replace('/choa');
-                    else router.replace('/dashboard');
+                    const currentPath = window.location.pathname;
+                    let targetPath = '/dashboard';
+                    
+                    if (userRole === 'admin') targetPath = '/admin';
+                    else if (userRole === 'cho') targetPath = '/cho';
+                    else if (userRole === 'choa' || userRole === 'assistant cho' || userRole === 'assistant_cho') targetPath = '/choa';
+
+                    if (currentPath !== targetPath && !currentPath.startsWith(targetPath)) {
+                        router.replace(targetPath);
+                    } else {
+                        console.log('🛡️ [useRoleRedirect] Already on correct path, stopping redirect.');
+                    }
                 } else {
                     console.log('🛡️ [useRoleRedirect] Access granted ✅');
                 }

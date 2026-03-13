@@ -82,11 +82,9 @@ export default function AppLayout({
                     </div>
                 </header>
 
-                {/* Content Area */}
+                {/* Zone de Contenu */}
                 <main className="p-4 md:p-8">
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        {children}
-                    </div>
+                    {children}
                 </main>
             </div>
         </div>

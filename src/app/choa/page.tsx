@@ -103,7 +103,12 @@ export default function ChoBoard() {
     const [rejectedPage, setRejectedPage] = useState(1);
     const itemsPerPage = 20;
     const load = async () => {
-        setIsLoading(true);
+        // Optimisation : Ne pas déclencher isLoading(true) si on a déjà des profils 
+        // pour éviter le "flash" de chargement complet.
+        if (pendingProfiles.length === 0) {
+            setIsLoading(true);
+        }
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { router.push('/login'); return; }
         setCurrentUserId(user.id);
@@ -133,40 +138,38 @@ export default function ChoBoard() {
 
             const { profiles: allUsersRaw, me } = await response.json();
 
+            // Mettre à jour le profil
             if (me) {
                 console.log("✅ [CHOa Page] Profile loaded from API:", me);
                 setMyProfile(me);
             } else {
                 console.warn("⚠️ [CHOa Page] No profile data ('me') in API response!");
-                // Fallback direct sur supabase si l'API ne l'a pas renvoyé pour une raison X
                 const { data: fallbackProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (fallbackProfile) setMyProfile(fallbackProfile);
             }
 
+            // Mettre à jour tous les profils en une fois (réduit les re-renders)
             if (allUsersRaw) {
-                console.log(`📊 [CHOa Debug] Profils reçus de l'API: ${allUsersRaw.length}`);
-                if (allUsersRaw.length === 0) {
-                    console.warn("⚠️ [CHOa Debug] L'API a renvoyé 0 profils pour le village:", me?.village_origin);
-                } else {
-                    console.log("✅ [CHOa Debug] Premier profil reçu:", allUsersRaw[0]);
-                }
-
+                console.log(`📊 [CHOa Debug] Profils reçus: ${allUsersRaw.length}`);
+                
                 const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
                 const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
                 const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
-
-                console.log(`📊 [CHOa Debug] Après filtrage local -> À valider: ${pending.length}, Envoyés CHO: ${probable.length}`);
+                const confirmed = allUsersRaw.filter((u: any) => u.status === 'confirmed');
+                const rejected = allUsersRaw.filter((u: any) => u.status === 'rejected');
                 
                 setPendingProfiles(pending);
                 setSentToChoProfiles(probable);
-                setConfirmedProfiles(allUsersRaw.filter((u: any) => u.status === 'confirmed'));
-                setRejectedProfiles(allUsersRaw.filter((u: any) => u.status === 'rejected'));
+                setConfirmedProfiles(confirmed);
+                setRejectedProfiles(rejected);
             }
 
+            // Récupérer les notifications
             const { count } = await supabase
                 .from('notifications')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id).eq('is_read', false);
+            
             setUnreadCount(count || 0);
             setIsLoading(false);
         } catch (err) {

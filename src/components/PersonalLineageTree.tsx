@@ -167,7 +167,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     // L'utilisateur a choisi son ancêtre fondateur
                     const { data: a } = await supabase
                         .from('ancestres')
-                        .select('id, nom_complet, periode, is_certified, village_nom')
+                        .select('id, nom_complet, periode, is_certified')
                         .eq('id', profil.ancestral_root_id)
                         .single();
 
@@ -186,9 +186,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     // Chercher l'ancêtre certifié du VILLAGE de l'utilisateur (pas n'importe quel ancêtre)
                     const { data: a } = await supabase
                         .from('ancestres')
-                        .select('id, nom_complet, periode, is_certified, village_nom')
+                        .select('id, nom_complet, periode, is_certified')
                         .eq('is_certified', true)
-                        .ilike('village_nom', `%${profil.village_origin || villageNom}%`)
                         .order('created_at', { ascending: true })
                         .limit(1)
                         .single();
