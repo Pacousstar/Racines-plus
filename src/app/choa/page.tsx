@@ -56,7 +56,7 @@ interface MyProfile {
 export default function ChoBoard() {
     const router = useRouter();
     const supabase = createClient();
-    useRoleRedirect(['choa']);
+    useRoleRedirect(['choa', 'admin', 'cho', 'assistant cho', 'assistant_cho']);
     const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'sent_cho' | 'confirmed' | 'rejected' | 'quartier'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -576,10 +576,12 @@ export default function ChoBoard() {
                             <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_10px_rgba(251,146,60,0.5)]" />
                         </div>
                         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
-                            Gestion du <span className="text-[#FF6600]">Patrimoine</span> (Assistant)
+                            Gestion du <span className="text-[#FF6600]">Patrimoine</span> {(myProfile?.role === 'admin' || myProfile?.role === 'cho') ? '(Mode Admin)' : '(Assistant)'}
                         </h1>
                         <p className="text-gray-400 font-medium max-w-md">
-                            En tant que CHOa, vous êtes le garant de la lignée. Votre sceau permet de transférer les dossiers au CHO pour validation finale.
+                            {myProfile?.role === 'admin' 
+                                ? "Vue administrative du village. Vous pouvez consulter et superviser les validations en cours." 
+                                : "En tant que CHOa, vous êtes le garant de la lignée. Votre sceau permet de transférer les dossiers au CHO pour validation finale."}
                         </p>
                     </div>
                     <div className="flex flex-col items-end gap-3 text-right">

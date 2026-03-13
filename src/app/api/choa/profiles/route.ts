@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 });
     }
 
-    const isAuthorized = ['choa', 'assistant cho', 'assistant_cho'].includes(choaProfile.role || '');
+    const isAuthorized = ['choa', 'assistant cho', 'assistant_cho', 'admin', 'cho'].includes(choaProfile.role || '');
     if (!isAuthorized) {
         console.warn(`[api/choa/profiles] Access denied for role: ${choaProfile.role}`);
         return NextResponse.json({ error: 'Accès réservé aux CHOa' }, { status: 403 });

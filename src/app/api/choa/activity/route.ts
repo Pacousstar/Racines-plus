@@ -33,7 +33,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ activity: [] });
     }
 
-    const isAuthorized = ['choa', 'assistant cho', 'assistant_cho'].includes(choaProfile.role || '');
+    const isAuthorized = ['choa', 'assistant cho', 'assistant_cho', 'admin', 'cho'].includes(choaProfile.role || '');
     if (!isAuthorized) {
         console.warn(`[api/choa/activity] Access denied for role: ${choaProfile.role}`);
         return NextResponse.json({ activity: [] });
