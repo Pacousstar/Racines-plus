@@ -804,10 +804,11 @@ export default function AdminDashboard() {
             role="admin"
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as any)}
-            userName={adminName}
-            userAvatar={adminAvatar}
+            userName={adminName || 'Administrateur'}
+            userAvatar={adminAvatar || null}
             onLogout={handleLogout}
             village="Toa-Zéo"
+            permissions={myPerms}
         >
 
             {/* Mon Arbre Utilisateur */}

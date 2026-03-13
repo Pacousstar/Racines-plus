@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
     Home, Users, TreePine, ShieldCheck, Flame,
     BarChart3, Shield, Map, Share2, Stamp,
-    Settings, LogOut, ChevronRight, Bell, Menu, X
+    Settings, LogOut, ChevronRight, Bell, Menu, X, Activity
 } from 'lucide-react';
 
 export interface NavItem {
@@ -14,6 +14,8 @@ export interface NavItem {
     label: string;
     icon: React.ElementType;
     color?: string;
+    permission?: string | string[];
+    superOnly?: boolean;
 }
 
 interface SidebarProps {
@@ -26,6 +28,18 @@ interface SidebarProps {
     onLogout: () => void;
     isOpen: boolean;
     setIsOpen: (open: boolean) => void;
+    permissions?: {
+        can_validate_users?: boolean;
+        can_manage_villages?: boolean;
+        can_manage_ancestors?: boolean;
+        can_manage_memorial?: boolean;
+        can_issue_certificates?: boolean;
+        can_manage_invitations?: boolean;
+        can_export_data?: boolean;
+        can_manage_roles?: boolean;
+        can_view_audit_logs?: boolean;
+        can_manage_settings?: boolean;
+    };
 }
 
 export default function Sidebar({
@@ -37,27 +51,52 @@ export default function Sidebar({
     village,
     onLogout,
     isOpen,
-    setIsOpen
+    setIsOpen,
+    permissions
 }: SidebarProps) {
 
     const getNavItems = (): NavItem[] => {
-        const common = [
+        const common: NavItem[] = [
             { id: 'mon_arbre', label: 'Mon Arbre', icon: TreePine },
             { id: 'memorial', label: 'Mémorial 2010', icon: Flame, color: 'text-red-500' },
         ];
 
         if (role === 'admin') {
-            return [
+            const items: NavItem[] = [
                 { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
                 ...common,
-                { id: 'users', label: 'Comptes & Rôles', icon: Users },
-                { id: 'assistants', label: 'Assistants Admin', icon: Shield },
-                { id: 'villages', label: 'Villages & Quartiers', icon: Map },
-                { id: 'validations', label: 'Validations', icon: ShieldCheck },
-                { id: 'invitations', label: 'Invitations', icon: Share2 },
-                { id: 'certificates', label: 'Certificats', icon: Stamp },
-                { id: 'settings', label: 'Paramètres', icon: Settings },
+                { id: 'users', label: 'Comptes & Rôles', icon: Users, permission: 'can_manage_roles' },
+                { id: 'assistants', label: 'Assistants Admin', icon: Shield, superOnly: true },
+                { id: 'villages', label: 'Villages & Quartiers', icon: Map, permission: ['can_manage_villages', 'can_manage_ancestors'] },
+                { id: 'validations', label: 'Validations', icon: ShieldCheck, permission: 'can_validate_users' },
+                { id: 'invitations', label: 'Invitations', icon: Share2, permission: 'can_manage_invitations' },
+                { id: 'certificates', label: 'Certificats', icon: Stamp, permission: 'can_issue_certificates' },
+                { id: 'memorial_admin', label: 'Crise 2010', icon: Flame, permission: 'can_manage_memorial' },
+                { id: 'audit', label: 'Journal (Audit)', icon: Activity, permission: 'can_view_audit_logs' },
+                { id: 'settings', label: 'Paramètres', icon: Settings, permission: 'can_manage_settings' },
             ];
+
+            const isSuper = userName.toLowerCase().includes('pacous') || userName.toLowerCase().includes('expertises');
+
+            return items.filter(item => {
+                // Un Super Admin voit tout
+                if (isSuper) return true;
+                
+                // Si c'est un item réservé au Super Admin, on cache pour les autres
+                if (item.superOnly) return false;
+                
+                // Si aucune permission n'est fournie (chargement ou erreur), on cache les items protégés par précaution
+                if (!permissions) {
+                    return !item.permission; // On ne montre que les items communs (sans permission requise)
+                }
+                
+                // Si l'item n'a pas de permission spécifiée, il est public pour tous les admins
+                if (!item.permission) return true;
+                
+                const perms = Array.isArray(item.permission) ? item.permission : [item.permission];
+                // @ts-ignore
+                return perms.some(p => permissions[p] === true);
+            });
         }
 
         if (role === 'cho') {

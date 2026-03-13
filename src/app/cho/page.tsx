@@ -37,6 +37,8 @@ interface PendingProfile {
     niveau_etudes?: string;
     emploi?: string;
     fonction?: string;
+    rejection_motif?: string | null;
+    rejection_observations?: string | null;
     validations?: Array<{ validator_id: string; profiles: Array<{ first_name: string; last_name: string }> }>;
 }
 
@@ -106,95 +108,46 @@ export default function ChoBoard() {
 
     useEffect(() => {
         const load = async () => {
-            setIsLoading(true);
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { router.push('/login'); return; }
-            setCurrentUserId(user.id);
-
-            const { data: profile, error: profileErr } = await supabase.from('profiles').select('first_name, last_name, role, village_origin, export_authorized, export_requested, avatar_url').eq('id', user.id).single();
-            if (profileErr) console.error('[cho] Error fetching CHO profile:', profileErr);
-            if (!profile || profile.role !== 'cho') {
-                console.warn('[cho] Access denied or profile missing for id:', user.id);
-                router.push('/dashboard');
-                return;
-            }
-            console.log('[cho] CHO profile loaded:', profile);
-            setMyProfile(profile);
-
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const accessToken = session?.access_token;
-            if (!accessToken) {
-                console.error('[cho] No access token');
-                setIsLoading(false);
-                return;
-            }
-
-            const response = await fetch(`/api/cho/profiles?t=${Date.now()}`, {
-                headers: { Authorization: `Bearer ${accessToken}` },
-                cache: 'no-store'
-            });
-
-            if (!response.ok) {
-                console.error('[cho] API error:', await response.text());
-                setIsLoading(false);
-                return;
-            }
-
-            const { profiles: allUsers, team, me } = await response.json();
-            console.log(`📊 [CHO] Profiles: ${allUsers?.length}, Team: ${team?.length}, Me:`, me);
+            const isAnyLoaded = pendingProfiles.length > 0 || confirmedProfiles.length > 0 || rejectedProfiles.length > 0;
+            if (!isAnyLoaded) setIsLoading(true);
             
-            if (me) setMyProfile(me);
-            const profiles = allUsers || [];
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) { setIsLoading(false); router.push('/login'); return; }
+            setCurrentUserId(session.user.id);
 
-                // Récupérer tous les IDs CHOa uniques depuis choa_approvals
-                const allChoaIds = [...new Set(
-                    allUsers.flatMap((u: any) => Array.isArray(u.choa_approvals) ? u.choa_approvals : [])
-                )] as string[];
-
-                // Charger les noms des CHOa signataires (propre profil visible via RLS propre)
-                const choaNamesMap: Record<string, string> = {};
-                if (allChoaIds.length > 0) {
-                    const { data: choaProfiles } = await supabase
-                        .from('profiles')
-                        .select('id, first_name, last_name')
-                        .in('id', allChoaIds);
-                    if (choaProfiles) {
-                        choaProfiles.forEach((cp: any) => {
-                            choaNamesMap[cp.id] = `${cp.first_name || ''} ${cp.last_name || ''}`.trim();
-                        });
-                    }
+            try {
+                const res = await fetch('/api/cho/profiles', {
+                    headers: { 'Authorization': `Bearer ${session.access_token}` }
+                });
+                const data = await res.json();
+                
+                if (data.profiles) {
+                    const all: any[] = data.profiles;
+                    setPendingProfiles(all.filter((u: any) => u.status === 'probable'));
+                    setConfirmedProfiles(all.filter((u: any) => u.status === 'confirmed'));
+                    setRejectedProfiles(all.filter((u: any) => u.status === 'rejected'));
                 }
+                if (data.team) setTeam(data.team);
+                if (data.me) setMyProfile(data.me);
 
-                const enhancedUsers = allUsers.map((u: any) => ({
-                    ...u,
-                    choa_names: Array.isArray(u.choa_approvals)
-                        ? u.choa_approvals.map((id: string) => choaNamesMap[id] || id)
-                        : [],
-                    pre_validated_by: Array.isArray(u.choa_approvals) && u.choa_approvals.length > 0
-                        ? u.choa_approvals.map((id: string) => choaNamesMap[id] || 'CHOa').join(' + ')
-                        : null
-                }));
-
-                setPendingProfiles(enhancedUsers.filter((u: any) => u.status === 'probable'));
-                setConfirmedProfiles(enhancedUsers.filter((u: any) => u.status === 'confirmed'));
-                setRejectedProfiles(enhancedUsers.filter((u: any) => u.status === 'rejected'));
-
-                if (team) setTeam(team);
-
-                // Charger le nombre de notifications non lues
                 const { count } = await supabase
                     .from('notifications')
                     .select('*', { count: 'exact', head: true })
-                    .eq('user_id', user.id)
+                    .eq('user_id', session.user.id)
                     .eq('is_read', false);
                 setUnreadCount(count || 0);
+
             } catch (err) {
-                console.error('[cho] Exception in load():', err);
+                console.error("Erreur chargement CHO:", err);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         };
+
         load();
+        
+        const interval = setInterval(load, 120000);
+        return () => clearInterval(interval);
     }, [supabase, router]);
 
     const handleRequestExport = async () => {
@@ -367,7 +320,6 @@ export default function ChoBoard() {
 
     const ProfileCard = ({ profile, showActions = true }: { profile: PendingProfile; showActions?: boolean }) => (
         <div className="group bg-white/40 backdrop-blur-xl rounded-[3rem] p-8 border border-white/60 shadow-xl shadow-gray-200/40 hover:shadow-2xl hover:shadow-orange-200/40 hover:border-[#FF6600]/30 transition-all duration-700 relative overflow-hidden active:scale-[0.98] animate-in slide-in-from-bottom-8 duration-500">
-            {/* Background decorative elements */}
             <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-orange-100/40 to-transparent rounded-bl-[6rem] -mr-16 -mt-16 group-hover:scale-125 transition-transform duration-700" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-50/30 to-transparent rounded-tr-[4rem] -ml-8 -mb-8" />
 
@@ -444,6 +396,37 @@ export default function ChoBoard() {
                             Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
                         </div>
 
+                        {/* Informations de rejet — Enrichies */}
+                        {profile.status === 'rejected' && (profile.rejection_motif || profile.rejection_observations) && (
+                            <div className="mt-4 p-4 bg-red-50 rounded-2xl border border-red-100 animate-in zoom-in duration-300">
+                                <div className="flex items-center gap-2 mb-2 text-red-700">
+                                    <XCircle className="w-4 h-4" />
+                                    <span className="text-xs font-black uppercase tracking-wider">Dossier Rejeté</span>
+                                </div>
+                                <div className="space-y-2">
+                                    {profile.rejection_motif && (
+                                        <p className="text-sm font-bold text-red-900 leading-tight">
+                                            <span className="text-[10px] text-red-400 block uppercase mb-0.5">Motif principal :</span>
+                                            {profile.rejection_motif}
+                                        </p>
+                                    )}
+                                    {profile.rejection_observations && (
+                                        <p className="text-xs text-red-700 bg-white/50 p-2 rounded-xl italic border border-red-50/50">
+                                            <span className="text-[9px] text-red-400 not-italic block uppercase mb-1">Observations détaillées :</span>
+                                            &ldquo;{profile.rejection_observations}&rdquo;
+                                        </p>
+                                    )}
+                                    <div className="pt-2 border-t border-red-100 flex items-center justify-between">
+                                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Décision finale du CHO</span>
+                                        <div className="flex items-center gap-1.5 grayscale opacity-70">
+                                            <div className="w-4 h-4 rounded-full bg-red-200" />
+                                            <span className="text-[9px] font-black text-red-600 uppercase">Validé par le système</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {profile.status === 'probable' && Array.isArray(profile.choa_names) && profile.choa_names.length > 0 && (
                             <div className="flex flex-col items-end gap-1.5">
                                 <span className="text-[9px] font-black text-[#124E35] uppercase tracking-widest pr-2">Scellé par les CHOa :</span>
@@ -508,8 +491,8 @@ export default function ChoBoard() {
             role="cho"
             activeTab={activeTab}
             onTabChange={(id) => setActiveTab(id as any)}
-            userName={`${myProfile?.first_name ?? ''} ${myProfile?.last_name ?? ''}`}
-            userAvatar={myProfile?.avatar_url ?? null}
+            userName={(myProfile?.first_name || myProfile?.last_name) ? `${myProfile.first_name || ''} ${myProfile.last_name || ''}`.trim() : 'Chargement...'}
+            userAvatar={myProfile?.avatar_url || null}
             onLogout={async () => { await supabase.auth.signOut(); router.push('/login'); }}
             village={myProfile?.village_origin || 'Toa-Zéo'}
         >

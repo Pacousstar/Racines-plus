@@ -14,6 +14,7 @@ interface AppLayoutProps {
     userAvatar: string | null;
     village?: string;
     onLogout: () => void;
+    permissions?: any;
 }
 
 export default function AppLayout({
@@ -24,7 +25,8 @@ export default function AppLayout({
     userName,
     userAvatar,
     village,
-    onLogout
+    onLogout,
+    permissions
 }: AppLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -41,6 +43,7 @@ export default function AppLayout({
                 onLogout={onLogout}
                 isOpen={isSidebarOpen}
                 setIsOpen={setIsSidebarOpen}
+                permissions={permissions}
             />
 
             {/* Main Content Area */}

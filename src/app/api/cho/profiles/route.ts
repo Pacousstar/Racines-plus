@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     if (authError || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
     const { data: choProfile, error: profileErr } = await supabaseAdmin
-        .from('profiles').select('role, village_origin').eq('id', user.id).single();
+        .from('profiles').select('first_name, last_name, role, village_origin, avatar_url').eq('id', user.id).single();
 
     if (profileErr || !choProfile) return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 });
     if (choProfile.role !== 'cho') return NextResponse.json({ error: 'Accès réservé aux CHO' }, { status: 403 });
@@ -34,7 +34,8 @@ export async function GET(request: Request) {
         .select(`
             id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, 
             birth_date, gender, residence_city, residence_country, metadata,
-            choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction
+            choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction,
+            rejection_motif, rejection_observations
         `)
         .eq('role', 'user')
         .order('created_at', { ascending: false });
@@ -57,6 +58,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ 
         profiles: profiles || [], 
         team: team || [],
-        me: choProfile
+        me: {
+            ...choProfile,
+            role: (choProfile.role || 'user').toLowerCase().trim()
+        }
     });
 }
