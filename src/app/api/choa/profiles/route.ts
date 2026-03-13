@@ -51,14 +51,15 @@ export async function GET(request: Request) {
         .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction')
         .eq('role', 'user');
 
-    // Filtrer par village seulement si le CHOa n'est pas Admin (ou optionnellement pour Admin)
+    // Filtrer par village seulement si le CHOa n'est pas Admin
     if (choaProfile.village_origin && choaProfile.role !== 'admin') {
         const v = choaProfile.village_origin.trim();
-        const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '%');
-        query = query.or(`village_origin.ilike.%${flexibleV}%,village_origin.ilike.%${v}%`);
-        console.log(`[api/choa/profiles] Restricted view for ${choaProfile.role} in village: "${v}"`);
+        // Filtrage robuste : on cherche le nom exact OU avec des jokers pour les accents/tirets
+        const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '_');
+        query = query.or(`village_origin.ilike.${v},village_origin.ilike.${flexibleV}`);
+        console.log(`[api/choa/profiles] Filtering for village: "${v}" (flexible: "${flexibleV}")`);
     } else {
-        console.log(`[api/choa/profiles] Extended view for ${choaProfile.role} (Village: ${choaProfile.village_origin || 'All'})`);
+        console.log(`[api/choa/profiles] No village filter applied (Role: ${choaProfile.role})`);
     }
 
     const { data: profiles, error: usersErr } = await query.order('created_at', { ascending: false });

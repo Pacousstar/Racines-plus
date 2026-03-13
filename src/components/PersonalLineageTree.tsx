@@ -333,7 +333,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     .eq('profile_id', userId)
                     .eq('role_validateur', 'system')
                     .order('created_at', { ascending: false })
-                    .limit(1).single();
+                    .limit(1).maybeSingle();
 
                 if (val?.observations) {
                     const gm = val.observations.match(/Génération\s+(\d+)/);

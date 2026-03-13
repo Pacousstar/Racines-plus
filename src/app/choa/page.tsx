@@ -163,7 +163,7 @@ export default function ChoBoard() {
             // Mettre à jour tous les profils en une fois (réduit les re-renders)
             if (allUsersRaw) {
                 console.log(`📊 [CHOa Debug] Profils totaux reçus: ${allUsersRaw.length}`);
-                
+                console.log("📄 [CHOa Debug] Contenu brut des profils:", JSON.stringify(allUsersRaw.slice(0, 3), null, 2));
                 const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
                 const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
                 const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
