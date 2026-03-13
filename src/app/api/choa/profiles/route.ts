@@ -45,25 +45,20 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Accès réservé aux CHOa' }, { status: 403 });
     }
 
-    // Récupérer tous les profils du même village (service role bypass RLS)
+    // Récupérer TOUS les profils 'user' (le filtrage village se fera de manière plus souple)
     let query = supabaseAdmin
         .from('profiles')
         .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction')
         .eq('role', 'user');
 
-    // Filtrer par village si défini (plus souple)
-    if (choaProfile.village_origin) {
+    // Filtrer par village seulement si le CHOa n'est pas Admin (ou optionnellement pour Admin)
+    if (choaProfile.village_origin && choaProfile.role !== 'admin') {
         const v = choaProfile.village_origin.trim();
-        console.log(`[api/choa/profiles] User ${user.email} filtering for village: "${v}"`);
-        
-        // On remplace tirets et accents par des jokers pour une recherche ultra-souple
         const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '%');
-        
         query = query.or(`village_origin.ilike.%${flexibleV}%,village_origin.ilike.%${v}%`);
+        console.log(`[api/choa/profiles] Restricted view for ${choaProfile.role} in village: "${v}"`);
     } else {
-        console.warn(`[api/choa/profiles] User ${user.email} has no village_origin!`);
-        // Si pas de village, on ne renvoie rien par sécurité ou tout le village par défaut ? 
-        // Ici on reste restrictif : sans village on ne voit rien.
+        console.log(`[api/choa/profiles] Extended view for ${choaProfile.role} (Village: ${choaProfile.village_origin || 'All'})`);
     }
 
     const { data: profiles, error: usersErr } = await query.order('created_at', { ascending: false });

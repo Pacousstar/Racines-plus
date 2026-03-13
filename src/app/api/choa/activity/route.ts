@@ -44,16 +44,19 @@ export async function GET(request: Request) {
     }
 
     // Charger l'activité du quartier/village via la vue (filtrage souple)
-    const v = choaProfile.village_origin.trim();
-    console.log(`[api/choa/activity] User ${user.email} filtering activity for village: "${v}"`);
+    const v = choaProfile.village_origin?.trim();
+    console.log(`[api/choa/activity] User ${user.email} filtering activity (Admin: ${choaProfile.role === 'admin'})`);
     
-    // On remplace tirets et accents par des jokers pour une recherche ultra-souple
-    const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '%');
-
-    const { data: activity, error } = await supabaseAdmin
+    let query = supabaseAdmin
         .from('v_validations_quartier')
-        .select('*')
-        .or(`validator_village.ilike.%${flexibleV}%,validator_village.ilike.%${v}%`)
+        .select('*');
+
+    if (v && choaProfile.role !== 'admin') {
+        const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '%');
+        query = query.or(`validator_village.ilike.%${flexibleV}%,validator_village.ilike.%${v}%`);
+    }
+
+    const { data: activity, error } = await query
         .order('created_at', { ascending: false })
         .limit(50);
 

@@ -53,6 +53,17 @@ interface MyProfile {
     avatar_url?: string | null;
 }
 
+// Composant utilitaire pour les états vides
+const EmptyTabState = ({ message, icon: Icon }: { message: string, icon: any }) => (
+    <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
+        <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
+            <Icon className="w-10 h-10 text-orange-200 group-hover:scale-110 group-hover:text-orange-400 transition-all duration-500" />
+        </div>
+        <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Rien à afficher</h2>
+        <p className="text-gray-500 max-w-sm mx-auto font-medium">{message}</p>
+    </div>
+);
+
 export default function ChoBoard() {
     const router = useRouter();
     const supabase = createClient();
@@ -586,6 +597,14 @@ export default function ChoBoard() {
                     </div>
                     <div className="flex flex-col items-end gap-3 text-right">
                         <div className="flex flex-wrap gap-3 items-center">
+                            {/* Diagnostic Badge */}
+                            <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${pendingProfiles.length > 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+                                <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+                                    {pendingProfiles.length} Dossiers en attente
+                                </span>
+                            </div>
+                            
                             <button
                                 onClick={load}
                                 className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors group"
@@ -622,278 +641,123 @@ export default function ChoBoard() {
                 ))}
             </div>
 
-            {activeTab === 'mon_arbre' && currentUserId && (
-                <div className="mt-4">
-                    <UserDashboardContent userId={currentUserId} />
-                </div>
-            )}
-
             {/* Contenu des onglets dynamique */}
             <div className="space-y-4">
-                {isLoading && activeTab !== 'mon_arbre' && <p className="text-sm text-gray-600 text-center py-8">Chargement...</p>}
-
-                {activeTab === 'tasks' && !isLoading && (
-                    <>
-                        <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 flex items-center gap-2">
-                                <Clock className="w-3 h-3" /> Dossiers Quartier ({pendingProfiles.length})
-                            </h2>
-                        </div>
-                        {pendingProfiles.length === 0 && (
-                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
-                                <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
-                                    <Search className="w-10 h-10 text-orange-200 group-hover:scale-110 group-hover:text-orange-400 transition-all duration-500" />
-                                </div>
-                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier à traiter</h2>
-                                <p className="text-gray-500 max-w-sm mx-auto font-medium mb-10">
-                                    La file d&apos;attente pour <span className="text-[#FF6600] font-black">{myProfile?.village_origin || 'votre village'}</span> est actuellement vide.
-                                </p>
-
-                                <div className="max-w-md mx-auto p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100/50 text-left">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                                        <Activity className="w-3.5 h-3.5 text-orange-400" /> Auto-Diagnostic Système
-                                    </p>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
-                                            <span className="text-xs font-bold text-gray-500">Votre Village</span>
-                                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${myProfile?.village_origin ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {myProfile?.village_origin || 'ABSENT'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
-                                            <span className="text-xs font-bold text-gray-500">Filtrage Village</span>
-                                            <span className="text-[10px] font-black bg-orange-100 text-orange-700 px-3 py-1 rounded-full uppercase">ACTIF (CASSE TOLÉRÉE)</span>
-                                        </div>
-                                        <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-gray-50">
-                                            <span className="text-xs font-bold text-gray-500">Dernière Sync</span>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase">{new Date().toLocaleTimeString()}</span>
-                                        </div>
-                                    </div>
-                                    <p className="mt-6 text-[11px] text-gray-400 font-medium italic text-center">
-                                        💡 Conseil : Si vous attendez des dossiers, assurez-vous que l&apos;Admin a bien lancé la &quot;Migration CHOa&quot; dans les paramètres.
-                                    </p>
-                                </div>
-
-                                <button
-                                    onClick={load}
-                                    className="mt-10 px-10 py-5 bg-[#FF6600] text-white rounded-2xl font-black text-sm shadow-2xl shadow-orange-200 hover:scale-105 active:scale-95 transition-all uppercase tracking-widest"
-                                >
-                                    Forcer la synchronisation
-                                </button>
-                            </div>
-                        )}
-                        {(() => {
-                            const paginatedPending = pendingProfiles.slice((pendingPage - 1) * itemsPerPage, pendingPage * itemsPerPage);
-                            const totalPages = Math.ceil(pendingProfiles.length / itemsPerPage);
-                            return (
-                                <>
-                                    {paginatedPending.map(p => <ProfileCard key={p.id} profile={p} />)}
-                                    {totalPages > 1 && (
-                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                            <button
-                                                disabled={pendingPage === 1}
-                                                onClick={() => setPendingPage(prev => Math.max(1, prev - 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Précédent
-                                            </button>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {pendingPage} / {totalPages}</span>
-                                            <button
-                                                disabled={pendingPage === totalPages}
-                                                onClick={() => setPendingPage(prev => Math.min(totalPages, prev + 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Suivant
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
-                    </>
-                )}
-
-                {activeTab === 'sent_cho' && !isLoading && (
-                    <>
-                        <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Transmis au CHO ({sentToChoProfiles.length})</h2>
-                        </div>
-                        {sentToChoProfiles.length === 0 && (
-                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
-                                <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-blue-100 shadow-inner">
-                                    <ShieldCheck className="w-10 h-10 text-blue-200" />
-                                </div>
-                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier transmis</h2>
-                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
-                                    Les dossiers validés par 2 CHOa et transmis au <span className="text-blue-600 font-black">CHO</span> apparaîtront ici.
-                                </p>
-                            </div>
-                        )}
-                        {(() => {
-                            const paginatedSent = sentToChoProfiles.slice((sentToChoPage - 1) * itemsPerPage, sentToChoPage * itemsPerPage);
-                            const totalPages = Math.ceil(sentToChoProfiles.length / itemsPerPage);
-                            return (
-                                <>
-                                    {paginatedSent.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                    {totalPages > 1 && (
-                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                            <button
-                                                disabled={sentToChoPage === 1}
-                                                onClick={() => setSentToChoPage(prev => Math.max(1, prev - 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Précédent
-                                            </button>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {sentToChoPage} / {totalPages}</span>
-                                            <button
-                                                disabled={sentToChoPage === totalPages}
-                                                onClick={() => setSentToChoPage(prev => Math.min(totalPages, prev + 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Suivant
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
-                    </>
-                )}
-
-                {activeTab === 'confirmed' && !isLoading && (
-                    <>
-                        <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Certifiés ({confirmedProfiles.length})</h2>
-                        </div>
-                        {confirmedProfiles.length === 0 && (
-                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
-                                <div className="w-24 h-24 bg-green-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-green-100 shadow-inner">
-                                    <CheckCircle className="w-10 h-10 text-green-200" />
-                                </div>
-                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun membre certifié</h2>
-                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
-                                    Les membres dont le dossier a été <span className="text-green-600 font-black">certifié</span> par le CHO apparaîtront ici.
-                                </p>
-                            </div>
-                        )}
-                        {(() => {
-                            const paginatedConfirmed = confirmedProfiles.slice((confirmedPage - 1) * itemsPerPage, confirmedPage * itemsPerPage);
-                            const totalPages = Math.ceil(confirmedProfiles.length / itemsPerPage);
-                            return (
-                                <>
-                                    {paginatedConfirmed.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                    {totalPages > 1 && (
-                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                            <button
-                                                disabled={confirmedPage === 1}
-                                                onClick={() => setConfirmedPage(prev => Math.max(1, prev - 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Précédent
-                                            </button>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {confirmedPage} / {totalPages}</span>
-                                            <button
-                                                disabled={confirmedPage === totalPages}
-                                                onClick={() => setConfirmedPage(prev => Math.min(totalPages, prev + 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Suivant
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
-                    </>
-                )}
-
-                {activeTab === 'rejected' && !isLoading && (
-                    <>
-                        <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Rejetés ({rejectedProfiles.length})</h2>
-                        </div>
-                        {rejectedProfiles.length === 0 && (
-                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
-                                <div className="w-24 h-24 bg-red-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-red-100 shadow-inner">
-                                    <XCircle className="w-10 h-10 text-red-200" />
-                                </div>
-                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucun dossier rejeté</h2>
-                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
-                                    Les dossiers <span className="text-red-500 font-black">refusés</span> apparaîtront ici.
-                                </p>
-                            </div>
-                        )}
-                        {(() => {
-                            const paginatedRejected = rejectedProfiles.slice((rejectedPage - 1) * itemsPerPage, rejectedPage * itemsPerPage);
-                            const totalPages = Math.ceil(rejectedProfiles.length / itemsPerPage);
-                            return (
-                                <>
-                                    {paginatedRejected.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
-                                    {totalPages > 1 && (
-                                        <div className="p-4 flex justify-center items-center gap-2 mt-4 bg-white/50 backdrop-blur-md rounded-2xl border border-white/60">
-                                            <button
-                                                disabled={rejectedPage === 1}
-                                                onClick={() => setRejectedPage(prev => Math.max(1, prev - 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Précédent
-                                            </button>
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-4">Page {rejectedPage} / {totalPages}</span>
-                                            <button
-                                                disabled={rejectedPage === totalPages}
-                                                onClick={() => setRejectedPage(prev => Math.min(totalPages, prev + 1))}
-                                                className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-black uppercase tracking-widest text-gray-600 disabled:opacity-30 hover:bg-white transition-all bg-white/80"
-                                            >
-                                                Suivant
-                                            </button>
-                                        </div>
-                                    )}
-                                </>
-                            );
-                        })()}
-                    </>
-                )}
-
-                {activeTab === 'quartier' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">Activité du Quartier</h2>
-                            <button onClick={loadQuartierActivity} className="text-[10px] font-black text-[#FF6600] uppercase tracking-widest">{isLoadingActivity ? '...' : 'Actualiser'}</button>
-                        </div>
-                        {isLoadingActivity && (
-                            <div className="text-center py-10">
-                                <div className="w-8 h-8 border-4 border-orange-200 border-t-[#FF6600] rounded-full animate-spin mx-auto mb-3" />
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Chargement de l&apos;activité...</p>
-                            </div>
-                        )}
-                        {!isLoadingActivity && quartierActivity.length === 0 && (
-                            <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
-                                <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner">
-                                    <Activity className="w-10 h-10 text-orange-200" />
-                                </div>
-                                <h2 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Aucune activité récente</h2>
-                                <p className="text-gray-500 max-w-sm mx-auto font-medium">
-                                    Les actions de validation du quartier <span className="text-[#FF6600] font-black">{myProfile?.village_origin || ''}</span> apparaîtront ici.
-                                </p>
-                            </div>
-                        )}
-                        {!isLoadingActivity && quartierActivity.map(act => (
-                            <div key={act.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between gap-4 shadow-sm animate-in fade-in">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400">{act.validator_name?.[0] || '?'}</div>
-                                    <div>
-                                        <p className="font-bold text-sm text-gray-900">{act.validator_name}</p>
-                                        <p className="text-[10px] text-gray-500 uppercase font-black">{act.cible_first_name} {act.cible_last_name}</p>
-                                    </div>
-                                </div>
-                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${act.statut === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                    {act.statut === 'confirmed' ? 'Certifié' : 'Sceau Apposé'}
-                                </span>
-                            </div>
-                        ))}
+                {activeTab === 'mon_arbre' && currentUserId && (
+                    <div className="mt-4">
+                        <UserDashboardContent userId={currentUserId} />
                     </div>
                 )}
+
+                {isLoading && activeTab !== 'mon_arbre' ? (
+                    <div className="text-center py-32 bg-white/40 backdrop-blur-xl rounded-[3rem] border border-white/60 shadow-xl">
+                        <div className="w-16 h-16 border-4 border-orange-200 border-t-[#FF6600] rounded-full animate-spin mx-auto mb-6" />
+                        <h2 className="text-2xl font-black text-gray-900 tracking-tight">Récupération des dossiers...</h2>
+                        <p className="text-gray-500 font-medium">Veuillez patienter.</p>
+                    </div>
+                ) : (
+                    activeTab !== 'mon_arbre' && (
+                        <>
+                            {/* Onglet : À Valider */}
+                            {activeTab === 'tasks' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h2 className="text-xl font-black text-gray-900 uppercase">Dossiers à traiter ({pendingProfiles.length})</h2>
+                                        </div>
+                                        {pendingProfiles.length === 0 ? (
+                                            <EmptyTabState message="Aucun dossier en attente de validation." icon={Clock} />
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {pendingProfiles.map(p => <ProfileCard key={p.id} profile={p} />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Onglet : Envoyés au CHO */}
+                            {activeTab === 'sent_cho' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-6">
+                                        <h2 className="text-xl font-black text-gray-900 uppercase">Envoyés au CHO ({sentToChoProfiles.length})</h2>
+                                        {sentToChoProfiles.length === 0 ? (
+                                            <EmptyTabState message="Aucun dossier n'a été transmis au Chef d'Honneur." icon={ShieldCheck} />
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {sentToChoProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Onglet : Certifiés */}
+                            {activeTab === 'confirmed' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-6">
+                                        <h2 className="text-xl font-black text-gray-900 uppercase">Certifiés ({confirmedProfiles.length})</h2>
+                                        {confirmedProfiles.length === 0 ? (
+                                            <EmptyTabState message="Aucun dossier n'est encore certifié." icon={CheckCircle} />
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {confirmedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Onglet : Rejetés */}
+                            {activeTab === 'rejected' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-6">
+                                        <h2 className="text-xl font-black text-gray-900 uppercase">Rejetés ({rejectedProfiles.length})</h2>
+                                        {rejectedProfiles.length === 0 ? (
+                                            <EmptyTabState message="Aucun dossier rejeté pour le moment." icon={XCircle} />
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {rejectedProfiles.map(p => <ProfileCard key={p.id} profile={p} showActions={false} />)}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Onglet : Activité Quartier */}
+                            {activeTab === 'quartier' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-xl font-black text-gray-900 uppercase">Activité ({quartierActivity.length})</h2>
+                                        <button onClick={loadQuartierActivity} className="text-[10px] font-black text-orange-500 uppercase tracking-widest">{isLoadingActivity ? '...' : 'Actualiser'}</button>
+                                    </div>
+                                    {quartierActivity.length === 0 ? (
+                                        <EmptyTabState message="Aucune activité récente enregistrée." icon={Activity} />
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {quartierActivity.map(act => (
+                                                <div key={act.id} className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center justify-between gap-4 shadow-sm">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400 capitalize">{act.validator_name?.[0] || '?'}</div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-gray-900">{act.validator_name}</p>
+                                                            <p className="text-[10px] text-gray-500 uppercase font-bold">{act.cible_first_name} {act.cible_last_name}</p>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${act.statut === 'confirmed' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                                                        {act.statut === 'confirmed' ? 'Certifié' : 'Approuvé'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )
+                )}
             </div>
+
             {/* Modale Motif de Rejet */}
             {
                 motifModal && (
@@ -986,7 +850,7 @@ export default function ChoBoard() {
                                 <button onClick={() => { if (infoModalProfile) { setInfoModalProfile(null); setMotifModal({ id: infoModalProfile.id, action: 'rejected' }); } }} className="flex-1 py-5 rounded-[1.5rem] bg-red-50 text-red-500 font-black text-sm hover:bg-red-100 transition-all border border-red-100 uppercase tracking-widest">REJETER</button>
                                 <button
                                     onClick={() => { if (infoModalProfile) { setInfoModalProfile(null); handleStatusChange(infoModalProfile.id, 'probable'); } }}
-                                    disabled={infoModalProfile && Array.isArray(infoModalProfile.choa_approvals) && currentUserId ? infoModalProfile.choa_approvals.includes(currentUserId) : false}
+                                    disabled={!infoModalProfile || (Array.isArray(infoModalProfile.choa_approvals) && currentUserId ? infoModalProfile.choa_approvals.includes(currentUserId) : false)}
                                     className="flex-1 py-5 rounded-[1.5rem] bg-[#FF6600] text-white font-black text-sm hover:bg-[#e55c00] disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-xl shadow-orange-100 active:scale-[0.98] uppercase tracking-widest"
                                 >
                                     {infoModalProfile && Array.isArray(infoModalProfile.choa_approvals) && currentUserId && infoModalProfile.choa_approvals.includes(currentUserId) ? 'APPROUVÉ ✓' : 'APPOSER MON SCEAU'}
@@ -1009,7 +873,7 @@ export default function ChoBoard() {
                                     </div>
                                     <div>
                                         <h3 className="font-black text-xl text-gray-900 leading-tight">Échanges</h3>
-                                        <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{viewingCommentsProfile.first_name} {viewingCommentsProfile.last_name}</p>
+                                        <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{viewingCommentsProfile?.first_name} {viewingCommentsProfile?.last_name}</p>
                                     </div>
                                 </div>
                                 <button onClick={() => setViewingCommentsProfile(null)} className="p-3 hover:bg-red-50 rounded-2xl transition-all active:scale-90 group">
