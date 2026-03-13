@@ -753,7 +753,7 @@ export default function ChoBoard() {
                                     )}
                                 </div>
                             )}
-                        </div>
+                        </>
                     )
                 )}
             </div>
