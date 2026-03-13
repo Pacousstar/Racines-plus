@@ -1155,9 +1155,16 @@ export default function AdminDashboard() {
                                                 </div>
                                             </td>
                                             <td className="py-3 px-4">
-                                                <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                    {p.status === 'confirmed' ? 'Certifié ✅' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
-                                                </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider w-fit ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                        {p.status === 'confirmed' ? 'Certifié ✅' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
+                                                    </span>
+                                                    {p.status === 'rejected' && p.rejection_motif && (
+                                                        <span className="text-[9px] font-bold text-red-400 uppercase tracking-tighter max-w-[120px] truncate" title={p.rejection_motif}>
+                                                            {p.rejection_motif}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-3 px-4">
                                                 <select

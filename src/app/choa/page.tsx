@@ -843,6 +843,34 @@ export default function ChoBoard() {
                                     </div>
                                 </div>
 
+                                {infoModalProfile.status === 'rejected' && (infoModalProfile.rejection_motif || infoModalProfile.rejection_observations) && (
+                                    <div className="p-6 bg-red-50 border-2 border-red-100 rounded-[2rem] animate-in zoom-in duration-500">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2 bg-red-500 rounded-xl">
+                                                <XCircle className="w-5 h-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-red-900 uppercase tracking-widest leading-none">Dossier Rejeté</h4>
+                                                <p className="text-[10px] text-red-500 font-bold mt-1 uppercase">Décision CHO</p>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {infoModalProfile.rejection_motif && (
+                                                <div className="bg-white/80 p-4 rounded-2xl border border-red-50">
+                                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Motif principal :</p>
+                                                    <p className="text-sm font-bold text-gray-900 leading-relaxed">{infoModalProfile.rejection_motif}</p>
+                                                </div>
+                                            )}
+                                            {infoModalProfile.rejection_observations && (
+                                                <div className="bg-white/50 p-4 rounded-2xl border border-red-50/50 italic">
+                                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 not-italic">Observations complémentaires :</p>
+                                                    <p className="text-xs text-red-700">“{infoModalProfile.rejection_observations}”</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="p-5 bg-orange-50/50 rounded-3xl border border-orange-100/50">
                                         <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Père</p>

@@ -856,6 +856,29 @@ export default function ChoBoard() {
                                     </div>
                                 </div>
 
+                                {infoModalProfile.status === 'rejected' && (infoModalProfile.rejection_motif || infoModalProfile.rejection_observations) && (
+                                    <div className="p-4 bg-red-50 rounded-2xl border border-red-100 animate-in zoom-in duration-300">
+                                        <div className="flex items-center gap-2 mb-2 text-red-700">
+                                            <XCircle className="w-4 h-4" />
+                                            <span className="text-xs font-black uppercase tracking-wider">Dossier Rejeté</span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {infoModalProfile.rejection_motif && (
+                                                <p className="text-sm font-bold text-red-900 leading-tight">
+                                                    <span className="text-[10px] text-red-400 block uppercase mb-0.5">Motif principal :</span>
+                                                    {infoModalProfile.rejection_motif}
+                                                </p>
+                                            )}
+                                            {infoModalProfile.rejection_observations && (
+                                                <p className="text-xs text-red-700 bg-white/50 p-2 rounded-xl italic border border-red-50/50">
+                                                    <span className="text-[9px] text-red-400 not-italic block uppercase mb-1">Observations détaillées :</span>
+                                                    &ldquo;{infoModalProfile.rejection_observations}&rdquo;
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100">
                                     <h4 className="text-[10px] font-black uppercase text-[#FF6600] mb-3 tracking-widest">Identité</h4>
                                     <div className="grid grid-cols-2 gap-3">

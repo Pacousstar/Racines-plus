@@ -47,6 +47,8 @@ export interface ExtendedProfileData {
         isVictime2010?: boolean;
     }>;
     consentementEnfants?: boolean;
+    rejection_motif?: string | null;
+    rejection_observations?: string | null;
 }
 
 interface EditProfileModalProps {
@@ -107,7 +109,9 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
             mother_last_name: '',
             mother_birth_date: '',
             mother_status: '',
-        }
+        },
+        rejection_motif: null,
+        rejection_observations: null
     });
 
     useEffect(() => {
@@ -148,7 +152,9 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                 },
                 residenceCountry: countryExists ? initialData.residenceCountry : (initialData.residenceCountry ? 'OTHER' : 'CI'),
                 village_origin: initialData.village_origin || '',
-                quartier_nom: initialData.quartier_nom || ''
+                quartier_nom: initialData.quartier_nom || '',
+                rejection_motif: initialData.rejection_motif || null,
+                rejection_observations: initialData.rejection_observations || null
             });
 
             if (!countryExists && initialData.residenceCountry) {
@@ -241,6 +247,32 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
 
                 {/* Formulaire scrollable */}
                 <div className="p-6 overflow-y-auto">
+                    {formData.rejection_motif && (
+                        <div className="mb-8 p-6 bg-red-50 border-2 border-red-100 rounded-[2rem] animate-in slide-in-from-top-4 duration-500">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-red-500 rounded-xl">
+                                    <X className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-black text-red-900 uppercase tracking-widest leading-none">Dossier précédemment rejeté</h3>
+                                    <p className="text-[10px] text-red-500 font-bold mt-1 uppercase">Informations de correction</p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="bg-white/80 p-4 rounded-2xl border border-red-50">
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Motif principal :</p>
+                                    <p className="text-sm font-bold text-gray-900 leading-relaxed">{formData.rejection_motif}</p>
+                                </div>
+                                {formData.rejection_observations && (
+                                    <div className="bg-white/50 p-4 rounded-2xl border border-red-50/50 italic">
+                                        <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1 not-italic">Observations CHO :</p>
+                                        <p className="text-xs text-red-700">“{formData.rejection_observations}”</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-6">
 
                         {/* Identité de base */}
