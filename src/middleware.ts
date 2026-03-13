@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    if (user && (pathname === '/login' || pathname === '/')) {
+    if (user && (pathname === '/login' || pathname === '/' || pathname === '/dashboard')) {
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -65,14 +65,19 @@ export async function middleware(request: NextRequest) {
         )
         const { data: profile } = await supabaseAdmin.from('profiles').select('role').eq('id', user.id).single()
         const role = (profile?.role || 'user').toLowerCase().trim()
-        const url = request.nextUrl.clone()
-        if (role === 'admin') url.pathname = '/admin'
-        else if (role === 'cho') url.pathname = '/cho'
-        else if (role === 'choa' || role === 'assistant cho' || role === 'assistant_cho') url.pathname = '/choa'
-        else url.pathname = '/dashboard'
         
-        console.log(`[Middleware] Redirecting ${user.email} from ${pathname} to ${url.pathname} (role: ${role})`)
-        return NextResponse.redirect(url)
+        let targetPath = '/dashboard'
+        if (role === 'admin') targetPath = '/admin'
+        else if (role === 'cho') targetPath = '/cho'
+        else if (role === 'choa' || role === 'assistant cho' || role === 'assistant_cho') targetPath = '/choa'
+        
+        // Rediriger seulement si on n'est pas déjà sur la bonne route
+        if (pathname !== targetPath) {
+            const url = request.nextUrl.clone()
+            url.pathname = targetPath
+            console.log(`[Middleware] Global Redirect: ${user.email} from ${pathname} to ${targetPath} (role: ${role})`)
+            return NextResponse.redirect(url)
+        }
     }
 
     // Vérification du rôle spécifique

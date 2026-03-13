@@ -35,14 +35,16 @@ export default function Dashboard() {
         // Vérification email
         setEmailVerified(!!user.email_confirmed_at);
 
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url, role, status, village_origin, created_at, certificate_requested, certificate_issued, certificate_issued_at')
-            .eq('id', user.id)
-            .single();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const response = await fetch('/api/me', {
+            headers: { Authorization: `Bearer ${session?.access_token}` }
+        });
 
-        if (error) {
-            console.error('[dashboard] Error fetching profile:', error);
+        const { profile: data, error } = response.ok ? await response.json() : { profile: null, error: 'API Error' };
+
+        if (!response.ok || !data) {
+            console.error('[dashboard] Error fetching profile via API:', error);
         }
 
         if (data) {

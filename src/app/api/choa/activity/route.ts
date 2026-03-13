@@ -54,7 +54,8 @@ export async function GET(request: Request) {
     if (v && choaProfile.role !== 'admin') {
         // Filtrage robuste : on cherche le nom exact OU avec des jokers pour les accents/tirets
         const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '_');
-        query = query.or(`validator_village.ilike.${v},validator_village.ilike.${flexibleV}`);
+        // Utilisation de guillemets doubles pour sécuriser les noms avec tirets/espaces
+        query = query.or(`validator_village.ilike."${v}",validator_village.ilike."${flexibleV}"`);
         console.log(`[api/choa/activity] Filtering activity for village: "${v}"`);
     } else {
         console.log(`[api/choa/activity] No village filter (Role: ${choaProfile.role})`);

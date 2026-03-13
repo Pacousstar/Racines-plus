@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     if (authError || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
 
     const { data: callerProfile } = await supabaseAdmin
-        .from('profiles').select('role').eq('id', user.id).single();
+        .from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single();
 
     if (!callerProfile || callerProfile.role !== 'admin') {
         return NextResponse.json({ error: 'Accès réservé aux admins' }, { status: 403 });
@@ -36,6 +36,12 @@ export async function GET(request: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ 
         profiles: profiles || [],
-        me: { id: user.id, role: 'admin' } // On peut renvoyer plus si besoin
+        me: { 
+            id: user.id, 
+            role: (callerProfile.role || 'user').toLowerCase().trim(),
+            first_name: callerProfile.first_name,
+            last_name: callerProfile.last_name,
+            avatar_url: callerProfile.avatar_url
+        }
     });
 }

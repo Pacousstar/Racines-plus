@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // Récupérer le profil du CHOa pour connaître son village
     const { data: choaProfile, error: profileErr } = await supabaseAdmin
         .from('profiles')
-        .select('role, village_origin, quartier_nom')
+        .select('role, village_origin, quartier_nom, avatar_url, first_name, last_name')
         .eq('id', user.id)
         .single();
 
@@ -56,7 +56,8 @@ export async function GET(request: Request) {
         const v = choaProfile.village_origin.trim();
         // Filtrage robuste : on cherche le nom exact OU avec des jokers pour les accents/tirets
         const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '_');
-        query = query.or(`village_origin.ilike.${v},village_origin.ilike.${flexibleV}`);
+        // Utilisation de guillemets doubles pour sécuriser les noms avec tirets/espaces
+        query = query.or(`village_origin.ilike."${v}",village_origin.ilike."${flexibleV}"`);
         console.log(`[api/choa/profiles] Filtering for village: "${v}" (flexible: "${flexibleV}")`);
     } else {
         console.log(`[api/choa/profiles] No village filter applied (Role: ${choaProfile.role})`);
@@ -70,6 +71,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
         profiles: profiles || [],
-        me: choaProfile 
+        me: {
+            ...choaProfile,
+            role: (choaProfile.role || 'user').toLowerCase().trim()
+        }
     });
 }

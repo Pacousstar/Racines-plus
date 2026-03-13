@@ -29,5 +29,9 @@ export async function GET(request: Request) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+    if (profile) {
+        profile.role = (profile.role || 'user').toLowerCase().trim();
+    }
+
     return NextResponse.json({ profile });
 }
