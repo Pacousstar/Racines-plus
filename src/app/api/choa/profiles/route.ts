@@ -39,7 +39,9 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 });
     }
 
-    if (choaProfile.role !== 'choa') {
+    const isAuthorized = ['choa', 'assistant cho', 'assistant_cho'].includes(choaProfile.role || '');
+    if (!isAuthorized) {
+        console.warn(`[api/choa/profiles] Access denied for role: ${choaProfile.role}`);
         return NextResponse.json({ error: 'Accès réservé aux CHOa' }, { status: 403 });
     }
 
@@ -52,9 +54,16 @@ export async function GET(request: Request) {
     // Filtrer par village si défini (plus souple)
     if (choaProfile.village_origin) {
         const v = choaProfile.village_origin.trim();
-        console.log(`[api/choa/profiles] Filtering for village: "${v}"`);
-        // On utilise ilike avec des % pour être très souple sur les accents/espaces si possible
-        query = query.ilike('village_origin', `%${v}%`);
+        console.log(`[api/choa/profiles] User ${user.email} filtering for village: "${v}"`);
+        
+        // On remplace tirets et accents par des jokers pour une recherche ultra-souple
+        const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '%');
+        
+        query = query.or(`village_origin.ilike.%${flexibleV}%,village_origin.ilike.%${v}%`);
+    } else {
+        console.warn(`[api/choa/profiles] User ${user.email} has no village_origin!`);
+        // Si pas de village, on ne renvoie rien par sécurité ou tout le village par défaut ? 
+        // Ici on reste restrictif : sans village on ne voit rien.
     }
 
     const { data: profiles, error: usersErr } = await query.order('created_at', { ascending: false });

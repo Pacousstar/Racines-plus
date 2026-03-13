@@ -125,7 +125,7 @@ export default function ChoBoard() {
 
             console.log("🚀 [CHOa Page] Fetching data via API...");
             const response = await fetch(`/api/choa/profiles?t=${Date.now()}`, {
-                headers: { Authorization: `Bearer ${accessToken}` },
+                headers: { Authorization: `Bearer ${session?.access_token}` },
                 cache: 'no-store'
             });
 
@@ -137,20 +137,21 @@ export default function ChoBoard() {
             }
 
             const { profiles: allUsersRaw, me } = await response.json();
+            console.log("📥 [CHOa Page] API Response:", { profilesCount: allUsersRaw?.length, me });
 
             // Mettre à jour le profil
             if (me) {
                 console.log("✅ [CHOa Page] Profile loaded from API:", me);
                 setMyProfile(me);
             } else {
-                console.warn("⚠️ [CHOa Page] No profile data ('me') in API response!");
+                console.warn("⚠️ [CHOa Page] No profile data ('me') in API response! Using fallback.");
                 const { data: fallbackProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (fallbackProfile) setMyProfile(fallbackProfile);
             }
 
             // Mettre à jour tous les profils en une fois (réduit les re-renders)
             if (allUsersRaw) {
-                console.log(`📊 [CHOa Debug] Profils reçus: ${allUsersRaw.length}`);
+                console.log(`📊 [CHOa Debug] Profils totaux reçus: ${allUsersRaw.length}`);
                 
                 const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
                 const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
@@ -158,6 +159,8 @@ export default function ChoBoard() {
                 const confirmed = allUsersRaw.filter((u: any) => u.status === 'confirmed');
                 const rejected = allUsersRaw.filter((u: any) => u.status === 'rejected');
                 
+                console.log(`📊 [CHOa Debug] Dispatch: Pending=${pending.length}, Probable=${probable.length}, Confirmed=${confirmed.length}`);
+
                 setPendingProfiles(pending);
                 setSentToChoProfiles(probable);
                 setConfirmedProfiles(confirmed);

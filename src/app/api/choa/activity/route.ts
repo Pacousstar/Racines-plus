@@ -25,22 +25,35 @@ export async function GET(request: Request) {
     // Récupérer le village du CHOa
     const { data: choaProfile } = await supabaseAdmin
         .from('profiles')
-        .select('village_origin')
+        .select('role, village_origin')
         .eq('id', user.id)
         .single();
 
-    if (!choaProfile?.village_origin) {
+    if (!choaProfile) {
+        return NextResponse.json({ activity: [] });
+    }
+
+    const isAuthorized = ['choa', 'assistant cho', 'assistant_cho'].includes(choaProfile.role || '');
+    if (!isAuthorized) {
+        console.warn(`[api/choa/activity] Access denied for role: ${choaProfile.role}`);
+        return NextResponse.json({ activity: [] });
+    }
+
+    if (!choaProfile.village_origin) {
         return NextResponse.json({ activity: [] });
     }
 
     // Charger l'activité du quartier/village via la vue (filtrage souple)
     const v = choaProfile.village_origin.trim();
-    console.log(`[api/choa/activity] Filtering activity for village: "${v}"`);
+    console.log(`[api/choa/activity] User ${user.email} filtering activity for village: "${v}"`);
     
+    // On remplace tirets et accents par des jokers pour une recherche ultra-souple
+    const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '%');
+
     const { data: activity, error } = await supabaseAdmin
         .from('v_validations_quartier')
         .select('*')
-        .ilike('validator_village', `%${v}%`)
+        .or(`validator_village.ilike.%${flexibleV}%,validator_village.ilike.%${v}%`)
         .order('created_at', { ascending: false })
         .limit(50);
 
