@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     // Récupérer TOUS les profils 'user' (le filtrage village se fera de manière plus souple)
     let query = supabaseAdmin
         .from('profiles')
-        .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction')
+        .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction, rejection_motif, rejection_observations')
         .eq('role', 'user');
 
     // Filtrer par village seulement si le CHOa n'est pas Admin

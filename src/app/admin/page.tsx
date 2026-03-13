@@ -48,6 +48,16 @@ interface Profile {
     fonction?: string;
     residence_country?: string;
     residence_city?: string;
+    diplomes?: string;
+    retraite?: boolean;
+    nombre_enfants?: number;
+    details_enfants?: any[];
+    consentement_enfants?: boolean;
+    adresse_residence?: string;
+    phone_2?: string;
+    whatsapp_2?: string;
+    rejection_motif?: string;
+    rejection_observations?: string;
 }
 
 interface Village {
@@ -211,28 +221,30 @@ export default function AdminDashboard() {
     const [isCreatingAssistant, setIsCreatingAssistant] = useState(false);
 
     const handleViewProfile = async (id: string) => {
-        const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
-        if (data) {
+        // Utiliser les données déjà présentes dans 'profiles' plutôt que de refetch à Supabase (évite RLS / 406)
+        const profile = profiles.find(p => p.id === id);
+        
+        if (profile) {
             setViewingProfile({
-                firstName: data.first_name || '',
-                lastName: data.last_name || '',
-                gender: data.gender || '',
-                birthDate: data.birth_date || '',
-                niveauEtudes: data.niveau_etudes || '',
-                diplomes: data.diplomes || '',
-                emploi: data.emploi || '',
-                fonction: data.fonction || '',
-                retraite: data.retraite || false,
-                nombreEnfants: data.nombre_enfants || 0,
-                detailsEnfants: data.details_enfants || [],
-                consentementEnfants: data.consentement_enfants || false,
-                adresseResidence: data.adresse_residence || '',
-                residenceCity: data.residence_city || '',
-                residenceCountry: data.residence_country || 'CI',
-                phone1: data.phone_1 || '',
-                phone2: data.phone_2 || '',
-                whatsapp1: data.whatsapp_1 || '',
-                whatsapp2: data.whatsapp_2 || ''
+                firstName: profile.first_name || '',
+                lastName: profile.last_name || '',
+                gender: profile.gender || '',
+                birthDate: profile.birth_date || '',
+                niveauEtudes: profile.niveau_etudes || '',
+                diplomes: profile.diplomes || '',
+                emploi: profile.emploi || '',
+                fonction: profile.fonction || '',
+                retraite: profile.retraite || false,
+                nombreEnfants: profile.nombre_enfants || 0,
+                detailsEnfants: profile.details_enfants || [],
+                consentementEnfants: profile.consentement_enfants || false,
+                adresseResidence: profile.adresse_residence || '',
+                residenceCity: profile.residence_city || '',
+                residenceCountry: profile.residence_country || 'CI',
+                phone1: profile.phone_1 || '',
+                phone2: profile.phone_2 || '',
+                whatsapp1: profile.whatsapp_1 || '',
+                whatsapp2: profile.whatsapp_2 || ''
             });
             setViewingUserId(id);
             setIsViewModalOpen(true);
@@ -368,7 +380,7 @@ export default function AdminDashboard() {
             const [permsRes, logsRes] = await Promise.all([
                 supabase.from('admin_permissions').select('*'),
                 supabase.from('activity_logs')
-                    .select('*, user_details:profiles(first_name, last_name)')
+                    .select('*')
                     .order('timestamp', { ascending: false })
                     .limit(50)
             ]);
@@ -2347,8 +2359,19 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                 </div>
-            )
-            }
+            )}
+            {isViewModalOpen && viewingProfile && viewingUserId && (
+                <EditProfileModal
+                    isOpen={isViewModalOpen}
+                    onClose={() => setIsViewModalOpen(false)}
+                    initialData={viewingProfile}
+                    userId={viewingUserId}
+                    onSuccess={() => {
+                        setIsViewModalOpen(false);
+                        // Optionnel: rafraîchir les données
+                    }}
+                />
+            )}
         </AppLayout>
     );
 }

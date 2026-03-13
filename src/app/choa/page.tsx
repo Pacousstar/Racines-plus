@@ -31,6 +31,8 @@ interface PendingProfile {
     mother_status?: string;
     metadata?: any;
     choa_approvals?: string[];
+    rejection_motif?: string;
+    rejection_observations?: string;
 }
 
 interface ValidationComment {
@@ -508,8 +510,32 @@ export default function ChoBoard() {
                         <div className="flex flex-col items-end gap-3 text-right">
                             <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
                                 <Clock className="w-3.5 h-3.5" />
-                                Enregistré le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
+                                Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
                             </div>
+
+                            {/* Informations de rejet — Dashboard CHOA */}
+                            {profile.status === 'rejected' && (profile.rejection_motif || profile.rejection_observations) && (
+                                <div className="mt-4 p-4 bg-red-50 rounded-2xl border border-red-100 animate-in zoom-in duration-300 w-full max-w-sm ml-auto">
+                                    <div className="flex items-center gap-2 mb-2 text-red-700">
+                                        <XCircle className="w-4 h-4" />
+                                        <span className="text-xs font-black uppercase tracking-wider text-right flex-1">Dossier Rejeté</span>
+                                    </div>
+                                    <div className="space-y-2 text-right">
+                                        {profile.rejection_motif && (
+                                            <p className="text-sm font-bold text-red-900 leading-tight">
+                                                <span className="text-[10px] text-red-400 block uppercase mb-0.5">Motif principal :</span>
+                                                {profile.rejection_motif}
+                                            </p>
+                                        )}
+                                        {profile.rejection_observations && (
+                                            <p className="text-xs text-red-700 bg-white/50 p-2 rounded-xl italic border border-red-50/50">
+                                                <span className="text-[9px] text-red-400 not-italic block uppercase mb-1">Observations détaillées :</span>
+                                                &ldquo;{profile.rejection_observations}&rdquo;
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
