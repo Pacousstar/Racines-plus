@@ -2566,7 +2566,7 @@ export default function AdminDashboard() {
 
             {
                 viewingCommentsProfile && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
+                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
                         <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in duration-500 border border-white/20">
                             <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white/95 backdrop-blur-md">
                                 <div className="flex items-center gap-4">
@@ -2583,19 +2583,40 @@ export default function AdminDashboard() {
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/30">
+                            {/* Section Motif de Rejet */}
+                            {viewingCommentsProfile.status === 'rejected' && viewingCommentsProfile.rejection_motif && (
+                                <div className="px-8 py-5 bg-red-50/80 border-b border-red-100/50 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-red-500" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-red-800">Dossier Rejeté</h4>
+                                    </div>
+                                    <div className="bg-white/60 p-4 rounded-2xl border border-red-100 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Motif principal</p>
+                                        <p className="text-sm font-semibold text-red-900">{viewingCommentsProfile.rejection_motif}</p>
+                                        
+                                        {viewingCommentsProfile.rejection_observations && (
+                                            <>
+                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-3 mb-1">Observations détaillées</p>
+                                                <p className="text-sm text-gray-800 italic">{viewingCommentsProfile.rejection_observations}</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/50 h-full">
                                 {comments.length === 0 ? (
-                                    <div className="text-center py-16">
+                                    <div className="text-center py-16 h-full flex flex-col justify-center">
                                         <div className="w-20 h-20 bg-gray-100 rounded-[2rem] flex items-center justify-center mx-auto mb-4 opacity-50">
                                             <MessageSquare className="w-10 h-10 text-gray-400" />
                                         </div>
-                                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Aucun message</p>
+                                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Aucun Échange</p>
                                     </div>
                                 ) : (
                                     comments.map(comment => (
                                         <div key={comment.id} className={`flex flex-col ${comment.author_id === currentUserId ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                                            <div className={`max-w-[85%] p-5 rounded-[1.8rem] text-sm shadow-sm ${comment.author_id === currentUserId ? 'bg-[#FF6600] text-white rounded-tr-none shadow-orange-100' : 'bg-white border border-gray-100 rounded-tl-none'}`}>
-                                                <p className="font-black text-[9px] mb-2 opacity-80 uppercase tracking-[0.15em] border-b border-white/20 pb-1">{comment.author_name}</p>
+                                            <div className={`max-w-[85%] p-5 rounded-[1.8rem] text-sm shadow-sm ${comment.author_id === currentUserId ? 'bg-[#FF6600] text-white rounded-tr-none shadow-orange-100' : 'bg-white border border-gray-100 rounded-tl-none shadow-sm'}`}>
+                                                <p className="font-black text-[9px] mb-2 opacity-80 uppercase tracking-widest">{comment.author_name}</p>
                                                 <p className="leading-relaxed font-medium">{comment.content}</p>
                                             </div>
                                             <span className="text-[9px] text-gray-400 mt-2 uppercase font-black tracking-widest px-2">{new Date(comment.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -2604,22 +2625,22 @@ export default function AdminDashboard() {
                                 )}
                             </div>
 
-                            <div className="p-8 border-t border-gray-100 bg-white">
-                                <div className="flex gap-3">
+                            <div className="p-6 border-t border-gray-100 bg-white">
+                                <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-[2rem] border border-gray-100 focus-within:ring-4 focus-within:ring-orange-50 focus-within:border-[#FF6600] transition-all">
                                     <input
                                         type="text"
                                         value={newComment}
                                         onChange={e => setNewComment(e.target.value)}
-                                        placeholder="Note de validation / Échange..."
+                                        placeholder="Votre échange..."
                                         onKeyUp={e => e.key === 'Enter' && handlePostComment(viewingCommentsProfile.id)}
-                                        className="flex-1 px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-[#FF6600] focus:ring-4 focus:ring-orange-50 outline-none transition-all text-sm font-medium"
+                                        className="flex-1 px-4 py-3 bg-transparent outline-none transition-all text-[15px] font-medium placeholder-gray-400 text-gray-900"
                                     />
                                     <button
                                         onClick={() => handlePostComment(viewingCommentsProfile.id)}
                                         disabled={!newComment.trim() || isPostingComment}
-                                        className="px-8 py-4 bg-[#FF6600] text-white rounded-2xl font-black text-sm hover:bg-[#e55c00] disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center min-w-[100px]"
+                                        className="h-12 w-12 rounded-[1.5rem] bg-gray-900 text-white font-black hover:bg-[#FF6600] disabled:opacity-50 disabled:hover:bg-gray-900 transition-colors shadow-sm active:scale-95 flex items-center justify-center flex-shrink-0"
                                     >
-                                        {isPostingComment ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'PUBLIER'}
+                                        {isPostingComment ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : <MessageSquare className="w-5 h-5" />}
                                     </button>
                                 </div>
                             </div>
