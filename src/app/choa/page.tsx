@@ -260,7 +260,17 @@ export default function ChoBoard() {
             return;
         }
 
+        if (newStatus === 'rejected' && (!motifText || motifText.trim() === '')) {
+            alert("❌ Le motif de rejet est strictement obligatoire.");
+            return;
+        }
+
         const updateData: Record<string, unknown> = { status: newStatus };
+        if (newStatus === 'rejected') {
+            updateData.rejection_motif = motifText.trim();
+            if (observations) updateData.rejection_observations = observations.trim();
+        }
+        
         let finalStatus = newStatus;
 
         if (newStatus === 'probable' || newStatus === 'pre_approved') {

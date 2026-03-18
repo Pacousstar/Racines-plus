@@ -202,9 +202,16 @@ export default function ChoBoard() {
             return;
         }
 
+        if (newStatus === 'rejected' && (!motifText || motifText.trim() === '')) {
+            alert("❌ Le motif de rejet est strictement obligatoire.");
+            return;
+        }
+
         const updateData: Record<string, unknown> = { status: newStatus };
-        if (newStatus === 'rejected' && motifText) updateData.rejection_motif = motifText;
-        if (observations) updateData.rejection_observations = observations;
+        if (newStatus === 'rejected') {
+            updateData.rejection_motif = motifText.trim();
+            if (observations) updateData.rejection_observations = observations.trim();
+        }
 
         const { error: updateErr } = await supabase.from('profiles').update(updateData).eq('id', profileId);
         if (updateErr) { alert('Erreur mise à jour : ' + updateErr.message); return; }
