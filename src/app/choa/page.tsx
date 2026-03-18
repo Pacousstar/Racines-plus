@@ -539,9 +539,9 @@ export default function ChoBoard() {
                         </div>
                     </div>
 
-                    {showActions && (
-                        <div className="mt-8 pt-8 border-t border-gray-100/50 flex flex-wrap md:flex-nowrap items-center gap-4">
-                            {alreadyApproved ? (
+                    <div className="mt-8 pt-8 border-t border-gray-100/50 flex flex-wrap md:flex-nowrap items-center gap-4">
+                        {showActions && (
+                            alreadyApproved ? (
                                 <div className="flex-1 md:flex-none flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-[#124E35] text-white text-[11px] font-black uppercase tracking-[0.15em] shadow-xl shadow-green-100 opacity-90">
                                     <ShieldCheck className="w-5 h-5 text-orange-400" />
                                     VOTRE SCEAU EST APPOSÉ ✓
@@ -554,26 +554,28 @@ export default function ChoBoard() {
                                     <ShieldCheck className="w-5 h-5 group-hover/btn:scale-110 transition-transform duration-500" />
                                     APPOSER MON SCEAU 🟠
                                 </button>
-                            )}
+                            )
+                        )}
 
-                            <div className="flex gap-3 w-full md:w-auto">
-                                <button
-                                    onClick={() => setInfoModalProfile(profile)}
-                                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-900 text-white hover:bg-[#FF6600] transition-all text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 group/eye"
-                                >
-                                    <Eye className="w-4 h-4 group-hover/eye:scale-125 transition-transform" />
-                                    Examiner
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setViewingCommentsProfile(profile);
-                                        loadComments(profile.id);
-                                    }}
-                                    className="flex items-center justify-center p-4 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-[#FF6600] hover:text-white border border-orange-100 transition-all duration-300 relative group/msg"
-                                    title="Commentaires et Audit"
-                                >
-                                    <MessageSquare className="w-5 h-5 transition-transform group-hover/msg:scale-110" />
-                                </button>
+                        <div className={`flex gap-3 w-full md:w-auto ${!showActions ? 'ml-auto' : ''}`}>
+                            <button
+                                onClick={() => setInfoModalProfile(profile)}
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-900 text-white hover:bg-[#FF6600] transition-all text-[10px] font-black uppercase tracking-widest shadow-xl shadow-gray-200 group/eye"
+                            >
+                                <Eye className="w-4 h-4 group-hover/eye:scale-125 transition-transform" />
+                                Examiner
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setViewingCommentsProfile(profile);
+                                    loadComments(profile.id);
+                                }}
+                                className="flex items-center justify-center p-4 rounded-2xl bg-orange-50 text-[#FF6600] hover:bg-[#FF6600] hover:text-white border border-orange-100 transition-all duration-300 relative group/msg"
+                                title="Commentaires et Échanges"
+                            >
+                                <MessageSquare className="w-5 h-5 transition-transform group-hover/msg:scale-110" />
+                            </button>
+                            {showActions && (
                                 <button
                                     onClick={() => setMotifModal({ id: profile.id, action: 'rejected' })}
                                     className="flex items-center justify-center p-4 rounded-2xl bg-red-50 text-red-500 hover:bg-red-500 hover:text-white border border-red-100 transition-all duration-300 group/x"
@@ -581,9 +583,9 @@ export default function ChoBoard() {
                                 >
                                     <XCircle className="w-5 h-5 transition-transform group-hover/x:rotate-90" />
                                 </button>
-                            </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         );

@@ -7,7 +7,7 @@ import {
     Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
     BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame, Download,
-    Shield, Activity, Key, Stamp, MapPin, Home
+    Shield, Activity, Key, Stamp, MapPin, Home, MessageSquare
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -191,6 +191,12 @@ export default function AdminDashboard() {
     const [viewingProfile, setViewingProfile] = useState<ExtendedProfileData | null>(null);
     const [viewingUserId, setViewingUserId] = useState<string | null>(null);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+    // États pour les commentaires
+    const [viewingCommentsProfile, setViewingCommentsProfile] = useState<any | null>(null);
+    const [comments, setComments] = useState<any[]>([]);
+    const [newComment, setNewComment] = useState('');
+    const [isPostingComment, setIsPostingComment] = useState(false);
 
     // Pagination States
     const [usersPage, setUsersPage] = useState(1);
@@ -495,6 +501,67 @@ export default function AdminDashboard() {
         setProfiles(prev => prev.map(p => p.id === userId ? { ...p, quartier_nom: quartierNom } : p));
         alert(`Quartier ${quartierNom} assigné avec succès.`);
         setIsLoading(false);
+    };
+
+    const loadComments = async (profileId: string) => {
+        const { data, error } = await supabase
+            .from('validation_comments')
+            .select('*, author:profiles(first_name, last_name)')
+            .eq('profile_id', profileId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching comments:', error);
+            return;
+        }
+
+        const enhancedComments = data.map(c => ({
+            ...c,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            author_name: `${(c.author as any)?.first_name || ''} ${(c.author as any)?.last_name || ''}`.trim()
+        }));
+        setComments(enhancedComments);
+    };
+
+    const handlePostComment = async (profileId: string) => {
+        if (!newComment.trim() || isPostingComment || !currentUserId) return;
+        setIsPostingComment(true);
+        const { error } = await supabase.from('validation_comments').insert({
+            profile_id: profileId,
+            author_id: currentUserId,
+            content: newComment
+        });
+
+        if (error) {
+            alert("Erreur lors de l'envoi du commentaire : " + error.message);
+        } else {
+            setNewComment('');
+            loadComments(profileId);
+        }
+        setIsPostingComment(false);
+    };
+
+    const formatTableName = (name: string) => {
+        const mapping: Record<string, string> = {
+            'profiles': 'Profils Utilisateurs',
+            'villages': 'Villages',
+            'quartiers': 'Quartiers',
+            'memorial_victims': 'Mémorial',
+        };
+        return mapping[name] || name;
+    };
+
+    const formatActionType = (type: string) => {
+        const mapping: Record<string, string> = {
+            'INSERT': 'Création',
+            'UPDATE': 'Modification',
+            'DELETE': 'Suppression',
+        };
+        return mapping[type] || type;
+    };
+
+    const formatKey = (key: string) => {
+        return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     };
 
     const handleDeleteUser = async (userId: string, userName: string) => {
@@ -1209,8 +1276,14 @@ export default function AdminDashboard() {
                                                             <Download className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
-
                                                     <button onClick={() => handleViewProfile(p.id)} className="p-1.5 text-gray-600 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="Voir la fiche détaillée"><Eye className="w-3.5 h-3.5" /></button>
+                                                    <button 
+                                                        onClick={() => { setViewingCommentsProfile(p); loadComments(p.id); }} 
+                                                        className="p-1.5 text-gray-600 hover:text-[#FF6600] hover:bg-orange-50 rounded-lg transition-colors" 
+                                                        title="Commentaires et Échanges"
+                                                    >
+                                                        <MessageSquare className="w-3.5 h-3.5" />
+                                                    </button>
                                                     <button onClick={() => handleDeleteUser(p.id, `${p.first_name || ''} ${p.last_name || ''}`)} className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer définitivement"><Trash2 className="w-3.5 h-3.5" /></button>
                                                 </div>
                                             </td>
@@ -2381,79 +2454,180 @@ export default function AdminDashboard() {
                 />
             )}
 
-            {/* Modale d'Inspection Audit */}
+            {/* Modale d'audit */}
             {selectedAuditLog && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-in fade-in">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in border border-white/20">
-                        <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-10">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
-                                    <Activity className="w-6 h-6 text-[#FF6600]" />
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
+                        {/* En-tête de la modale */}
+                        <div className="bg-gray-100 border-b border-gray-200 p-6 flex justify-between items-center sticky top-0 z-10">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedAuditLog.action_type === 'INSERT' ? 'bg-green-100 text-green-600' : selectedAuditLog.action_type === 'UPDATE' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
+                                    <Activity className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-xl text-gray-900 leading-tight">Détails de l'Inspection</h3>
-                                    <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">
-                                        Action : {selectedAuditLog.action_type} • Cible : {selectedAuditLog.table_name || 'Système'}
+                                    <h2 className="text-xl font-black text-gray-900 leading-tight">Détail de l'Activité</h2>
+                                    <p className="text-xs text-gray-600 font-bold uppercase tracking-wider">
+                                        ID d'enregistrement : {selectedAuditLog.record_id}
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedAuditLog(null)} className="p-3 hover:bg-red-50 rounded-2xl transition-all active:scale-90 group">
-                                <XCircle className="w-6 h-6 text-gray-300 group-hover:text-red-500" />
+                            <button onClick={() => setSelectedAuditLog(null)} type="button" className="p-2 text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
+                                <XCircle className="w-6 h-6" />
                             </button>
                         </div>
-                        
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/30">
-                            {['INSERT', 'UPDATE', 'STATUS_CHANGE'].includes(selectedAuditLog.action_type) && selectedAuditLog.new_data && (
-                                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Nouvelles Données</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {Object.entries(selectedAuditLog.new_data || {}).map(([key, value]) => (
-                                            <div key={key} className="bg-gray-50 p-4 rounded-2xl border border-gray-100/50">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                                                    {key.replace(/_/g, ' ')}
-                                                </p>
-                                                <p className="text-sm font-semibold text-gray-900 truncate">
-                                                    {value === null || value === '' ? <span className="text-gray-400 italic">Vide</span> : String(value)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
 
-                            {['DELETE', 'UPDATE', 'STATUS_CHANGE'].includes(selectedAuditLog.action_type) && selectedAuditLog.old_data && (
-                                <div className="bg-red-50/50 p-6 rounded-3xl border border-red-100/50 space-y-4">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-2 h-2 rounded-full bg-red-400" />
-                                        <h4 className="text-xs font-black uppercase tracking-widest text-red-900">Anciennes Données / Supprimées</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {Object.entries(selectedAuditLog.old_data || {}).map(([key, value]) => (
-                                            <div key={key} className="bg-white/60 p-4 rounded-2xl border border-red-50">
-                                                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">
-                                                    {key.replace(/_/g, ' ')}
-                                                </p>
-                                                <p className="text-sm font-semibold text-gray-800 truncate line-through decoration-red-300">
-                                                    {value === null || value === '' ? <span className="text-red-300 italic">Vide</span> : String(value)}
-                                                </p>
-                                            </div>
-                                        ))}
+                        {/* Contenu */}
+                        <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Auteur</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs uppercase">
+                                            {selectedAuditLog.user_details?.first_name?.[0] || '?'}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-gray-900">{selectedAuditLog.user_details?.first_name} {selectedAuditLog.user_details?.last_name}</p>
+                                            <p className="text-[10px] text-gray-500">{selectedAuditLog.user_id}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            )}
-                            
-                            {!selectedAuditLog.new_data && !selectedAuditLog.old_data && (
-                                <div className="text-center py-12">
-                                    <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Aucune donnée détaillée disponible</p>
+                                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Cible & Action</p>
+                                    <p className="text-sm font-black text-gray-900 flex items-center gap-2">
+                                        {formatTableName(selectedAuditLog.table_name)}
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${selectedAuditLog.action_type === 'INSERT' ? 'bg-green-100 text-green-600' : selectedAuditLog.action_type === 'UPDATE' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>
+                                            {formatActionType(selectedAuditLog.action_type)}
+                                        </span>
+                                    </p>
                                 </div>
-                            )}
+                                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Horodatage</p>
+                                    <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-gray-400" />
+                                        {new Date(selectedAuditLog.timestamp).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'medium' })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="p-4 bg-gray-100 border-b border-gray-200 flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-500" />
+                                    <h3 className="text-sm font-black text-gray-700 uppercase tracking-widest">Contenu des Modifications</h3>
+                                </div>
+                                <div className="p-0">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-gray-50 text-xs text-gray-500 uppercase font-black">
+                                            <tr>
+                                                <th className="px-6 py-4 w-1/4">Attribut</th>
+                                                {selectedAuditLog.action_type !== 'INSERT' && <th className="px-6 py-4 w-3/8 border-l border-gray-100">Avant</th>}
+                                                {selectedAuditLog.action_type !== 'DELETE' && <th className="px-6 py-4 w-3/8 border-l border-gray-100">Après / Nouveau</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {Object.keys(selectedAuditLog.new_data || selectedAuditLog.old_data || {}).map(key => {
+                                                const oldVal = selectedAuditLog.old_data ? selectedAuditLog.old_data[key] : undefined;
+                                                const newVal = selectedAuditLog.new_data ? selectedAuditLog.new_data[key] : undefined;
+                                                // Ne pas afficher si inchangé et que c'est une mise à jour
+                                                if (selectedAuditLog.action_type === 'UPDATE' && JSON.stringify(oldVal) === JSON.stringify(newVal)) return null;
+
+                                                const displayKey = formatKey(key);
+
+                                                return (
+                                                    <tr key={key} className="hover:bg-gray-50/50 transition-colors">
+                                                        <td className="px-6 py-4 font-bold text-gray-700">
+                                                            {displayKey}
+                                                            <span className="block text-[9px] text-gray-400 font-normal mt-0.5">{key}</span>
+                                                        </td>
+                                                        {selectedAuditLog.action_type !== 'INSERT' && (
+                                                            <td className="px-6 py-4 border-l border-gray-100">
+                                                                <div className="bg-red-50/80 text-red-900 px-3 py-2 rounded-xl text-xs font-mono break-all line-through opacity-70 border border-red-100">
+                                                                    {oldVal === null || oldVal === undefined ? "—" : typeof oldVal === 'object' ? JSON.stringify(oldVal) : String(oldVal)}
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        {selectedAuditLog.action_type !== 'DELETE' && (
+                                                            <td className="px-6 py-4 border-l border-gray-100">
+                                                                <div className="bg-green-50/80 text-green-900 px-3 py-2 rounded-xl text-xs font-mono font-bold break-all border border-green-100">
+                                                                    {newVal === null || newVal === undefined ? "—" : typeof newVal === 'object' ? JSON.stringify(newVal) : String(newVal)}
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
+
+            {
+                viewingCommentsProfile && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[150] p-4 animate-in fade-in duration-300">
+                        <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in duration-500 border border-white/20">
+                            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white/95 backdrop-blur-md">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
+                                        <MessageSquare className="w-6 h-6 text-[#FF6600]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-xl text-gray-900 leading-tight">Échanges</h3>
+                                        <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">{viewingCommentsProfile.first_name} {viewingCommentsProfile.last_name}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setViewingCommentsProfile(null)} className="p-3 hover:bg-red-50 rounded-2xl transition-all active:scale-90 group">
+                                    <XCircle className="w-6 h-6 text-gray-300 group-hover:text-red-500" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/30">
+                                {comments.length === 0 ? (
+                                    <div className="text-center py-16">
+                                        <div className="w-20 h-20 bg-gray-100 rounded-[2rem] flex items-center justify-center mx-auto mb-4 opacity-50">
+                                            <MessageSquare className="w-10 h-10 text-gray-400" />
+                                        </div>
+                                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Aucun message</p>
+                                    </div>
+                                ) : (
+                                    comments.map(comment => (
+                                        <div key={comment.id} className={`flex flex-col ${comment.author_id === currentUserId ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
+                                            <div className={`max-w-[85%] p-5 rounded-[1.8rem] text-sm shadow-sm ${comment.author_id === currentUserId ? 'bg-[#FF6600] text-white rounded-tr-none shadow-orange-100' : 'bg-white border border-gray-100 rounded-tl-none'}`}>
+                                                <p className="font-black text-[9px] mb-2 opacity-80 uppercase tracking-[0.15em] border-b border-white/20 pb-1">{comment.author_name}</p>
+                                                <p className="leading-relaxed font-medium">{comment.content}</p>
+                                            </div>
+                                            <span className="text-[9px] text-gray-400 mt-2 uppercase font-black tracking-widest px-2">{new Date(comment.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+
+                            <div className="p-8 border-t border-gray-100 bg-white">
+                                <div className="flex gap-3">
+                                    <input
+                                        type="text"
+                                        value={newComment}
+                                        onChange={e => setNewComment(e.target.value)}
+                                        placeholder="Note de validation / Échange..."
+                                        onKeyUp={e => e.key === 'Enter' && handlePostComment(viewingCommentsProfile.id)}
+                                        className="flex-1 px-5 py-4 rounded-2xl bg-gray-50 border border-gray-100 focus:bg-white focus:border-[#FF6600] focus:ring-4 focus:ring-orange-50 outline-none transition-all text-sm font-medium"
+                                    />
+                                    <button
+                                        onClick={() => handlePostComment(viewingCommentsProfile.id)}
+                                        disabled={!newComment.trim() || isPostingComment}
+                                        className="px-8 py-4 bg-[#FF6600] text-white rounded-2xl font-black text-sm hover:bg-[#e55c00] disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-xl shadow-orange-100 active:scale-95 flex items-center justify-center min-w-[100px]"
+                                    >
+                                        {isPostingComment ? <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" /> : 'PUBLIER'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
         </AppLayout>
     );
 }
