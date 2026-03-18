@@ -2584,7 +2584,7 @@ export default function AdminDashboard() {
                             </div>
 
                             {/* Section Motif de Rejet */}
-                            {viewingCommentsProfile.status === 'rejected' && viewingCommentsProfile.rejection_motif && (
+                            {viewingCommentsProfile.status === 'rejected' && (
                                 <div className="px-8 py-5 bg-red-50/80 border-b border-red-100/50 flex flex-col gap-2">
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle className="w-4 h-4 text-red-500" />
@@ -2592,7 +2592,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="bg-white/60 p-4 rounded-2xl border border-red-100 shadow-sm">
                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Motif principal</p>
-                                        <p className="text-sm font-semibold text-red-900">{viewingCommentsProfile.rejection_motif}</p>
+                                        <p className="text-sm font-semibold text-red-900">{viewingCommentsProfile.rejection_motif || "Motif non renseigné"}</p>
                                         
                                         {viewingCommentsProfile.rejection_observations && (
                                             <>
