@@ -148,6 +148,7 @@ export default function AdminDashboard() {
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [assistantPermissions, setAssistantPermissions] = useState<Record<string, AdminPermission>>({});
     const [auditLogs, setAuditLogs] = useState<ActivityLog[]>([]);
+    const [selectedAuditLog, setSelectedAuditLog] = useState<ActivityLog | null>(null);
     const [villages, setVillages] = useState<Village[]>([]);
     const [quartiers, setQuartiers] = useState<Quartier[]>([]);
     const [victims, setVictims] = useState<Victim[]>([]);
@@ -2067,7 +2068,7 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="py-6 px-8 text-right">
                                                         <button
-                                                            onClick={() => alert(JSON.stringify(log.new_data || log.old_data, null, 2))}
+                                                            onClick={() => setSelectedAuditLog(log)}
                                                             className="px-4 py-2 rounded-xl bg-gray-900 text-white text-[9px] font-black uppercase tracking-widest hover:bg-[#FF6600] transition-all active:scale-90"
                                                         >
                                                             Inspections
@@ -2379,6 +2380,81 @@ export default function AdminDashboard() {
                     }}
                 />
             )}
+
+            {/* Modale d'Inspection Audit */}
+            {selectedAuditLog && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[150] p-4 animate-in fade-in">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in border border-white/20">
+                        <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-white/95 backdrop-blur-md sticky top-0 z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
+                                    <Activity className="w-6 h-6 text-[#FF6600]" />
+                                </div>
+                                <div>
+                                    <h3 className="font-black text-xl text-gray-900 leading-tight">Détails de l'Inspection</h3>
+                                    <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">
+                                        Action : {selectedAuditLog.action_type} • Cible : {selectedAuditLog.table_name || 'Système'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedAuditLog(null)} className="p-3 hover:bg-red-50 rounded-2xl transition-all active:scale-90 group">
+                                <XCircle className="w-6 h-6 text-gray-300 group-hover:text-red-500" />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-gray-50/30">
+                            {['INSERT', 'UPDATE', 'STATUS_CHANGE'].includes(selectedAuditLog.action_type) && selectedAuditLog.new_data && (
+                                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-gray-900">Nouvelles Données</h4>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {Object.entries(selectedAuditLog.new_data || {}).map(([key, value]) => (
+                                            <div key={key} className="bg-gray-50 p-4 rounded-2xl border border-gray-100/50">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                                    {key.replace(/_/g, ' ')}
+                                                </p>
+                                                <p className="text-sm font-semibold text-gray-900 truncate">
+                                                    {value === null || value === '' ? <span className="text-gray-400 italic">Vide</span> : String(value)}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {['DELETE', 'UPDATE', 'STATUS_CHANGE'].includes(selectedAuditLog.action_type) && selectedAuditLog.old_data && (
+                                <div className="bg-red-50/50 p-6 rounded-3xl border border-red-100/50 space-y-4">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-2 h-2 rounded-full bg-red-400" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-red-900">Anciennes Données / Supprimées</h4>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {Object.entries(selectedAuditLog.old_data || {}).map(([key, value]) => (
+                                            <div key={key} className="bg-white/60 p-4 rounded-2xl border border-red-50">
+                                                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">
+                                                    {key.replace(/_/g, ' ')}
+                                                </p>
+                                                <p className="text-sm font-semibold text-gray-800 truncate line-through decoration-red-300">
+                                                    {value === null || value === '' ? <span className="text-red-300 italic">Vide</span> : String(value)}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {!selectedAuditLog.new_data && !selectedAuditLog.old_data && (
+                                <div className="text-center py-12">
+                                    <p className="text-gray-400 text-sm font-bold uppercase tracking-widest">Aucune donnée détaillée disponible</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </AppLayout>
     );
 }
+
