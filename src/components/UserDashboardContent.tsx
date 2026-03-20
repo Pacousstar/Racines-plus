@@ -30,6 +30,8 @@ interface ProfileData {
     role: string;
     avatarUrl: string | null;
     ancestralRootId: string | null;
+    rejectionMotif?: string | null;
+    rejectionObservations?: string | null;
     extendedData: ExtendedProfileData;
     metadata: any;
 }
@@ -53,13 +55,65 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
     const [invitesCount, setInvitesCount] = useState(0);
     const photoInputRef = useRef<HTMLInputElement>(null);
 
+    const [proofText, setProofText] = useState('');
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [isSubmittingProof, setIsSubmittingProof] = useState(false);
 
+    const handleProofSubmit = async () => {
+        if (!proofText.trim()) {
+            alert("Veuillez fournir une explication textuelle.");
+            return;
+        }
+
+        setIsSubmittingProof(true);
+        try {
+            let proofUrl = null;
+            if (proofFile) {
+                const fileExt = proofFile.name.split('.').pop() || 'pdf';
+                const filePath = `proofs/${userId}_${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, proofFile);
+                if (uploadError) throw uploadError;
+                const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                proofUrl = publicUrl;
+            }
+
+            const currentMetadata = profileData?.metadata || {};
+            const newMetadata = {
+                ...currentMetadata,
+                proof_text: proofText,
+                proof_url: proofUrl,
+                proof_submitted_at: new Date().toISOString()
+            };
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ 
+                    status: 'pending_choa', // Renvoi direct pour analyse
+                    metadata: newMetadata,
+                    choa_approvals: [] // reset approvals
+                })
+                .eq('id', userId);
+
+            if (updateError) throw updateError;
+
+            alert("✅ Votre recours a bien été transmis. Il va être analysé à nouveau.");
+            fetchProfile();
+            setActiveTab('notifications');
+            setProofText('');
+            setProofFile(null);
+        } catch (err: any) {
+            console.error("Erreur recours :", err);
+            alert("Erreur lors de la soumission du recours.");
+        } finally {
+            setIsSubmittingProof(false);
+        }
+    };
     const fetchProfile = async () => {
         // Ne pas mettre isLoading à true si on a déjà des données pour éviter le clignotement
         if (!profileData) setIsLoading(true);
         const { data, error } = await supabase
             .from('profiles')
-            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, residence_country, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id, metadata')
+            .select('first_name, last_name, gender, birth_date, niveau_etudes, diplomes, emploi, fonction, retraite, nombre_enfants, details_enfants, consentement_enfants, adresse_residence, residence_city, residence_country, phone_1, phone_2, whatsapp_1, whatsapp_2, village_origin, quartier_nom, status, role, avatar_url, ancestral_root_id, metadata, rejection_motif, rejection_observations')
             .eq('id', userId)
             .single();
 
@@ -83,6 +137,8 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                 role: data.role || 'user',
                 avatarUrl: data.avatar_url || null,
                 ancestralRootId: data.ancestral_root_id || null,
+                rejectionMotif: data.rejection_motif,
+                rejectionObservations: data.rejection_observations,
                 metadata: data.metadata || {},
                 extendedData: {
                     firstName: fName,
@@ -424,10 +480,51 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                                     <h4 className="font-bold">Statut de votre profil</h4>
                                     <p className="text-sm text-gray-600 mt-1">
                                         {profileData?.status === 'confirmed' && "Votre profil a été certifié par le CHO de Toa-Zéo. Vos données sont désormais verrouillées et protégées."}
-                                        {profileData?.status === 'rejected' && "Votre profil a été rejeté par le CHO. Vérifiez vos informations et resoumettez votre demande."}
+                                        {profileData?.status === 'rejected' && "Votre profil a été rejeté par le CHO. Lisez le motif ci-dessous et soumettez un justificatif pour réexamen."}
                                         {(!profileData?.status || profileData?.status === 'pending') && "Votre profil est en attente d'examen par le Chief Heritage Officer (CHO) de Toa-Zéo."}
+                                        {profileData?.status === 'pending_choa' && "Votre profil ou recours est en cours d'examen par un représentant de l'administration."}
                                         {profileData?.status === 'probable' && "Votre profil est en cours de validation par un CHOa. La décision finale appartient au CHO."}
                                     </p>
+
+                                    {profileData?.status === 'rejected' && (
+                                        <div className="bg-white p-5 rounded-2xl border border-red-100 shadow-sm mt-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <AlertTriangle className="w-4 h-4 text-red-500" />
+                                                <h5 className="font-black text-xs uppercase tracking-widest text-red-800">Motif du Rejet</h5>
+                                            </div>
+                                            <p className="text-sm font-semibold text-red-900 mb-1">{profileData.rejectionMotif || "Motif non renseigné"}</p>
+                                            {profileData.rejectionObservations && (
+                                                <p className="text-xs text-red-700 italic border-l-2 border-red-200 pl-2 mt-2">{profileData.rejectionObservations}</p>
+                                            )}
+
+                                            <div className="mt-6 pt-6 border-t border-red-50">
+                                                <h5 className="font-bold text-sm text-gray-900 mb-3">Soumettre un justificatif / Recours</h5>
+                                                <textarea
+                                                    className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-100 outline-none mb-3"
+                                                    rows={3}
+                                                    placeholder="Expliquez ici pourquoi le rejet devrait être annulé..."
+                                                    value={proofText}
+                                                    onChange={e => setProofText(e.target.value)}
+                                                />
+                                                <div className="mb-4">
+                                                    <label className="text-xs font-bold text-gray-600 mb-1 block uppercase">Document justificatif (option/image/pdf)</label>
+                                                    <input 
+                                                        type="file" 
+                                                        accept=".jpg,.jpeg,.png,.pdf" 
+                                                        className="text-xs w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer" 
+                                                        onChange={e => setProofFile(e.target.files?.[0] || null)}
+                                                    />
+                                                </div>
+                                                <button
+                                                    disabled={isSubmittingProof || !proofText.trim()}
+                                                    onClick={handleProofSubmit}
+                                                    className="bg-red-500 hover:bg-red-600 text-white font-bold text-xs uppercase tracking-widest px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                                                >
+                                                    {isSubmittingProof ? "Envoi en cours..." : "Transmettre mon recours"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -227,6 +227,18 @@ export default function ChoBoard() {
             });
         }
 
+        // Notifier le user en cas de rejet
+        if (newStatus === 'rejected') {
+            await supabase.from('notifications').insert({
+                user_id: profileId,
+                title: 'Dossier refusé par le CHO',
+                message: `Votre dossier d'inscription a été refusé. Motif : ${motifText || 'Non précisé'}. Connectez-vous à votre tableau de bord pour fournir un justificatif.`,
+                type: 'rejection',
+                is_read: false,
+                created_at: new Date().toISOString()
+            });
+        }
+
         // Rafraîchir
         if (newStatus === 'probable') {
             setPendingProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: 'probable' } : p));
@@ -402,6 +414,13 @@ export default function ChoBoard() {
                             <Clock className="w-3.5 h-3.5" />
                             Inscrit le {new Date(profile.created_at).toLocaleDateString('fr-FR')}
                         </div>
+
+                        {profile.metadata?.proof_text && profile.status !== 'confirmed' && profile.status !== 'rejected' && (
+                            <div className="flex items-center gap-2 text-[10px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-4 py-2 rounded-2xl border border-orange-200 shadow-sm animate-pulse">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                Dossier resoumis pour réexamen
+                            </div>
+                        )}
 
                         {/* Informations de rejet — Enrichies */}
                         {profile.status === 'rejected' && (profile.rejection_motif || profile.rejection_observations) && (
@@ -980,6 +999,29 @@ export default function ChoBoard() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {infoModalProfile.metadata?.proof_text && (
+                                    <div className="bg-orange-50 p-5 rounded-2xl border-2 border-orange-200 mt-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <AlertTriangle className="w-5 h-5 text-orange-600" />
+                                            <h4 className="text-xs font-black uppercase text-orange-800 tracking-widest">Recours / Justificatif</h4>
+                                        </div>
+                                        <div className="bg-white/80 p-4 rounded-xl border border-orange-100">
+                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Explication de l'utilisateur :</p>
+                                            <p className="text-sm font-semibold text-gray-900 leading-relaxed italic">« {infoModalProfile.metadata.proof_text} »</p>
+                                        </div>
+                                        {infoModalProfile.metadata.proof_url && (
+                                            <div className="mt-3">
+                                                <a href={infoModalProfile.metadata.proof_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-bold bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-sm">
+                                                    👁️ Voir le document joint
+                                                </a>
+                                            </div>
+                                        )}
+                                        <p className="text-[9px] text-orange-500 font-bold uppercase mt-3">
+                                            Transmis le {infoModalProfile.metadata.proof_submitted_at ? new Date(infoModalProfile.metadata.proof_submitted_at).toLocaleDateString('fr-FR') : '—'}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                             <div className="p-4 border-t border-gray-100 flex gap-3 flex-shrink-0">
                                 <button

@@ -2604,6 +2604,30 @@ export default function AdminDashboard() {
                                 </div>
                             )}
 
+                            {/* Section Preuve / Recours */}
+                            {viewingCommentsProfile.metadata?.proof_text && (
+                                <div className="px-8 py-5 bg-orange-50/80 border-b border-orange-100/50 flex flex-col gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                        <h4 className="text-xs font-black uppercase tracking-widest text-orange-800">Recours / Justificatif Utilisateur</h4>
+                                    </div>
+                                    <div className="bg-white/80 p-4 rounded-xl border border-orange-100 shadow-sm mt-1">
+                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Explication :</p>
+                                        <p className="text-sm font-semibold text-gray-900 leading-relaxed italic">« {viewingCommentsProfile.metadata.proof_text} »</p>
+                                    </div>
+                                    {viewingCommentsProfile.metadata.proof_url && (
+                                        <div className="mt-2 text-right">
+                                            <a href={viewingCommentsProfile.metadata.proof_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs font-bold bg-orange-600 text-white px-4 py-2 rounded-xl hover:bg-orange-700 transition-colors shadow-sm">
+                                                👁️ Voir le document joint
+                                            </a>
+                                        </div>
+                                    )}
+                                    <p className="text-[9px] text-orange-500 font-bold uppercase mt-1">
+                                        Transmis le {viewingCommentsProfile.metadata.proof_submitted_at ? new Date(viewingCommentsProfile.metadata.proof_submitted_at).toLocaleDateString('fr-FR') : '—'}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/50 h-full">
                                 {comments.length === 0 ? (
                                     <div className="text-center py-16 h-full flex flex-col justify-center">
