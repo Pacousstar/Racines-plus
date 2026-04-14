@@ -105,12 +105,29 @@ export async function POST(request: NextRequest) {
         let userId: string;
         let isNewUser = true;
 
+        // ── SMART CHECK ANTI-DOUBLON ────────────────────────────────────
+        if (firstName && lastName) {
+            const { data: possibleDups } = await supabaseAdmin
+                .from('profiles')
+                .select('id, first_name, last_name, birth_date')
+                .ilike('first_name', `%${firstName}%`)
+                .ilike('last_name', `%${lastName}%`);
+
+            if (possibleDups && possibleDups.length > 0) {
+                // Si la date limite correspond, c'est un doublon bloquant
+                const isRealDup = possibleDups.some(p => p.birth_date === birthDate || !p.birth_date);
+                if (isRealDup) {
+                    return NextResponse.json({ error: 'DOUBLON : Un profil avec ce nom, prénom et date de naissance existe déjà. Contactez le CHO.' }, { status: 409 });
+                }
+            }
+        }
+
         // ── 1. Tenter de créer le compte ──────────────────────────────────────
-        // email_confirm est activé pour permettre la connexion immédiate avec mot de passe
+        // email_confirm: false pour forcer le double opt-in (Sécurité Phase 3)
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: true,
+            email_confirm: false,
         });
 
         if (authError) {
@@ -132,7 +149,7 @@ export async function POST(request: NextRequest) {
                 }
 
                 // Mettre à jour le mot de passe uniquement et forcer la confirmation de l'email
-                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, { password, email_confirm: true });
+                await supabaseAdmin.auth.admin.updateUserById(existingUser.id, { password, email_confirm: false });
 
                 userId = existingUser.id;
                 isNewUser = false;

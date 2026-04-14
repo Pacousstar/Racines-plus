@@ -5,11 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 import {
     ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
-    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Activity, Search, Home, AlertTriangle
+    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Activity, Search, Home, AlertTriangle, BookOpen
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
+import ProofViewerModal from '@/components/ProofViewerModal';
+import VillageHeritageManager from '@/components/VillageHeritageManager';
 import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import InternalMessaging from '@/components/InternalMessaging';
@@ -70,7 +72,7 @@ export default function ChoBoard() {
     const router = useRouter();
     const supabase = createClient();
     useRoleRedirect(['choa', 'admin', 'cho', 'assistant cho', 'assistant_cho']);
-    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'sent_cho' | 'confirmed' | 'rejected' | 'quartier'>('tasks');
+    const [activeTab, setActiveTab] = useState<'mon_arbre' | 'tasks' | 'recours' | 'sent_cho' | 'confirmed' | 'rejected' | 'quartier' | 'patrimoine'>('tasks');
     const [myProfile, setMyProfile] = useState<MyProfile | null>(null);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [pendingProfiles, setPendingProfiles] = useState<PendingProfile[]>([]);
@@ -422,6 +424,7 @@ export default function ChoBoard() {
         { key: 'confirmed', label: 'Certifiés', icon: CheckCircle, count: confirmedProfiles.length, countColor: 'bg-green-500' },
         { key: 'rejected', label: 'Rejetés', icon: XCircle, count: rejectedProfiles.length, countColor: 'bg-red-500' },
         { key: 'quartier', label: 'Activité Quartier', icon: Users, count: 0, countColor: '' },
+        { key: 'patrimoine', label: 'Patrimoine 🏛️', icon: BookOpen, count: 0, countColor: '' },
     ];
 
     const StatusBadge = ({ status }: { status: string }) => {
@@ -797,6 +800,11 @@ export default function ChoBoard() {
                                         </div>
                                     )}
                                 </div>
+                            )}
+
+                            {/* Onglet : Patrimoine Villageois */}
+                            {activeTab === 'patrimoine' && (
+                                <VillageHeritageManager villageName={myProfile?.village_origin || "Mon Village"} />
                             )}
                         </>
                     )

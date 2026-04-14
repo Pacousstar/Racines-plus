@@ -19,6 +19,7 @@ import PersonalLineageTree from '@/components/PersonalLineageTree';
 import MigrationMap from '@/components/MigrationMap';
 import DocumentManager from '@/components/DocumentManager';
 import MediaGallery from '@/components/MediaGallery';
+import Dictaphone from '@/components/Dictaphone';
 import { createClient } from '@/lib/supabase';
 
 interface ProfileData {
@@ -293,6 +294,21 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
 
                     {/* Actions rapides */}
                     <div className="flex flex-col gap-3">
+                        {/* Section Livre de Famille Premium (NOUVEAU) */}
+                        <div className="bg-[#064e3b] text-white border text-center border-[#D4AF37]/30 hover:border-[#D4AF37]/50 rounded-3xl p-5 shadow-lg transition-all group overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-2 opacity-10 scale-150 rotate-12 group-hover:scale-110 transition-transform">
+                                <Award className="w-12 h-12 text-[#D4AF37]" />
+                            </div>
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-[#D4AF37]/20">Patrimoine</span>
+                            </div>
+                            <h4 className="text-sm font-bold text-white mb-2">Livre de Famille Premium</h4>
+                            <p className="text-[11px] text-green-100/70 mb-4 leading-relaxed">Générez un document d&apos;archive de votre lignée certifiée au format PDF HD.</p>
+                            <Link href="/dashboard/family-book" className="w-full bg-[#D4AF37] hover:bg-[#b8952e] text-black py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md">
+                                <FileText className="w-3.5 h-3.5" /> Télécharger mon Livre
+                            </Link>
+                        </div>
+
                         {/* Section Invitation Premium */}
                         <div className="bg-white border text-center border-[#FF6600]/20 hover:border-[#FF6600]/40 rounded-3xl p-5 shadow-sm transition-all group overflow-hidden relative">
                             <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 group-hover:scale-110 transition-transform">
@@ -447,8 +463,9 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     )}
 
                     {activeTab === 'archives' && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-6">
                             <DocumentManager userId={userId} />
+                            <Dictaphone userId={userId} />
                         </div>
                     )}
 

@@ -10,7 +10,8 @@ export interface LineageData {
     children: any[];
 }
 
-export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: LineageData }>(({ data }, ref) => {
+export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: LineageData, orientation?: 'portrait' | 'landscape' }>(({ data, orientation = 'portrait' }, ref) => {
+    const isLandscape = orientation === 'landscape';
     // Rend chaque nœud de manière luxueuse
     const renderNode = (node: any, isAncetre = false) => {
         if (!node) return null;
@@ -18,16 +19,14 @@ export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: Line
         const statusIcon = node.status === 'confirmed' ? '✓' : node.status === 'probable' ? '○' : '⏳';
 
         let period = node.periodeOuNaissance || node.periode || node.birthYear || 'Date inconnue';
+        const flag = "🇨🇮";
 
-        // Flag icon based on residence or node info (fallback to CI for demonstration)
-        const flag = "🇨🇮"; // Can be dynamic if we fetch country
+        const sideColor = node.side === 'paternal' ? 'border-blue-600' : node.side === 'maternal' ? 'border-[#C05C3C]' : isAncetre ? 'border-amber-500' : 'border-[#124E35]';
 
         return (
             <div className="flex flex-col items-center gap-2 m-4 bg-white/80 p-4 rounded-xl border border-amber-200 shadow-md transform transition-all">
-                <div className={`relative w-24 h-24 rounded-full border-4 shadow-xl flex items-center justify-center bg-stone-100 overflow-hidden
-                    ${isAncetre ? 'border-amber-500' : 'border-[#124E35]'}`}>
+                <div className={`relative w-24 h-24 rounded-full border-4 shadow-xl flex items-center justify-center bg-stone-100 overflow-hidden ${sideColor}`}>
                     {node.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
                     ) : isAncetre ? (
                         <Crown className="w-12 h-12 text-amber-500" />
@@ -35,7 +34,6 @@ export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: Line
                         <span className="text-2xl font-bold text-gray-400">{initials}</span>
                     )}
 
-                    {/* Status Badge */}
                     <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow">
                         <span className="text-lg">{node.isDeceased ? '✝️' : node.isVictim2010 ? '🔥' : statusIcon}</span>
                     </div>
@@ -43,11 +41,10 @@ export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: Line
 
                 <div className="text-center mt-2">
                     <h3 className="font-serif font-bold text-lg text-gray-900 leading-tight break-words max-w-[150px]">{node.nom}</h3>
-                    <p className="text-xs text-amber-800 font-medium uppercase tracking-widest my-1">{node.type === 'ancetre' ? 'Ancêtre Fondateur' : node.lien || node.type || 'Lignée'}</p>
-                    <p className="text-sm text-stone-600 font-mono bg-stone-100 px-2 py-0.5 rounded inline-block">{period}</p>
-                    <p className="text-xs text-gray-500 mt-1 flex items-center justify-center gap-1">
-                        <span>{flag}</span> {node.village || node.quartier || 'Toa-Zéo'}
+                    <p className={`text-[10px] font-black uppercase tracking-widest my-1 ${node.side === 'paternal' ? 'text-blue-600' : node.side === 'maternal' ? 'text-red-700' : 'text-amber-800'}`}>
+                        {node.side ? `Branche ${node.side}` : (node.type === 'ancetre' ? 'Ancêtre Fondateur' : node.lien || node.type || 'Lignée')}
                     </p>
+                    <p className="text-sm text-stone-600 font-mono bg-stone-100 px-2 py-0.5 rounded inline-block">{period}</p>
                 </div>
             </div>
         );
@@ -56,7 +53,7 @@ export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: Line
     return (
         <div
             ref={ref}
-            className="absolute -left-[9999px] top-0 w-[1190px] h-[1684px] bg-[#FDFBF7] text-stone-800 overflow-hidden z-[-1]"
+            className={`absolute -left-[9999px] top-0 bg-[#FDFBF7] text-stone-800 overflow-hidden z-[-1] ${isLandscape ? 'w-[1684px] h-[1190px]' : 'w-[1190px] h-[1684px]'}`}
             style={{
                 // Format A3 Portrait
                 backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\\"100\\"%25 height=\\"100\\"%25 xmlns=\\"http://www.w3.org/2000/svg\\"%3E%3Cfilter id=\\"noise\\"%3E%3CfeTurbulence type=\\"fractalNoise\\" baseFrequency=\\"0.015\\" numOctaves=\\"3\\" stitchTiles=\\"stitch\\"%3E%3C/feTurbulence%3E%3CfeColorMatrix type=\\"matrix\\" values=\\"1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.05 0\\"%3E%3C/feColorMatrix%3E%3C/filter%3E%3Crect width=\\"100\\"%25 height=\\"100\\"%25 filter=\\"url(%23noise)\\"%3E%3C/rect%3E%3C/svg%3E")',

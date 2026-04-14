@@ -15,6 +15,7 @@ interface ExportTreeModalProps {
 
 export default function ExportTreeModal({ isOpen, onClose, data, userRole }: ExportTreeModalProps) {
     const [isExporting, setIsExporting] = useState<'standard' | 'premium' | null>(null);
+    const [exportOrientation, setExportOrientation] = useState<'portrait' | 'landscape'>('portrait');
     const premiumRef = useRef<HTMLDivElement>(null);
     const standardRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +64,7 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
             // Dimensions A4 en pixels (approx 210x297 mm) => format paysage optionnel
             // Ici on va faire un A3 Portrait => 297x420 mm
             const pdf = new jsPDF({
-                orientation: 'portrait',
+                orientation: exportOrientation,
                 unit: 'mm',
                 format: 'a3'
             });
@@ -86,7 +87,7 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
 
             {/* Conteneurs invisibles pour la capture htm2canvas */}
             <div className="hidden-capture-contain" style={{ position: 'fixed', left: '-9999px', top: 0 }}>
-                <PremiumTreeTemplate ref={premiumRef} data={data} />
+                <PremiumTreeTemplate ref={premiumRef} data={data} orientation={exportOrientation} />
                 <StandardTreeTemplate ref={standardRef} data={data} />
             </div>
 
@@ -157,6 +158,26 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
                         </ul>
                     </div>
 
+                    <div className="mt-8 mb-6 p-4 bg-amber-50 rounded-2xl border border-amber-200 shadow-inner">
+                         <p className="text-[10px] font-black uppercase text-amber-700 mb-3 tracking-widest text-center">Choix de l&apos;Orientation</p>
+                         <div className="flex gap-4">
+                            <button 
+                                onClick={() => setExportOrientation('portrait')}
+                                className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${exportOrientation === 'portrait' ? 'border-amber-600 bg-amber-100' : 'border-stone-200 bg-white opacity-60'}`}
+                            >
+                                <div className="w-5 h-7 border-2 border-current rounded-sm mb-1" />
+                                <span className="text-xs font-bold">Livre (Portrait)</span>
+                            </button>
+                            <button 
+                                onClick={() => setExportOrientation('landscape')}
+                                className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex flex-col items-center gap-1 ${exportOrientation === 'landscape' ? 'border-amber-600 bg-amber-100' : 'border-stone-200 bg-white opacity-60'}`}
+                            >
+                                <div className="w-7 h-5 border-2 border-current rounded-sm mb-1" />
+                                <span className="text-xs font-bold">Album (Paysage)</span>
+                            </button>
+                         </div>
+                    </div>
+
                     <div className="mt-auto">
                         <div className="flex justify-between items-end mb-4">
                             <div className="flex flex-col">
@@ -180,7 +201,7 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
                         >
                             <span className="flex items-center gap-2">
                                 {isExporting === 'premium' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Crown className="w-5 h-5" />}
-                                Générer mon parchemin HD
+                                Générer en {exportOrientation === 'portrait' ? 'Portrait' : 'Paysage'}
                             </span>
                             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </button>

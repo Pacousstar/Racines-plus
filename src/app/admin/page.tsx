@@ -20,6 +20,8 @@ import { TreePine } from 'lucide-react';
 import MigrationMap from '@/components/MigrationMap';
 import InternalMessaging from '@/components/InternalMessaging';
 import AppLayout from '@/components/AppLayout';
+import ProofViewerModal from '@/components/ProofViewerModal';
+
 
 interface Profile {
     id: string;
@@ -111,7 +113,9 @@ interface StatsData {
     educationStats: Record<string, number>;
     pendingCertificates: number;
     pendingExports: number;
+    pendingRecours: number;
     contactStats: { hasPhone: number; hasWhatsapp: number };
+
 }
 
 interface AdminPermission {
@@ -197,6 +201,9 @@ export default function AdminDashboard() {
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isPostingComment, setIsPostingComment] = useState(false);
+    const [viewingProofProfile, setViewingProofProfile] = useState<any | null>(null);
+    const [isProofModalOpen, setIsProofModalOpen] = useState(false);
+
 
     // Pagination States
     const [usersPage, setUsersPage] = useState(1);
@@ -357,10 +364,12 @@ export default function AdminDashboard() {
                     }, {}),
                     pendingCertificates: usersOnly.filter((p: any) => p.certificate_requested && !p.certificate_issued).length,
                     pendingExports: usersOnly.filter((p: any) => p.export_requested && !p.export_authorized).length,
+                    pendingRecours: usersOnly.filter((p: any) => p.status === 'pending_choa').length,
                     contactStats: {
                         hasPhone: usersOnly.filter((p: any) => p.phone_1).length,
                         hasWhatsapp: usersOnly.filter((p: any) => p.whatsapp_1).length
                     }
+
                 });
             }
 
@@ -849,7 +858,18 @@ export default function AdminDashboard() {
             border: 'border-purple-100',
             highlight: stats.pendingExports > 0
         },
+        {
+            label: 'Recours en attente 🚩',
+            sublabel: 'Dossiers resoumis après rejet',
+            value: stats.pendingRecours,
+            icon: AlertTriangle,
+            color: 'text-red-700',
+            bg: 'bg-red-50',
+            border: 'border-red-100',
+            highlight: stats.pendingRecours > 0
+        },
     ];
+
 
     const isSuperAdmin = adminName.toLowerCase().includes('pacous') || profiles.find(p => p.id === currentUserId)?.email?.toLowerCase() === 'pacous2000@gmail.com';
     const myPerms = assistantPermissions[currentUserId || ''] || {
@@ -1224,9 +1244,10 @@ export default function AdminDashboard() {
                                             </td>
                                             <td className="py-3 px-4">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider w-fit ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                        {p.status === 'confirmed' ? 'Certifié ✅' : p.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
+                                                    <span className={`text-[10px] px-2 py-1 rounded-full font-black uppercase tracking-wider w-fit ${p.status === 'confirmed' ? 'bg-green-100 text-green-600' : p.status === 'rejected' ? 'bg-red-100 text-red-600' : p.status === 'pending_choa' ? 'bg-red-600 text-white' : 'bg-orange-100 text-orange-600'}`}>
+                                                        {p.status === 'confirmed' ? 'Certifié ✅' : p.status === 'rejected' ? '❌ Rejeté' : p.status === 'pending_choa' ? '🚩 Recours' : '⏳ En attente'}
                                                     </span>
+
                                                     {p.status === 'rejected' && p.rejection_motif && (
                                                         <span className="text-[9px] font-bold text-red-400 uppercase tracking-tighter max-w-[120px] truncate" title={p.rejection_motif}>
                                                             {p.rejection_motif}
@@ -1257,7 +1278,18 @@ export default function AdminDashboard() {
                                                         <Star className={`w-3.5 h-3.5 ${p.is_ambassadeur ? 'fill-amber-500' : ''}`} />
                                                     </button>
 
+                                                    {p.status === 'pending_choa' && (
+                                                        <button
+                                                            onClick={() => { setViewingProofProfile(p); setIsProofModalOpen(true); }}
+                                                            className="p-1.5 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors animate-pulse"
+                                                            title="Consulter la preuve du recours"
+                                                        >
+                                                            <AlertTriangle className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    )}
+
                                                     {p.certificate_requested && !p.certificate_issued && myPerms.can_issue_certificates && (
+
                                                         <button
                                                             onClick={() => handleIssueCertificate(p.id)}
                                                             className="p-1.5 text-[#FF6600] bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors animate-pulse"
@@ -1780,11 +1812,12 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="h-8 w-[2px] bg-gray-100 hidden md:block" />
                                     <select value={valFilterStatus} onChange={e => setValFilterStatus(e.target.value)} className="px-5 py-3.5 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 outline-none focus:border-[#FF6600] focus:ring-4 focus:ring-orange-50 transition-all cursor-pointer shadow-sm appearance-none min-w-[160px]">
-                                        <option value="all">Tous Statuts</option>
-                                        <option value="confirmed">CERTIFIÉ ✅</option>
-                                        <option value="probable">PROBABLE 🟠</option>
-                                        <option value="pending">NOUVEAU ⏳</option>
-                                        <option value="rejected">REJETÉ 🔴</option>
+                                        <option value="all">Tous les Statuts</option>
+                                        <option value="pending">⏳ En attente</option>
+                                        <option value="pending_choa">🚩 Recours (Preuves)</option>
+                                        <option value="probable">🟠 Prêts (Probables)</option>
+                                        <option value="confirmed">✅ Certifiés</option>
+                                        <option value="rejected">❌ Rejetés</option>
                                     </select>
                                 </div>
                             </div>
@@ -2673,7 +2706,39 @@ export default function AdminDashboard() {
                 )
             }
 
+            {/* Modal de consultation de preuve */}
+            {viewingProofProfile && (
+                <ProofViewerModal 
+                    isOpen={isProofModalOpen}
+                    onClose={() => setIsProofModalOpen(false)}
+                    profile={viewingProofProfile}
+                    onApprove={async () => {
+                        const { error } = await supabase.from('profiles').update({ status: 'confirmed' }).eq('id', viewingProofProfile.id);
+                        if (!error) {
+                            setProfiles(prev => prev.map(u => u.id === viewingProofProfile.id ? { ...u, status: 'confirmed' } : u));
+                            setIsProofModalOpen(false);
+                            alert("✅ Recours validé. Profil certifié par l'Admin.");
+                        } else {
+                            alert("❌ Erreur : " + error.message);
+                        }
+                    }}
+                    onReject={async () => {
+                        const { error } = await supabase.from('profiles').update({ status: 'rejected' }).eq('id', viewingProofProfile.id);
+                        if (!error) {
+                            setProfiles(prev => prev.map(u => u.id === viewingProofProfile.id ? { ...u, status: 'rejected' } : u));
+                            setIsProofModalOpen(false);
+                            alert("❌ Recours rejeté. Statut 'Rejeté' maintenu définitivement.");
+                        } else {
+                            alert("❌ Erreur : " + error.message);
+                        }
+                    }}
+                    role="admin"
+                    isProcessing={false}
+                />
+            )}
+
         </AppLayout>
     );
 }
+
 

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TreePine, Crown, Clock, Heart, GitBranch, FileText, Image as ImageIcon, BookOpen, ChevronRight, Download } from 'lucide-react';
+import { TreePine, Crown, Clock, Heart, GitBranch, FileText, Image as ImageIcon, BookOpen, ChevronRight, Download, Shield, Flower2, Sparkles } from 'lucide-react';
+
 import { createClient } from '@/lib/supabase';
 import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
 import ExportTreeModal from './ExportTreeModal';
@@ -18,6 +19,7 @@ interface LineageNode {
     status?: string;
     avatarUrl?: string | null;
     quartier?: string;
+    side?: 'paternal' | 'maternal' | 'central';
 }
 
 interface PersonalLineageTreeProps {
@@ -40,28 +42,43 @@ function HeritageNode({
     const isAncetre = node.type === 'ancetre';
     const isPatriarch = isAncetre;
 
+    const sideThemes = {
+        paternal: {
+            ring: 'ring-4 ring-blue-700 ring-offset-2',
+            bg: 'bg-gradient-to-br from-blue-600 to-blue-800',
+            icon: Shield,
+            text: 'text-blue-700',
+            label: 'text-blue-500'
+        },
+        maternal: {
+            ring: 'ring-4 ring-[#C05C3C] ring-offset-2',
+            bg: 'bg-gradient-to-br from-[#C05C3C] to-[#8E3F26]',
+            icon: Flower2,
+            text: 'text-[#C05C3C]',
+            label: 'text-[#C05C3C]'
+        },
+        central: {
+            ring: 'ring-4 ring-[#124E35] ring-offset-2',
+            bg: 'bg-gradient-to-br from-[#124E35] to-[#0c3624]',
+            icon: Sparkles,
+            text: 'text-[#124E35]',
+            label: 'text-[#FF6600]'
+        }
+    };
+
+    const currentTheme = node.side ? sideThemes[node.side] : (isPatriarch ? sideThemes.central : node.type === 'parent' ? sideThemes.paternal : sideThemes.central);
+
     const ringColor = isPatriarch
-        ? 'ring-4 ring-[#124E35] ring-offset-2'
+        ? sideThemes.central.ring
         : node.status === 'confirmed'
-            ? 'ring-4 ring-[#124E35] ring-offset-2'
+            ? currentTheme.ring
             : node.status === 'probable'
                 ? 'ring-4 ring-[#FF6600] ring-offset-2'
                 : 'ring-2 ring-gray-300 ring-offset-1';
 
-    const initials = node.nom
-        .split(' ')
-        .map((w) => w[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-
     const avatarBg = isPatriarch
-        ? 'bg-[#124E35]'
-        : node.type === 'parent'
-            ? 'bg-[#1f6b4a]'
-            : isCurrentUser
-                ? 'bg-[#FF6600]'
-                : 'bg-[#C05C3C]';
+        ? sideThemes.central.bg
+        : currentTheme.bg;
 
     return (
         <button
@@ -88,7 +105,10 @@ function HeritageNode({
                     ) : isPatriarch ? (
                         <Crown className="w-8 h-8 text-amber-300" />
                     ) : (
-                        <span className="text-white font-black text-lg">{initials}</span>
+                        <div className="flex flex-col items-center">
+                             {node.side && <currentTheme.icon className="w-3.5 h-3.5 text-white/40 mb-1" />}
+                             <span className="text-white font-black text-lg leading-none">{initials}</span>
+                        </div>
                     )}
                 </div>
 
@@ -99,14 +119,6 @@ function HeritageNode({
                 `}>
                     {isPatriarch ? '👑' : node.status === 'confirmed' ? '✓' : '○'}
                 </div>
-
-                {/* Badge status quick-access sous les nœuds non-patriarch */}
-                {!isPatriarch && !isCurrentUser && (
-                    <div className="absolute -top-1 -left-1 flex gap-0.5">
-                        <div className="w-4 h-1.5 rounded-full bg-[#124E35]/60" title="Lignée" />
-                        <div className="w-4 h-1.5 rounded-full bg-[#C05C3C]/50" title="Document" />
-                    </div>
-                )}
             </div>
 
             {/* Nom + rôle */}
@@ -116,7 +128,7 @@ function HeritageNode({
                 </p>
                 <p className={`text-[10px] font-bold uppercase tracking-tight truncate ${isPatriarch ? 'text-amber-600' :
                     isCurrentUser ? 'text-[#FF6600]' :
-                        node.type === 'parent' ? 'text-[#124E35]' : 'text-[#C05C3C]'
+                         currentTheme.label
                     }`}>
                     {isPatriarch ? 'Ancêtre Fondateur' :
                         isCurrentUser ? 'Vous' :
@@ -140,6 +152,9 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
     const [parents, setParents] = useState<LineageNode[]>([]);
     const [currentUser, setCurrentUser] = useState<LineageNode | null>(null);
     const [children, setChildren] = useState<LineageNode[]>([]);
+    const [spouses, setSpouses] = useState<LineageNode[]>([]);
+    const [siblings, setSiblings] = useState<LineageNode[]>([]);
+    const [extended, setExtended] = useState<LineageNode[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [aiPosition, setAiPosition] = useState<{ generation: number; lien_probable: string; confidence: number } | null>(null);
     const [selectedNode, setSelectedNode] = useState<AncestorModalData | null>(null);
@@ -218,106 +233,146 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 };
                 setCurrentUser(selfNode);
 
-                // 4. Parents et enfants via Neo4j (batch Supabase pour performance)
+                // 4. Famille via Neo4j
                 let parentNodes: LineageNode[] = [];
-                const childNodes: LineageNode[] = [];
+                let childNodes: LineageNode[] = [];
+                let spouseNodes: LineageNode[] = [];
+                let siblingNodes: LineageNode[] = [];
+                let extendNodes: LineageNode[] = [];
 
                 try {
                     const res = await fetch('/api/tree');
                     if (res.ok) {
                         const treeData = await res.json();
-
-                        // Collecter tous les IDs en une fois pour batch
-                        const parentLinks = treeData.links.filter((l: any) => l.target === userId);
-                        const childLinks = treeData.links.filter((l: any) => l.source === userId);
-
-                        const parentIds = parentLinks.map((l: any) => l.source).filter(Boolean);
-                        const childIds = childLinks.map((l: any) => l.target).filter(Boolean);
-
-                        // Batch : 1 seule requête pour tous les parents
-                        if (parentIds.length > 0) {
-                            const { data: parentProfiles } = await supabase
+                        
+                        // Récupérer les avatars depuis Supabase pour TOUS les nœuds présents dans Neo4j
+                        const allNodeIds = treeData.nodes.map((n: any) => n.id);
+                        let profileMap: Record<string, any> = {};
+                        if (allNodeIds.length > 0) {
+                            const { data: profiles } = await supabase
                                 .from('profiles')
-                                .select('id, status, first_name, last_name, avatar_url, quartier_nom')
-                                .in('id', parentIds)
-                                .in('status', ['confirmed', 'probable']);
-
-                            if (parentProfiles) {
-                                for (const pp of parentProfiles) {
-                                    const link = parentLinks.find((l: any) => l.source === pp.id);
-                                    parentNodes.push({
-                                        id: pp.id,
-                                        nom: `${pp.first_name || ''} ${pp.last_name || ''}`.trim() || 'Parent',
-                                        type: 'parent',
-                                        generation: 1,
-                                        status: pp.status,
-                                        avatarUrl: pp.avatar_url,
-                                        quartier: pp.quartier_nom,
-                                        lien: link?.type === 'FATHER_OF' ? 'Père' :
-                                            link?.type === 'MOTHER_OF' ? 'Mère' : 'Parent',
-                                    });
-                                }
+                                .select('id, avatar_url, quartier_nom, role, is_founder')
+                                .in('id', allNodeIds);
+                            if (profiles) {
+                                profiles.forEach(p => profileMap[p.id] = p);
                             }
                         }
 
-                        // Batch : 1 seule requête pour tous les enfants
-                        if (childIds.length > 0) {
-                            const { data: childProfiles } = await supabase
-                                .from('profiles')
-                                .select('id, status, first_name, last_name, avatar_url, quartier_nom')
-                                .in('id', childIds)
-                                .in('status', ['confirmed', 'probable']);
+                        // Helper pour créer un LineageNode à partir de Neo4j + Supabase
+                        const createNode = (neoNode: any, type: LineageNode['type'], generation: number, lien: string, side?: LineageNode['side']): LineageNode | null => {
+                            if (!neoNode) return null;
+                            const p = profileMap[neoNode.id];
+                            return {
+                                id: neoNode.id,
+                                nom: `${neoNode.firstName || ''} ${neoNode.lastName || ''}`.trim() || 'Inconnu',
+                                type,
+                                generation,
+                                status: neoNode.status === 'Vivant' ? 'confirmed' : neoNode.status === 'Décédé' ? 'probable' : 'pending',
+                                avatarUrl: p?.avatar_url || null,
+                                quartier: p?.quartier_nom || null,
+                                lien,
+                                side
+                            };
+                        };
 
-                            if (childProfiles) {
-                                for (const cp of childProfiles) {
-                                    childNodes.push({
-                                        id: cp.id,
-                                        nom: `${cp.first_name || ''} ${cp.last_name || ''}`.trim() || 'Enfant',
-                                        type: 'child',
-                                        generation: 3,
-                                        status: cp.status,
-                                        avatarUrl: cp.avatar_url,
-                                        quartier: cp.quartier_nom,
-                                        lien: 'Enfant',
-                                    });
+                        const processedTargetIds = new Set<string>();
+                        
+                        // 1. Identifier d'abord les IDs du père et de la mère pour la propagation
+                        const parentsInfo = {
+                            fatherId: treeData.links.find((l: any) => l.target === userId && l.type === 'FATHER_OF')?.source,
+                            motherId: treeData.links.find((l: any) => l.target === userId && l.type === 'MOTHER_OF')?.source
+                        };
+
+                        treeData.links.forEach((link: any) => {
+                            let targetId: string | null = null;
+                            let relNode: any = null;
+                            let nodeType: LineageNode['type'] = 'other' as any;
+                            let generation = 2;
+                            let lienStr = '';
+
+                            if (link.target === userId && (link.type === 'FATHER_OF' || link.type === 'MOTHER_OF')) {
+                                targetId = link.source;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'parent'; generation = 1; lienStr = link.type === 'FATHER_OF' ? 'Père' : 'Mère';
+                            } else if (link.source === userId && link.type === 'PARENT_OF') {
+                                targetId = link.target;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'child'; generation = 3; lienStr = 'Enfant';
+                            } else if (link.target === userId && link.type === 'PARENT_OF') {
+                                targetId = link.source;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'parent'; generation = 1; lienStr = 'Parent';
+                            } else if (link.source === userId && link.type === 'SPOUSE_OF') {
+                                targetId = link.target;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'parent'; generation = 2; lienStr = 'Conjoint(e)';
+                            } else if (link.source === userId && (link.type === 'SIBLING_OF' || link.type === 'HALF_SIBLING_OF')) {
+                                targetId = link.target;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'other' as any; generation = 2; lienStr = link.type === 'SIBLING_OF' ? 'Frère/Sœur' : 'Demi-frère/sœur';
+                            } else if (link.target === userId && link.type === 'UNCLE_AUNT_OF') {
+                                targetId = link.source;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'other' as any; generation = 1; lienStr = 'Oncle/Tante';
+                            } else if (link.source === userId && link.type === 'UNCLE_AUNT_OF') {
+                                targetId = link.target;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'other' as any; generation = 3; lienStr = 'Neveu/Nièce';
+                            } else if (link.source === userId && link.type === 'COUSIN_OF') {
+                                targetId = link.target;
+                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                nodeType = 'other' as any; generation = 2; lienStr = 'Cousin(e)';
+                            }
+
+                            if (targetId && relNode && !processedTargetIds.has(targetId) && targetId !== userId) {
+                                processedTargetIds.add(targetId);
+                                
+                                // Déterminer le côté (Side) par propagation
+                                let side: LineageNode['side'] = 'central';
+                                
+                                // Analyse de la parenté pour la famille élargie
+                                const isConnectedToFather = treeData.links.some((l: any) => 
+                                    (l.source === parentsInfo.fatherId && l.target === targetId) || 
+                                    (l.target === parentsInfo.fatherId && l.source === targetId)
+                                );
+                                const isConnectedToMother = treeData.links.some((l: any) => 
+                                    (l.source === parentsInfo.motherId && l.target === targetId) || 
+                                    (l.target === parentsInfo.motherId && l.source === targetId)
+                                );
+
+                                if (targetId === parentsInfo.fatherId || isConnectedToFather) side = 'paternal';
+                                else if (targetId === parentsInfo.motherId || isConnectedToMother) side = 'maternal';
+                                else if (lienStr === 'Enfant') side = 'central';
+
+                                const builtNode = createNode(relNode, nodeType, generation, lienStr, side);
+                                if (builtNode) {
+                                    if (lienStr === 'Père' || lienStr === 'Mère' || lienStr === 'Parent') parentNodes.push(builtNode);
+                                    else if (lienStr === 'Enfant') childNodes.push(builtNode);
+                                    else if (lienStr === 'Conjoint(e)') spouseNodes.push(builtNode);
+                                    else if (lienStr.includes('Frère') || lienStr.includes('Sœur')) siblingNodes.push(builtNode);
+                                    else extendNodes.push(builtNode);
                                 }
                             }
-                        }
+                        });
                     }
-                } catch { /* Neo4j non disponible - arbre partiel */ }
+                } catch { /* Neo4j non disponible */ }
 
-                // FALLBACK : Si pas de parents trouvés dans le graphe, on regarde dans les metadata du profil utilisateur
-                if (parentNodes.length === 0) {
-                    const { data: metaProfile } = await supabase.from('profiles').select('metadata').eq('id', userId).single();
-                    if (metaProfile?.metadata) {
-                        const meta = metaProfile.metadata;
-                        if (meta.father_first_name || meta.father_last_name) {
-                            parentNodes.push({
-                                id: 'father-meta',
-                                nom: `${meta.father_first_name || ''} ${meta.father_last_name || ''}`.trim(),
-                                type: 'parent',
-                                generation: 1,
-                                status: 'declared',
-                                lien: 'Père',
-                                quartier: 'Déclaratif'
-                            });
-                        }
-                        if (meta.mother_first_name || meta.mother_last_name) {
-                            parentNodes.push({
-                                id: 'mother-meta',
-                                nom: `${meta.mother_first_name || ''} ${meta.mother_last_name || ''}`.trim(),
-                                type: 'parent',
-                                generation: 1,
-                                status: 'declared',
-                                lien: 'Mère',
-                                quartier: 'Déclaratif'
-                            });
-                        }
+                // FALLBACK : Si pas de parents trouvés dans le graphe, on regarde dans les metadata du profil
+                if (parentNodes.length === 0 && profil?.metadata) {
+                    const meta = profil.metadata;
+                    if (meta.father_first_name || meta.father_last_name) {
+                        parentNodes.push({ id: 'father-meta', nom: `${meta.father_first_name || ''} ${meta.father_last_name || ''}`.trim(), type: 'parent', generation: 1, status: 'declared', lien: 'Père', quartier: 'Déclaratif', side: 'paternal' });
+                    }
+                    if (meta.mother_first_name || meta.mother_last_name) {
+                        parentNodes.push({ id: 'mother-meta', nom: `${meta.mother_first_name || ''} ${meta.mother_last_name || ''}`.trim(), type: 'parent', generation: 1, status: 'declared', lien: 'Mère', quartier: 'Déclaratif', side: 'maternal' });
                     }
                 }
 
                 setParents(parentNodes);
                 setChildren(childNodes);
+                setSpouses(spouseNodes);
+                setSiblings(siblingNodes);
+                setExtended(extendNodes);
 
                 // 5. Stats globales du village
                 const { count: memberCount } = await supabase
@@ -426,9 +481,21 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                             className="flex items-center gap-1.5 text-xs font-bold bg-[#124E35] text-white px-3 py-1.5 rounded-full shadow-md hover:bg-[#0c3624] transition-colors ml-2"
                         >
                             <Download className="w-4 h-4" />
-                            Exporter l'Arbre
+                            Exporter
                         </button>
                     )}
+                </div>
+            </div>
+
+            {/* Légende des Branches */}
+            <div className="relative z-10 px-6 py-2 flex justify-center gap-6 border-b border-amber-100 bg-amber-50/30">
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-600 shadow-sm" />
+                    <span className="text-[10px] font-black text-blue-900 uppercase tracking-widest">Branche Paternelle</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#C05C3C] shadow-sm" />
+                    <span className="text-[10px] font-black text-[#8E3F26] uppercase tracking-widest">Branche Maternelle</span>
                 </div>
             </div>
 
@@ -449,20 +516,20 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         d="M 200 80 C 200 110, 200 120, 200 160"
                         fill="none" stroke="#2d5a3d" strokeWidth="2.5" strokeLinecap="round" opacity="0.4"
                     />
-                    {/* Branche vers parent gauche */}
-                    {parents.length > 0 && (
+                    {/* Branche vers parent gauche (Père - Bleu) */}
+                    {parents.some(p => p.side === 'paternal' || p.lien === 'Père') && (
                         <path
                             d={parents.length > 1
                                 ? "M 200 160 C 200 175, 120 185, 120 210"
                                 : "M 200 160 C 200 175, 200 195, 200 220"}
-                            fill="none" stroke="#2d5a3d" strokeWidth="2" strokeLinecap="round" opacity="0.35"
+                            fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" opacity="0.4"
                         />
                     )}
-                    {/* Branche vers parent droit */}
-                    {parents.length > 1 && (
+                    {/* Branche vers parent droit (Mère - Rouge) */}
+                    {parents.some(p => p.side === 'maternal' || p.lien === 'Mère') && (
                         <path
                             d="M 200 160 C 200 175, 280 185, 280 210"
-                            fill="none" stroke="#2d5a3d" strokeWidth="2" strokeLinecap="round" opacity="0.35"
+                            fill="none" stroke="#C05C3C" strokeWidth="2.5" strokeLinecap="round" opacity="0.4"
                         />
                     )}
                     {/* Branche vers utilisateur (du bas des parents) */}
@@ -531,20 +598,55 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                     </div>
                 )}
 
-                {/* ── Niveau 2 : UTILISATEUR COURANT ── */}
-                {currentUser && (
-                    <div className="relative z-10 mb-6">
-                        <div className="text-[9px] font-black text-[#FF6600]/70 uppercase tracking-widest text-center mb-3">
-                            Vous — Génération Actuelle
-                        </div>
-                        {/* Halo parcheminé derrière l'utilisateur */}
-                        <div className="relative flex justify-center">
-                            <div className="absolute inset-0 rounded-full bg-[#FF6600]/5 scale-150 pointer-events-none" />
-                            <HeritageNode node={currentUser} isCurrentUser={true} onSelect={handleSelect} />
-                        </div>
-
-
+                {/* ── Niveau 2 : UTILISATEUR COURANT & CONJOINTS & FRATRIE ── */}
+                <div className="relative z-10 mb-8 flex flex-col items-center">
+                    <div className="text-[9px] font-black text-[#FF6600]/70 uppercase tracking-widest text-center mb-4">
+                        Vous — Génération Actuelle
                     </div>
+                    
+                    <div className="flex flex-wrap justify-center gap-10 items-center max-w-4xl">
+                        
+                        {/* Fratrie */}
+                        {siblings.length > 0 && (
+                            <div className="flex gap-4 p-4 border border-blue-200 bg-blue-50/30 rounded-3xl">
+                                {siblings.map(sib => (
+                                    <HeritageNode key={sib.id} node={sib} isCurrentUser={false} onSelect={handleSelect} />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* VOUS */}
+                        {currentUser && (
+                            <div className="relative flex justify-center">
+                                <div className="absolute inset-0 rounded-full bg-[#FF6600]/5 scale-150 pointer-events-none" />
+                                <HeritageNode node={currentUser} isCurrentUser={true} onSelect={handleSelect} />
+                            </div>
+                        )}
+
+                        {/* Conjoints */}
+                        {spouses.length > 0 && (
+                            <div className="flex gap-4 p-4 border border-pink-200 bg-pink-50/30 rounded-3xl relative">
+                                <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-5 border-t-2 border-pink-300 border-dashed" />
+                                {spouses.map(spouse => (
+                                    <HeritageNode key={spouse.id} node={spouse} isCurrentUser={false} onSelect={handleSelect} />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Famille Élargie (Oncles, Tantes, Cousins, Neveux) ── */}
+                {extended.length > 0 && (
+                     <div className="relative z-10 mb-8">
+                         <div className="text-[9px] font-black text-amber-500 uppercase tracking-widest text-center mb-3">
+                             Famille Élargie (Oncles, Cousins, Neveux)
+                         </div>
+                         <div className="flex flex-wrap justify-center gap-6 p-4 bg-amber-50/40 rounded-3xl border border-amber-100">
+                             {extended.map((ext) => (
+                                 <HeritageNode key={ext.id} node={ext} isCurrentUser={false} onSelect={handleSelect} />
+                             ))}
+                         </div>
+                     </div>
                 )}
 
                 {/* ── Niveau 3 : ENFANTS (validés CHO) ── */}

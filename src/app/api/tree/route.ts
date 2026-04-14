@@ -15,10 +15,11 @@ export async function GET() {
         const session = await getSession();
 
         try {
-            // On récupère le sous-graphe à partir de l'utilisateur (2 niveaux max pour le MVP)
+            // On récupère le sous-graphe complet à partir de l'utilisateur (famille élargie 2 niveaux max)
             const cypherQuery = `
-        MATCH path = (u:Person {id: $userId})<-[:FATHER_OF|MOTHER_OF*0..2]-(ancestor:Person)
+        MATCH path = (u:Person {id: $userId})-[*0..2]-(relative:Person)
         RETURN nodes(path) AS nodes, relationships(path) AS rels
+        LIMIT 200
       `;
 
             const result = await session.run(cypherQuery, { userId: user.id });
