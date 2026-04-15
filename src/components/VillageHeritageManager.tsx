@@ -1,7 +1,6 @@
-"use client";
-
-import React, { useState } from 'react';
-import { BookOpen, Save, Plus, Trash2, Quote, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Save, Plus, Trash2, Quote, Sparkles, Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 
 interface VillageHeritage {
     slogan: string;
@@ -10,16 +9,57 @@ interface VillageHeritage {
 }
 
 export default function VillageHeritageManager({ villageName }: { villageName: string }) {
+    const supabase = createClient();
     const [heritage, setHeritage] = useState<VillageHeritage>({
-        slogan: "Village de l'Union et de la Paix",
-        customs: "Nos traditions sont ancrées dans le respect des aînés et la préservation de la terre sacrée.",
-        proverbs: [
-            "Celui qui ne sait pas d'où il vient ne saura jamais où il va.",
-            "L'oiseau qui ne vole pas ne sait pas où le grain est mûr."
-        ]
+        slogan: "",
+        customs: "",
+        proverbs: []
     });
-
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [newProverb, setNewProverb] = useState('');
+
+    useEffect(() => {
+        async function loadHeritage() {
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('village_heritage')
+                .select('*')
+                .eq('village_name', villageName)
+                .maybeSingle();
+
+            if (data) {
+                setHeritage({
+                    slogan: data.slogan || "",
+                    customs: data.customs || "",
+                    proverbs: data.proverbs || []
+                });
+            }
+            setIsLoading(false);
+        }
+        loadHeritage();
+    }, [villageName, supabase]);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        const { error } = await supabase
+            .from('village_heritage')
+            .upsert({
+                village_name: villageName,
+                slogan: heritage.slogan,
+                customs: heritage.customs,
+                proverbs: heritage.proverbs,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'village_name' });
+
+        if (error) {
+            console.error("Erreur sauvegarde patrimoine:", error);
+            alert("Erreur lors de la sauvegarde du patrimoine.");
+        } else {
+            alert("🌟 Patrimoine gravé avec succès !");
+        }
+        setIsSaving(false);
+    };
 
     const handleAddProverb = () => {
         if (newProverb.trim()) {
@@ -31,6 +71,15 @@ export default function VillageHeritageManager({ villageName }: { villageName: s
     const handleRemoveProverb = (index: number) => {
         setHeritage(prev => ({ ...prev, proverbs: prev.proverbs.filter((_, i) => i !== index) }));
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 bg-white/40 backdrop-blur-xl rounded-[3rem] border border-white/60 shadow-xl">
+                <Loader2 className="w-12 h-12 text-amber-500 animate-spin mb-4" />
+                <p className="text-amber-800 font-bold animate-pulse">Chargement du patrimoine ancestral...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-12 border border-white/60 shadow-xl animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -110,9 +159,13 @@ export default function VillageHeritageManager({ villageName }: { villageName: s
                         </div>
                     </div>
                     
-                    <button className="w-full mt-6 py-6 bg-gradient-to-r from-amber-600 to-[#124E35] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-amber-200 hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3">
-                        <Save className="w-6 h-6" />
-                        Graver le Patrimoine
+                    <button 
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="w-full mt-6 py-6 bg-gradient-to-r from-amber-600 to-[#124E35] text-white rounded-[2rem] font-black uppercase tracking-[0.2em] shadow-xl shadow-amber-200 hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
+                        {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
+                        {isSaving ? "Gravure en cours..." : "Graver le Patrimoine"}
                     </button>
                 </div>
             </div>

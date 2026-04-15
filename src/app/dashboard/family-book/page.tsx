@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import FamilyBook from '@/components/FamilyBook';
-import { Download, Loader2, ArrowLeft, Printer, FileText } from 'lucide-react';
+import { Download, Loader2, ArrowLeft, Printer, FileText, Award } from 'lucide-react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -12,6 +12,7 @@ export default function FamilyBookPage({ params }: { params: { userId: string } 
     const supabase = createClient();
     const [profile, setProfile] = useState<any>(null);
     const [familyNodes, setFamilyNodes] = useState<any[]>([]);
+    const [villageHeritage, setVillageHeritage] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const bookRef = useRef<HTMLDivElement>(null);
@@ -60,6 +61,16 @@ export default function FamilyBookPage({ params }: { params: { userId: string } 
                     quartier: prof?.quartier_nom || ''
                 });
                 setFamilyNodes(nodes);
+
+                // 3. Village Heritage (Global par Village)
+                if (prof?.village_origin) {
+                    const { data: heritage } = await supabase
+                        .from('village_heritage')
+                        .select('*')
+                        .eq('village_name', prof.village_origin)
+                        .maybeSingle();
+                    if (heritage) setVillageHeritage(heritage);
+                }
             } catch (err) {
                 console.error("Fetch error:", err);
             } finally {
@@ -160,7 +171,12 @@ export default function FamilyBookPage({ params }: { params: { userId: string } 
                     <div className="flex justify-center bg-gray-200 p-8 rounded-[40px] shadow-inner overflow-x-auto">
                         <div className="scale-[0.5] sm:scale-[0.7] md:scale-100 origin-top">
                             <div ref={bookRef}>
-                                <FamilyBook profile={profile} familyNodes={familyNodes} archives={[]} />
+                                <FamilyBook 
+                                    profile={profile} 
+                                    familyNodes={familyNodes} 
+                                    archives={[]} 
+                                    heritage={villageHeritage}
+                                />
                             </div>
                         </div>
                     </div>

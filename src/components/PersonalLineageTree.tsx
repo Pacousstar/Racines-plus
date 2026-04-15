@@ -80,6 +80,8 @@ function HeritageNode({
         ? sideThemes.central.bg
         : currentTheme.bg;
 
+    const initials = node.nom ? node.nom.substring(0, 2).toUpperCase() : '?';
+
     return (
         <button
             onClick={() => onSelect(node)}
@@ -132,7 +134,7 @@ function HeritageNode({
                     }`}>
                     {isPatriarch ? 'Ancêtre Fondateur' :
                         isCurrentUser ? 'Vous' :
-                            node.lien || node.type === 'parent' ? (node.lien || 'Parent') : 'Membre'}
+                            node.lien || (node.type === 'parent' ? 'Parent' : 'Membre')}
                 </p>
                 {node.quartier && (
                     <p className="text-[9px] text-stone-400 font-medium mt-0.5 italic truncate">{node.quartier}</p>
@@ -169,7 +171,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 // 1. Profil utilisateur courant
                 const { data: profil } = await supabase
                     .from('profiles')
-                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom, role, village_origin')
+                    .select('first_name, last_name, status, ancestral_root_id, avatar_url, quartier_nom, role, village_origin, metadata')
                     .eq('id', userId)
                     .single();
 
@@ -437,9 +439,9 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 <div className="w-20 h-20 bg-gradient-to-br from-[#124E35]/10 to-amber-50 rounded-3xl flex items-center justify-center mb-5 border border-amber-200/50">
                     <TreePine className="w-10 h-10 text-[#124E35]" />
                 </div>
-                <h3 className="font-black text-gray-900 mb-2">Votre arbre est vide</h3>
+                <h3 className="font-black text-gray-900 mb-2">Certification en cours...</h3>
                 <p className="text-sm text-gray-600 max-w-xs leading-relaxed">
-                    Choisissez votre ancêtre fondateur pour que l'IA Racines+ positionne votre lignée dans l'arbre de <strong>{villageNom}</strong>.
+                    L'arbre de <strong>{villageNom}</strong> sera automatiquement généré et révélé dès que votre Chief Heritage Officer (CHO) aura certifié l'Ancêtre Fondateur.
                 </p>
             </div>
         );
@@ -553,6 +555,24 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                             d="M 200 390 C 200 410, 280 420, 280 445"
                             fill="none" stroke="#C05C3C" strokeWidth="1.5" strokeLinecap="round" opacity="0.25"
                             strokeDasharray="3 3"
+                        />
+                    )}
+
+                    {/* Connexions Fratrie (SVG Horizontal) */}
+                    {siblings.length > 0 && (
+                        <path
+                            d="M 120 330 L 160 330" 
+                            fill="none" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" opacity="0.2"
+                            strokeDasharray="4 2"
+                        />
+                    )}
+
+                    {/* Connexions Famille Élargie (Oncles/Tantes) */}
+                    {extended.length > 0 && (
+                        <path
+                            d="M 200 120 C 250 120, 320 130, 320 160"
+                            fill="none" stroke="#C05C3C" strokeWidth="1.5" strokeLinecap="round" opacity="0.15"
+                            strokeDasharray="5 5"
                         />
                     )}
                 </svg>

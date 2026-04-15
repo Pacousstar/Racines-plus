@@ -224,6 +224,7 @@ export default function Onboarding() {
     const [quartiers, setQuartiers] = useState<{ id: string; nom: string }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [acceptedCGU, setAcceptedCGU] = useState(false);
 
     useEffect(() => {
         const loadQuartiers = async () => {
@@ -762,11 +763,24 @@ export default function Onboarding() {
                                 </div>
                             </div>
 
+                            <div className="mt-6 flex items-start gap-3 bg-black/10 p-4 rounded-xl border border-white/20">
+                                <input 
+                                    type="checkbox" 
+                                    id="cgu"
+                                    checked={acceptedCGU}
+                                    onChange={(e) => setAcceptedCGU(e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 rounded border-white/30 text-[#FF6600] focus:ring-[#FF6600] accent-[#FF6600]"
+                                />
+                                <label htmlFor="cgu" className="text-xs text-white/90 leading-relaxed cursor-pointer">
+                                    J'accepte sans réserve les <Link href="/cgu" target="_blank" className="text-white font-bold hover:underline decoration-[#FF6600] underline-offset-2">Conditions Générales d'Utilisation</Link> et la <Link href="/politique-confidentialite" target="_blank" className="text-white font-bold hover:underline decoration-[#FF6600] underline-offset-2">Politique de Confidentialité RGPD</Link> de Racines+.
+                                </label>
+                            </div>
+
                             {error && (
                                 <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>
                             )}
 
-                            <button type="submit" disabled={isLoading || !formData.email || formData.password.length < 6}
+                            <button type="submit" disabled={isLoading || !formData.email || formData.password.length < 6 || !acceptedCGU}
                                 className="w-full mt-8 bg-white disabled:bg-white/30 disabled:text-white/50 disabled:cursor-not-allowed hover:bg-gray-100 text-[#FF6600] py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                                 {isLoading ? (
                                     <><Loader2 className="w-5 h-5 animate-spin" /> Chiffrement souverain...</>

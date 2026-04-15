@@ -16,6 +16,7 @@ type PersonData = {
     status: PersonStatus;
     isDeceased: boolean;
     isVictim2010?: boolean;
+    isOfficialAncestor?: boolean;
     village?: string;
     quartier?: string;
     parents?: PersonData[];
@@ -41,7 +42,7 @@ const TreeNode = ({ person, depth = 0, onSelectNode }: { person: PersonData; dep
         pending: <div className="w-3 h-3 rounded-full border border-white border-t-transparent animate-spin" />,
     };
 
-    const isAncestor = person.role === 'Ancêtre Fondateur' || person.role === 'Nœud Fondateur';
+    const isAncestor = person.isOfficialAncestor === true;
 
     return (
         <div className="flex flex-col items-center">
@@ -283,6 +284,7 @@ export default function PyramidTree() {
                     birthYear: a.periode ? a.periode.match(/\d{4}/)?.[0] || 'Inconnue' : 'Inconnue',
                     status: 'confirmed',
                     isDeceased: false,
+                    isOfficialAncestor: true,
                     village: 'Toa-Zéo',
                 });
             });
@@ -336,6 +338,7 @@ export default function PyramidTree() {
                 status: n.status === 'Décédée' ? 'confirmed' : (n.status || 'pending'),
                 isDeceased: n.status === 'Décédée',
                 isVictim2010: n.isVictim || false,
+                isOfficialAncestor: n.isFounder || false,
                 village: n.village,
                 parents: parents.length > 0 ? parents : undefined
             };

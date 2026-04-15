@@ -66,7 +66,7 @@ export async function GET() {
                             id: user.id,
                             firstName: profile.first_name,
                             lastName: profile.last_name,
-                            isFounder: true,
+                            isFounder: false,
                             village: profile.village_origin
                         }],
                         links: []

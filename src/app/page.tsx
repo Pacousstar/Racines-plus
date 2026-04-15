@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation';
 import PyramidTree from "@/components/PyramidTree";
 import ParticlesBackground from "@/components/ParticlesBackground";
 import ContactModal from "@/components/ContactModal";
-import { Download, MessageCircle } from 'lucide-react';
+import { Download, MessageCircle, Crown, ShieldCheck, Sparkles, ChevronRight } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 
 // Typage pour le prompt d'installation PWA
 interface BeforeInstallPromptEvent extends Event {
@@ -24,6 +25,8 @@ export default function Home() {
   const conceptRef = useRef<HTMLElement>(null);
   const diasporaRef = useRef<HTMLElement>(null);
   const certifRef = useRef<HTMLElement>(null);
+  const [featuredAncestor, setFeaturedAncestor] = useState<any>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -36,6 +39,18 @@ export default function Home() {
       setShowInstallBanner(true);
     };
     window.addEventListener('beforeinstallprompt', handleInstall);
+
+    const fetchFeatured = async () => {
+      const { data } = await supabase
+        .from('ancestres')
+        .select('nom_complet, periode, is_certified, details')
+        .eq('is_certified', true)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
+      if (data) setFeaturedAncestor(data);
+    };
+    fetchFeatured();
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -175,6 +190,41 @@ export default function Home() {
           ))}
         </div>
       </main>
+
+      {/* ═══════════════ ANCÊTRE EN VEDETTE (SPOTLIGHT) ═══════════════ */}
+      {featuredAncestor && (
+        <section className="max-w-4xl mx-auto px-4 -mt-8 mb-20 relative z-20">
+            <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-[#FF6600]/10 rounded-[2.5rem] p-8 sm:p-12 shadow-2xl flex flex-col md:flex-row items-center gap-10 group hover:border-[#FF6600]/30 transition-all">
+                <div className="relative">
+                    <div className="absolute inset-0 bg-[#FF6600] opacity-20 blur-2xl rounded-full scale-125 group-hover:scale-150 transition-transform duration-700" />
+                    <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-gradient-to-br from-[#124E35] to-[#1c3a2f] flex items-center justify-center border-4 border-white shadow-xl">
+                        <Crown className="w-16 h-16 sm:w-20 sm:h-20 text-amber-400 drop-shadow-lg" />
+                    </div>
+                </div>
+                
+                <div className="flex-1 text-center md:text-left">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-black uppercase tracking-widest mb-4">
+                        <Sparkles className="w-3.5 h-3.5" /> Figure Fondatrice
+                    </div>
+                    <h2 className="text-3xl sm:text-4xl font-black text-[#1c3a2f] dark:text-white mb-2 leading-none uppercase">
+                        {featuredAncestor.nom_complet}
+                    </h2>
+                    <p className="text-amber-600 font-bold mb-6 flex items-center justify-center md:justify-start gap-2">
+                        <ShieldCheck className="w-4 h-4" /> Ancêtre Fondateur de Toa-Zéo
+                    </p>
+                    <p className="text-gray-500 text-sm leading-relaxed max-w-xl italic">
+                        {featuredAncestor.details || "Le premier pilier de la lignée, garant des coutumes et protecteur de la mémoire de Toa-Zéo. Validé officiellement par le Conseil des Sages et le CHO."}
+                    </p>
+                </div>
+
+                <div className="hidden lg:block">
+                  <button onClick={() => scrollTo(conceptRef)} className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#FF6600] group-hover:text-white transition-all">
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                </div>
+            </div>
+        </section>
+      )}
 
       {/* ═══════════════ SECTION CONCEPT ═══════════════ */}
       <section ref={conceptRef} id="concept" className="py-20 sm:py-28 px-4 sm:px-6 max-w-6xl mx-auto">

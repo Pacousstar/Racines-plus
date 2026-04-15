@@ -79,6 +79,7 @@ export default function ChoBoard() {
     const [sentToChoProfiles, setSentToChoProfiles] = useState<PendingProfile[]>([]);
     const [confirmedProfiles, setConfirmedProfiles] = useState<PendingProfile[]>([]);
     const [rejectedProfiles, setRejectedProfiles] = useState<PendingProfile[]>([]);
+    const [recoursProfiles, setRecoursProfiles] = useState<PendingProfile[]>([]);
     const [comments, setComments] = useState<ValidationComment[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isPostingComment, setIsPostingComment] = useState(false);
@@ -95,6 +96,9 @@ export default function ChoBoard() {
     const [ancestreSource, setAncetreSource] = useState('');
     const [isSavingAncetre, setIsSavingAncetre] = useState(false);
     const [ancestreSaved, setAncretreSaved] = useState(false);
+    const [viewingProofProfile, setViewingProofProfile] = useState<PendingProfile | null>(null);
+    const [isProofModalOpen, setIsProofModalOpen] = useState(false);
+    const [isProcessingProof, setIsProcessingProof] = useState(false);
 
     // Onglet activité quartier
     interface QuartierActivity {
@@ -173,13 +177,15 @@ export default function ChoBoard() {
                 const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
                 const confirmed = allUsersRaw.filter((u: any) => u.status === 'confirmed');
                 const rejected = allUsersRaw.filter((u: any) => u.status === 'rejected');
+                const recours = allUsersRaw.filter((u: any) => u.status === 'rejected' && u.metadata?.proof_url);
                 
-                console.log(`📊 [CHOa Debug] Dispatch: Pending=${pending.length}, Probable=${probable.length}, Confirmed=${confirmed.length}`);
+                console.log(`📊 [CHOa Debug] Dispatch: Pending=${pending.length}, Probable=${probable.length}, Confirmed=${confirmed.length}, Recours=${recours.length}`);
 
                 setPendingProfiles(pending);
                 setSentToChoProfiles(probable);
                 setConfirmedProfiles(confirmed);
                 setRejectedProfiles(rejected);
+                setRecoursProfiles(recours);
             }
 
             // Récupérer les notifications
@@ -332,11 +338,19 @@ export default function ChoBoard() {
                 ? { ...p, status: 'pre_approved', choa_approvals: updateData.choa_approvals as string[] || p.choa_approvals }
                 : p
             ));
-        } else {
             const profileToMove = pendingProfiles.find(p => p.id === profileId);
             setPendingProfiles(prev => prev.filter(p => p.id !== profileId));
             if (newStatus === 'rejected' && profileToMove) {
                 setRejectedProfiles(prev => [...prev, { ...profileToMove, status: 'rejected' }]);
+            }
+        }
+
+        // Rafraîchir spécifiquement les recours
+        if (recoursProfiles.some(p => p.id === profileId)) {
+            setRecoursProfiles(prev => prev.filter(p => p.id !== profileId));
+            if (newStatus === 'confirmed') {
+                const p = recoursProfiles.find(x => x.id === profileId);
+                if (p) setConfirmedProfiles(prev => [...prev, { ...p, status: 'confirmed' }]);
             }
         }
 
@@ -772,6 +786,34 @@ export default function ChoBoard() {
                                 </div>
                             )}
 
+                            {/* Onglet : Recours / Preuves */}
+                            {activeTab === 'recours' && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                    <div className="space-y-6">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h2 className="text-xl font-black text-gray-900 uppercase">Recours en attente ({recoursProfiles.length})</h2>
+                                        </div>
+                                        {recoursProfiles.length === 0 ? (
+                                            <EmptyTabState message="Aucun recours avec preuve n'est actuellement soumis." icon={AlertTriangle} />
+                                        ) : (
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {recoursProfiles.map(p => (
+                                                    <div key={p.id} className="relative group">
+                                                        <ProfileCard profile={p} showActions={false} />
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setViewingProofProfile(p); setIsProofModalOpen(true); }}
+                                                            className="absolute top-1/2 -translate-y-1/2 right-4 bg-[#FF6600] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-orange-100 flex items-center gap-2"
+                                                        >
+                                                            <Eye className="w-4 h-4" /> Examiner Preuve
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Onglet : Activité Quartier */}
                             {activeTab === 'quartier' && (
                                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -1050,6 +1092,24 @@ export default function ChoBoard() {
                     </div>
                 )
             }
+            {/* Modal de consultation de preuve */}
+            {viewingProofProfile && (
+                <ProofViewerModal 
+                    isOpen={isProofModalOpen}
+                    onClose={() => setIsProofModalOpen(false)}
+                    profile={viewingProofProfile}
+                    onApprove={() => {
+                        handleStatusChange(viewingProofProfile.id, 'confirmed');
+                        setIsProofModalOpen(false);
+                    }}
+                    onReject={() => {
+                        handleStatusChange(viewingProofProfile.id, 'rejected'); // Reste rejeté, peut-être ajouter un flag 'final' plus tard
+                        setIsProofModalOpen(false);
+                    }}
+                    role="choa"
+                    isProcessing={isProcessingProof}
+                />
+            )}
         </AppLayout >
     );
 }

@@ -1,14 +1,19 @@
 import React from 'react';
-import { TreePine, ScrollText, Award, MapPin, Calendar, Camera, Crown, Shield, Flower2, Quote, History, BookOpen } from 'lucide-react';
+import { TreePine, ScrollText, Award, MapPin, Calendar, Camera, Crown, Shield, Flower2, Quote, History, BookOpen, Wand2, Sparkles, Loader2, RefreshCw, Heart } from 'lucide-react';
 
 interface FamilyBookProps {
     profile: any;
     familyNodes: any[]; // Ce sont les parents, fratrie, etc.
     archives: any[];
+    heritage?: any;
     format?: 'portrait' | 'landscape';
+    initialStory?: string;
+    onSaveStory?: (story: string) => void;
 }
 
-export default function FamilyBook({ profile, familyNodes, archives, format = 'portrait' }: FamilyBookProps) {
+export default function FamilyBook({ profile, familyNodes, archives, heritage, format = 'portrait', initialStory, onSaveStory }: FamilyBookProps) {
+    const [story, setStory] = React.useState(initialStory || "");
+    const [isGenerating, setIsGenerating] = React.useState(false);
     const isLandscape = format === 'landscape';
     const parents = familyNodes.filter(n => n.type === 'parent' || n.lien === 'Père' || n.lien === 'Mère');
     const children = familyNodes.filter(n => n.type === 'child');
@@ -135,9 +140,137 @@ export default function FamilyBook({ profile, familyNodes, archives, format = 'p
                         ))}
                     </div>
                 </div>
+
+                {/* NOUVELLE SECTION IA: RÉCIT DE LIGNÉE */}
+                <div className="mt-20 pt-16 border-t border-amber-100">
+                    <div className="flex items-center justify-between mb-12">
+                        <h3 className="text-2xl font-black text-[#1c3a2f] flex items-center gap-4 uppercase tracking-widest">
+                            <Wand2 className="w-6 h-6 text-[#FF6600]" /> L&apos;Épopée Familiale
+                        </h3>
+                        {!story && !isGenerating && (
+                            <button 
+                                onClick={async () => {
+                                    setIsGenerating(true);
+                                    try {
+                                        const res = await fetch('/api/ai/storytelling', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ profile, parents, heritage })
+                                        });
+                                        const data = await res.json();
+                                        if (data.story) {
+                                            setStory(data.story);
+                                            onSaveStory?.(data.story);
+                                        }
+                                    } catch (err) {
+                                        console.error("AI Storytelling failed", err);
+                                    } finally {
+                                        setIsGenerating(false);
+                                    }
+                                }}
+                                className="inline-flex items-center gap-2 bg-[#FF6600] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-xl hover:-translate-y-1 transition-all group"
+                            >
+                                <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                                Générer avec l&apos;IA Racines+
+                            </button>
+                        )}
+                        {story && !isGenerating && (
+                            <button 
+                                onClick={() => setStory("")}
+                                className="text-stone-400 hover:text-stone-600 transition-colors p-2"
+                                title="Réinitialiser le récit"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="bg-white/50 border-2 border-dashed border-amber-100 rounded-[3rem] p-12 min-h-[300px] relative overflow-hidden group">
+                        {isGenerating ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 animate-pulse">
+                                <Loader2 className="w-12 h-12 text-[#FF6600] animate-spin" />
+                                <p className="text-amber-800 font-black text-xs uppercase tracking-[0.2em]">Le Griot IA invoque les ancêtres...</p>
+                            </div>
+                        ) : story ? (
+                            <div className="prose prose-stone max-w-none animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                                <p className="text-xl text-[#2c241a] leading-relaxed font-serif whitespace-pre-wrap italic first-letter:text-6xl first-letter:font-black first-letter:text-[#FF6600] first-letter:mr-3 first-letter:float-left">
+                                    {story}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                                <ScrollText className="w-12 h-12 text-stone-200 mb-4" />
+                                <p className="text-stone-400 font-medium italic">Aucun récit n&apos;a encore été gravé pour cette lignée.</p>
+                                <p className="text-[10px] text-stone-300 uppercase tracking-widest mt-2">Cliquez sur le bouton pour invoquer la mémoire</p>
+                            </div>
+                        )}
+                        
+                        {/* Décorations ornementales */}
+                        <Quote className="absolute -top-4 -left-4 w-24 h-24 text-amber-50 group-hover:text-amber-100/50 transition-colors" />
+                    </div>
+                </div>
             </div>
 
-            {/* PAGE 3: L'ARBRE ADN GÉOGRAPHIQUE */}
+            {/* PAGE 3: PATRIMOINE DU VILLAGE & SAGESSE ANCESTRALE */}
+            {heritage && (
+                <div className={`${isLandscape ? 'min-h-[210mm]' : 'min-h-[297mm]'} p-24 bg-amber-50 relative page-break-after border-r-[60px] border-[#1c3a2f]`}>
+                    <BookOpen className="absolute top-10 left-10 w-12 h-12 text-amber-200" />
+                    
+                    <header className="mb-20 text-right">
+                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-[0.4em] mb-4">L&apos;Héritage de {profile.village}</p>
+                        <h2 className="text-5xl font-black text-[#1c3a2f] leading-none uppercase">
+                            Sagesse <br /> & Coutumes
+                        </h2>
+                        <div className="w-24 h-2 bg-[#1c3a2f] mt-6 ml-auto" />
+                    </header>
+
+                    <div className="space-y-16">
+                        {/* Devise */}
+                        <section className="bg-white p-12 rounded-[3rem] border border-amber-200 shadow-xl relative">
+                            <Quote className="absolute -top-6 -right-6 w-20 h-20 text-amber-50" />
+                            <h4 className="text-xs font-black text-amber-600 uppercase tracking-widest mb-4">Devise du Village</h4>
+                            <p className="text-3xl font-serif italic text-[#124E35] leading-tight">
+                                « {heritage.slogan || "Protéger la terre, honorer les anciens."} »
+                            </p>
+                        </section>
+
+                        {/* Coutumes */}
+                        <section className="space-y-6">
+                            <h4 className="flex items-center gap-3 text-sm font-black text-[#1c3a2f] uppercase tracking-widest">
+                                <History className="w-5 h-5 text-amber-500" /> Traditions & Lois Morales
+                            </h4>
+                            <div className="text-base text-stone-700 leading-relaxed font-serif whitespace-pre-wrap pl-8 border-l-2 border-amber-200">
+                                {heritage.customs || "Les coutumes de ce village sont transmises oralement de génération en génération."}
+                            </div>
+                        </section>
+
+                        {/* Proverbes */}
+                        {heritage.proverbs && heritage.proverbs.length > 0 && (
+                            <section className="space-y-8 mt-12">
+                                <h4 className="text-center text-xs font-black text-stone-400 uppercase tracking-[0.3em]">Paroles des Anciens</h4>
+                                <div className="grid grid-cols-1 gap-6">
+                                    {heritage.proverbs.map((proverb: string, idx: number) => (
+                                        <div key={idx} className="flex gap-6 items-center">
+                                            <div className="w-10 h-10 rounded-full bg-amber-200/30 flex items-center justify-center text-amber-700 font-bold italic shadow-inner">
+                                                {idx + 1}
+                                            </div>
+                                            <p className="flex-1 text-lg italic text-[#2c241a] font-serif border-b border-amber-100/50 pb-4">
+                                                « {proverb} »
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </div>
+
+                    <div className="absolute bottom-16 right-24 text-right">
+                        <AdinkraGyeNyame />
+                    </div>
+                </div>
+            )}
+
+            {/* PAGE 4: L'ARBRE ADN GÉOGRAPHIQUE */}
             <div className={`${isLandscape ? 'min-h-[210mm]' : 'min-h-[297mm]'} p-24 bg-[#1c3a2f] text-white flex flex-col items-center justify-between page-break-after relative overflow-hidden`}>
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-5 pointer-events-none">

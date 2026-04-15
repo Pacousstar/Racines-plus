@@ -57,7 +57,7 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
 
     if (!isOpen || !person) return null;
 
-    const isAncestor = person.type === 'ancetre' || person.roleOuLien.toLowerCase().includes('fondateur');
+    const isAncestor = person.type === 'ancetre';
 
     const statusConfig: Record<string, { bg: string; text: string; icon: React.ReactNode; label: string }> = {
         confirmed: { bg: 'bg-green-100', text: 'text-green-700', icon: <ShieldCheck className="w-4 h-4" />, label: 'Certifié (Bascule Patrimoniale)' },

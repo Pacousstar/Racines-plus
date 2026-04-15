@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     User, Bell, Share2, ShieldCheck, MapPin, Plus, CheckCircle,
-    AlertTriangle, Camera, Clock, XCircle, Users, Search, Calendar
+    AlertTriangle, Camera, Clock, XCircle, Users, Search, Calendar, Award, FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import AddAncestorModal from '@/components/AddAncestorModal';
@@ -435,13 +435,6 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                             <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden relative">
                                 {profileData?.status === 'confirmed' && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-400 to-racines-green" />}
                                 <PersonalLineageTree userId={userId} villageNom={profileData?.village || 'Toa-Zéo'} />
-                                {!profileData?.ancestralRootId && !isLoading && (
-                                    <div className="border-t border-gray-50 px-6 py-5 flex flex-col md:flex-row justify-center items-center gap-3 bg-gray-50/50">
-                                        <button onClick={() => setIsChooseAncetreOpen(true)} className="bg-[#FF6600] hover:bg-[#e55c00] text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-[#FF6600]/30 transition-all hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                                            <Users className="w-4 h-4" /> Relier à mon Ancêtre Fondateur
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     )}

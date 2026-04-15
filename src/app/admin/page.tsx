@@ -168,6 +168,7 @@ export default function AdminDashboard() {
         educationStats: {},
         pendingCertificates: 0,
         pendingExports: 0,
+        pendingRecours: 0,
         contactStats: { hasPhone: 0, hasWhatsapp: 0 }
     });
     const [isLoading, setIsLoading] = useState(true);
