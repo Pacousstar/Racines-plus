@@ -28,8 +28,20 @@ interface PendingProfile {
     residence_country?: string;
     residence_city?: string;
     mother_status?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    metadata?: any;
+    metadata?: {
+        father_first_name?: string;
+        father_last_name?: string;
+        father_status?: string;
+        father_birth_date?: string;
+        mother_first_name?: string;
+        mother_last_name?: string;
+        mother_status?: string;
+        mother_birth_date?: string;
+        proof_text?: string;
+        proof_url?: string;
+        proof_submitted_at?: string;
+        [key: string]: unknown;
+    };
     choa_approvals?: string[];
     rejection_motif?: string;
     rejection_observations?: string;
@@ -56,8 +68,7 @@ interface MyProfile {
 }
 
 // Composant utilitaire pour les états vides
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const EmptyTabState = ({ message, icon: Icon }: { message: string, icon: any }) => (
+const EmptyTabState = ({ message, icon: Icon }: { message: string, icon: React.ComponentType<{ className?: string }> }) => (
     <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
         <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
             <Icon className="w-10 h-10 text-orange-200 group-hover:scale-110 group-hover:text-orange-400 transition-all duration-500" />
@@ -161,13 +172,11 @@ export default function ChoBoard() {
                 console.log(`📊 [CHOa Debug] Profils totaux reçus: ${allUsersRaw.length}`);
                 console.log("📄 [CHOa Debug] Contenu brut des profils:", JSON.stringify(allUsersRaw.slice(0, 3), null, 2));
                 const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
-                /* eslint-disable @typescript-eslint/no-explicit-any */
-                const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
-                const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
-                const confirmed = allUsersRaw.filter((u: any) => u.status === 'confirmed');
-                const rejected = allUsersRaw.filter((u: any) => u.status === 'rejected');
-                const recours = allUsersRaw.filter((u: any) => u.status === 'rejected' && u.metadata?.proof_url);
-                /* eslint-enable @typescript-eslint/no-explicit-any */
+                const pending = allUsersRaw.filter((u: PendingProfile) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
+                const probable = allUsersRaw.filter((u: PendingProfile) => u.status === 'probable');
+                const confirmed = allUsersRaw.filter((u: PendingProfile) => u.status === 'confirmed');
+                const rejected = allUsersRaw.filter((u: PendingProfile) => u.status === 'rejected');
+                const recours = allUsersRaw.filter((u: PendingProfile) => u.status === 'rejected' && u.metadata?.proof_url);
                 
                 console.log(`📊 [CHOa Debug] Dispatch: Pending=${pending.length}, Probable=${probable.length}, Confirmed=${confirmed.length}, Recours=${recours.length}`);
 
@@ -568,8 +577,7 @@ export default function ChoBoard() {
         <AppLayout
             role="choa"
             activeTab={activeTab}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onTabChange={(id) => setActiveTab(id as any)}
+            onTabChange={(id) => setActiveTab(id as typeof activeTab)}
             userName={`${myProfile?.first_name ?? ''} ${myProfile?.last_name ?? ''}`}
             userAvatar={myProfile?.avatar_url ?? null}
             onLogout={async () => { await supabase.auth.signOut(); router.push('/login'); }}

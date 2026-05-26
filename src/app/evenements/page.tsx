@@ -18,6 +18,10 @@ interface FamilyEvent {
     organisateur_nom?: string;
 }
 
+interface FamilyEventWithProfile extends FamilyEvent {
+    profiles: { first_name: string; last_name: string }[] | null;
+}
+
 export default function EvenementsPage() {
     const supabase = createClient();
     const router = useRouter();
@@ -53,10 +57,9 @@ export default function EvenementsPage() {
         if (error) {
             console.error("Erreur de chargement des évènements", error);
         } else if (eventsData) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const formattedEvents = eventsData.map((e: any) => ({
+            const formattedEvents = eventsData.map((e: FamilyEventWithProfile) => ({
                 ...e,
-                organisateur_nom: e.profiles ? `${e.profiles.first_name || ''} ${e.profiles.last_name || ''}`.trim() : 'Inconnu'
+                organisateur_nom: e.profiles?.[0] ? `${e.profiles[0].first_name || ''} ${e.profiles[0].last_name || ''}`.trim() : 'Inconnu'
             }));
             setEvents(formattedEvents);
         }

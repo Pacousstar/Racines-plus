@@ -2,16 +2,35 @@ import React from 'react';
 import Image from 'next/image';
 import { TreePine, ScrollText, Award, MapPin, Crown, Shield, Flower2, Quote, History, BookOpen, Wand2, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+interface FamilyBookProfile {
+    firstName: string;
+    lastName: string;
+    village?: string;
+    quartier?: string;
+}
+
+interface FamilyBookNode {
+    type: string;
+    lien: string;
+    nom: string;
+    side: string;
+    avatar_url?: string;
+}
+
+interface FamilyBookHeritage {
+    slogan?: string;
+    customs?: string;
+    proverbs?: string[];
+}
+
 interface FamilyBookProps {
-    profile: any;
-    familyNodes: any[];
-    heritage?: any;
+    profile: FamilyBookProfile;
+    familyNodes: FamilyBookNode[];
+    heritage?: FamilyBookHeritage;
     format?: 'portrait' | 'landscape';
     initialStory?: string;
     onSaveStory?: (story: string) => void;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export default function FamilyBook({ profile, familyNodes, heritage, format = 'portrait', initialStory, onSaveStory }: FamilyBookProps) {
     const [story, setStory] = React.useState(initialStory || "");

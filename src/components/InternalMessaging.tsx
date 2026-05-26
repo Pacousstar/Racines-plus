@@ -36,8 +36,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
         return [];
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rolesIcons: Record<string, { icon: any, label: string, color: string }> = {
+    const rolesIcons: Record<string, { icon: React.ElementType, label: string, color: string }> = {
         admin: { icon: Shield, label: 'Administration', color: 'text-purple-600' },
         cho: { icon: ShieldCheck, label: 'Chefs (CHO)', color: 'text-blue-600' },
         choa: { icon: Users, label: 'Adjoints (CHOa)', color: 'text-cyan-600' },
@@ -89,8 +88,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
                     sender: profilesMap[m.sender_id] || { first_name: 'Utilisateur', last_name: 'Inconnu', role: 'Inconnu', avatar_url: null }
                 }));
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                setMessages(enhancedMessages as any);
+                setMessages(enhancedMessages as InternalMessage[]);
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
             }
             setIsLoading(false);
@@ -123,8 +121,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
             sender: { first_name: 'Moi', last_name: '', role: currentUserRole } // Fallback
         };
         
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setMessages(prev => [...prev, optimisticMsg as any]);
+        setMessages(prev => [...prev, optimisticMsg as InternalMessage]);
         setNewMessage('');
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
 

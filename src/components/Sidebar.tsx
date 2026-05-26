@@ -21,8 +21,7 @@ export interface NavItem {
 interface SidebarProps {
     role: string;
     activeTab: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onTabChange: (id: any) => void;
+    onTabChange: (id: string) => void;
     userName: string;
     userAvatar: string | null;
     village?: string;

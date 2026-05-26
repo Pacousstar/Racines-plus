@@ -28,8 +28,20 @@ interface PendingProfile {
     residence_country?: string;
     residence_city?: string;
     mother_birth_date?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    metadata?: any;
+    metadata?: {
+        father_first_name?: string;
+        father_last_name?: string;
+        father_status?: string;
+        father_birth_date?: string;
+        mother_first_name?: string;
+        mother_last_name?: string;
+        mother_status?: string;
+        mother_birth_date?: string;
+        proof_text?: string;
+        proof_url?: string;
+        proof_submitted_at?: string;
+        [key: string]: unknown;
+    };
     pre_validated_by?: string | null;
     choa_approvals?: string[];
     choa_names?: string[];
@@ -123,12 +135,10 @@ export default function ChoBoard() {
                 const data = await res.json();
                 
                 if (data.profiles) {
-                    /* eslint-disable @typescript-eslint/no-explicit-any */
-                    const all: any[] = data.profiles;
-                    setPendingProfiles(all.filter((u: any) => u.status === 'probable'));
-                    setConfirmedProfiles(all.filter((u: any) => u.status === 'confirmed'));
-                    setRejectedProfiles(all.filter((u: any) => u.status === 'rejected'));
-                    /* eslint-enable @typescript-eslint/no-explicit-any */
+                    const all: PendingProfile[] = data.profiles;
+                    setPendingProfiles(all.filter((u: PendingProfile) => u.status === 'probable'));
+                    setConfirmedProfiles(all.filter((u: PendingProfile) => u.status === 'confirmed'));
+                    setRejectedProfiles(all.filter((u: PendingProfile) => u.status === 'rejected'));
                 }
                 if (data.team) setTeam(data.team);
                 if (data.me) setMyProfile(data.me);
@@ -259,8 +269,7 @@ export default function ChoBoard() {
 
         const enhancedComments = data.map(c => ({
             ...c,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            author_name: `${(c.author as any)?.first_name || ''} ${(c.author as any)?.last_name || ''}`.trim()
+            author_name: `${(c.author as { first_name?: string; last_name?: string })?.first_name || ''} ${(c.author as { first_name?: string; last_name?: string })?.last_name || ''}`.trim()
         }));
         setComments(enhancedComments);
         markNotificationsAsRead();
@@ -498,8 +507,7 @@ export default function ChoBoard() {
         <AppLayout
             role="cho"
             activeTab={activeTab}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-onTabChange={(id) => setActiveTab(id as any)}
+onTabChange={(id) => setActiveTab(id as typeof activeTab)}
             userName={(myProfile?.first_name || myProfile?.last_name) ? `${myProfile.first_name || ''} ${myProfile.last_name || ''}`.trim() : 'Chargement...'}
             userAvatar={myProfile?.avatar_url || null}
             onLogout={async () => { await supabase.auth.signOut(); router.push('/login'); }}

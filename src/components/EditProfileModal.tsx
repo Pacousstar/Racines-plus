@@ -35,8 +35,7 @@ export interface ExtendedProfileData {
         mother_last_name?: string;
         mother_birth_date?: string;
         mother_status?: string;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [key: string]: any;
+        [key: string]: unknown;
     };
     detailsEnfants?: Array<{
         id: string;

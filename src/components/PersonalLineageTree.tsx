@@ -10,7 +10,7 @@ import ExportTreeModal from './ExportTreeModal';
 interface LineageNode {
     id: string;
     nom: string;
-    type: 'ancetre' | 'self' | 'parent' | 'child';
+    type: 'ancetre' | 'self' | 'parent' | 'child' | 'other';
     generation: number;
     lien?: string;
     confidence?: number;
@@ -236,7 +236,19 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 setCurrentUser(selfNode);
 
                 // 4. Famille via Neo4j
-                /* eslint-disable @typescript-eslint/no-explicit-any */
+                interface TreeApiNode {
+                    id: string;
+                    firstName?: string;
+                    lastName?: string;
+                    status?: string;
+                }
+
+                interface TreeApiLink {
+                    source: string;
+                    target: string;
+                    type: string;
+                }
+
                 const parentNodes: LineageNode[] = [];
                 const childNodes: LineageNode[] = [];
                 const spouseNodes: LineageNode[] = [];
@@ -246,11 +258,11 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 try {
                     const res = await fetch('/api/tree');
                     if (res.ok) {
-                        const treeData = await res.json();
+                        const treeData: { nodes: TreeApiNode[]; links: TreeApiLink[] } = await res.json();
                         
                         // Récupérer les avatars depuis Supabase pour TOUS les nœuds présents dans Neo4j
-                        const allNodeIds = treeData.nodes.map((n: any) => n.id);
-                        const profileMap: Record<string, any> = {};
+                        const allNodeIds = treeData.nodes.map((n: TreeApiNode) => n.id);
+                        const profileMap: Record<string, { avatar_url?: string | null; quartier_nom?: string | null; role?: string | null; is_founder?: boolean | null }> = {};
                         if (allNodeIds.length > 0) {
                             const { data: profiles } = await supabase
                                 .from('profiles')
@@ -262,7 +274,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         }
 
                         // Helper pour créer un LineageNode à partir de Neo4j + Supabase
-                        const createNode = (neoNode: any, type: LineageNode['type'], generation: number, lien: string, side?: LineageNode['side']): LineageNode | null => {
+                        const createNode = (neoNode: TreeApiNode | undefined, type: LineageNode['type'], generation: number, lien: string, side?: LineageNode['side']): LineageNode | null => {
                             if (!neoNode) return null;
                             const p = profileMap[neoNode.id];
                             return {
@@ -271,8 +283,8 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                 type,
                                 generation,
                                 status: neoNode.status === 'Vivant' ? 'confirmed' : neoNode.status === 'Décédé' ? 'probable' : 'pending',
-                                avatarUrl: p?.avatar_url || null,
-                                quartier: p?.quartier_nom || null,
+                                avatarUrl: p?.avatar_url ?? undefined,
+                                quartier: p?.quartier_nom ?? undefined,
                                 lien,
                                 side
                             };
@@ -282,49 +294,49 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         
                         // 1. Identifier d'abord les IDs du père et de la mère pour la propagation
                         const parentsInfo = {
-                            fatherId: treeData.links.find((l: any) => l.target === userId && l.type === 'FATHER_OF')?.source,
-                            motherId: treeData.links.find((l: any) => l.target === userId && l.type === 'MOTHER_OF')?.source
+                            fatherId: treeData.links.find((l: TreeApiLink) => l.target === userId && l.type === 'FATHER_OF')?.source,
+                            motherId: treeData.links.find((l: TreeApiLink) => l.target === userId && l.type === 'MOTHER_OF')?.source
                         };
 
-                        treeData.links.forEach((link: any) => {
+                        treeData.links.forEach((link: TreeApiLink) => {
                             let targetId: string | null = null;
-                            let relNode: any = null;
-                            let nodeType: LineageNode['type'] = 'other' as any;
+                            let relNode: TreeApiNode | undefined;
+                            let nodeType: LineageNode['type'] = 'other';
                             let generation = 2;
                             let lienStr = '';
 
                             if (link.target === userId && (link.type === 'FATHER_OF' || link.type === 'MOTHER_OF')) {
                                 targetId = link.source;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
                                 nodeType = 'parent'; generation = 1; lienStr = link.type === 'FATHER_OF' ? 'Père' : 'Mère';
                             } else if (link.source === userId && link.type === 'PARENT_OF') {
                                 targetId = link.target;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
                                 nodeType = 'child'; generation = 3; lienStr = 'Enfant';
                             } else if (link.target === userId && link.type === 'PARENT_OF') {
                                 targetId = link.source;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
                                 nodeType = 'parent'; generation = 1; lienStr = 'Parent';
                             } else if (link.source === userId && link.type === 'SPOUSE_OF') {
                                 targetId = link.target;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
                                 nodeType = 'parent'; generation = 2; lienStr = 'Conjoint(e)';
                             } else if (link.source === userId && (link.type === 'SIBLING_OF' || link.type === 'HALF_SIBLING_OF')) {
                                 targetId = link.target;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
-                                nodeType = 'other' as any; generation = 2; lienStr = link.type === 'SIBLING_OF' ? 'Frère/Sœur' : 'Demi-frère/sœur';
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
+                                nodeType = 'other'; generation = 2; lienStr = link.type === 'SIBLING_OF' ? 'Frère/Sœur' : 'Demi-frère/sœur';
                             } else if (link.target === userId && link.type === 'UNCLE_AUNT_OF') {
                                 targetId = link.source;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
-                                nodeType = 'other' as any; generation = 1; lienStr = 'Oncle/Tante';
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
+                                nodeType = 'other'; generation = 1; lienStr = 'Oncle/Tante';
                             } else if (link.source === userId && link.type === 'UNCLE_AUNT_OF') {
                                 targetId = link.target;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
-                                nodeType = 'other' as any; generation = 3; lienStr = 'Neveu/Nièce';
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
+                                nodeType = 'other'; generation = 3; lienStr = 'Neveu/Nièce';
                             } else if (link.source === userId && link.type === 'COUSIN_OF') {
                                 targetId = link.target;
-                                relNode = treeData.nodes.find((n: any) => n.id === targetId);
-                                nodeType = 'other' as any; generation = 2; lienStr = 'Cousin(e)';
+                                relNode = treeData.nodes.find((n: TreeApiNode) => n.id === targetId);
+                                nodeType = 'other'; generation = 2; lienStr = 'Cousin(e)';
                             }
 
                             if (targetId && relNode && !processedTargetIds.has(targetId) && targetId !== userId) {
@@ -334,11 +346,11 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                 let side: LineageNode['side'] = 'central';
                                 
                                 // Analyse de la parenté pour la famille élargie
-                                const isConnectedToFather = treeData.links.some((l: any) => 
+                                const isConnectedToFather = treeData.links.some((l: TreeApiLink) => 
                                     (l.source === parentsInfo.fatherId && l.target === targetId) || 
                                     (l.target === parentsInfo.fatherId && l.source === targetId)
                                 );
-                                const isConnectedToMother = treeData.links.some((l: any) => 
+                                const isConnectedToMother = treeData.links.some((l: TreeApiLink) => 
                                     (l.source === parentsInfo.motherId && l.target === targetId) || 
                                     (l.target === parentsInfo.motherId && l.source === targetId)
                                 );
@@ -357,7 +369,6 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                 }
                             }
                         });
-                        /* eslint-enable @typescript-eslint/no-explicit-any */
                     }
                 } catch { /* Neo4j non disponible */ }
 

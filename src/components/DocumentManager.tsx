@@ -84,10 +84,9 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
             if (dbError) throw dbError;
 
             fetchDocuments();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erreur Upload Archive:', err);
-            setUploadError(err.message);
+            setUploadError(err instanceof Error ? err.message : 'Erreur inconnue');
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -105,10 +104,9 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
             if (dbError) throw dbError;
 
             setDocuments(documents.filter(d => d.id !== id));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erreur suppression:', err);
-            alert('Erreur: ' + err.message);
+            alert('Erreur: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
         }
     };
 
@@ -121,7 +119,7 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
             if (data?.signedUrl) {
                 window.open(data.signedUrl, '_blank');
             }
-        } catch (err) {
+        } catch (err: unknown) {
             console.error("Erreur de téléchargement", err);
             alert("Impossible d'ouvrir le document. Vérifiez vos droits d'accès.");
         }

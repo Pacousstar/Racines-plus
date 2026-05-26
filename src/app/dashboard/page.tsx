@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import InternalMessaging from '@/components/InternalMessaging';
 import AppLayout from '@/components/AppLayout';
+import { Profile } from '@/types';
 
 
 export default function Dashboard() {
@@ -19,8 +20,7 @@ export default function Dashboard() {
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'mon_arbre' | 'memorial' | 'migration'>('mon_arbre');
     const [, setIsLoading] = useState(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [userProfile, setUserProfile] = useState<any>(null);
+    const [userProfile, setUserProfile] = useState<Profile | null>(null);
     const [showCertificate, setShowCertificate] = useState(false);
     const [, setUnreadCount] = useState(0);
     const [emailVerified, setEmailVerified] = useState(true);
@@ -156,8 +156,7 @@ export default function Dashboard() {
                         alert("🔒 Votre dossier doit d'abord être 'Certifié ✅' par le CHO pour demander un certificat.");
                     }
                 } else {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    setActiveTab(id as any);
+                    setActiveTab(id as typeof activeTab);
                 }
             }}
             userName={profileName}

@@ -94,10 +94,9 @@ export default function MediaGallery({ userId }: { userId: string }) {
             if (dbError) throw dbError;
 
             fetchMedia();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erreur Upload Media:', err);
-            alert('Erreur lors du téléversement: ' + err.message);
+            alert('Erreur lors du téléversement: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -117,10 +116,9 @@ export default function MediaGallery({ userId }: { userId: string }) {
             if (dbError) throw dbError;
 
             setMedia(media.filter(m => m.id !== id));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erreur suppression:', err);
-            alert('Erreur: ' + err.message);
+            alert('Erreur: ' + (err instanceof Error ? err.message : 'Erreur inconnue'));
         }
     };
 

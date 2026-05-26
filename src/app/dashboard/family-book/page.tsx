@@ -8,14 +8,38 @@ import Link from 'next/link';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+interface FamilyBookProfile {
+    firstName: string;
+    lastName: string;
+    village: string;
+    quartier: string;
+}
+
+interface FamilyNode {
+    type: string;
+    lien: string;
+    nom: string;
+    side: string;
+}
+
+interface TreeNode {
+    firstName: string;
+    lastName: string;
+    status: string;
+    isFounder: boolean;
+}
+
+interface FamilyBookHeritage {
+    slogan?: string;
+    customs?: string;
+    proverbs?: string[];
+}
+
 export default function FamilyBookPage({}: { params: { userId: string } }) {
     const supabase = createClient();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [profile, setProfile] = useState<any>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [familyNodes, setFamilyNodes] = useState<any[]>([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [villageHeritage, setVillageHeritage] = useState<any>(null);
+    const [profile, setProfile] = useState<FamilyBookProfile | null>(null);
+    const [familyNodes, setFamilyNodes] = useState<FamilyNode[]>([]);
+    const [villageHeritage, setVillageHeritage] = useState<FamilyBookHeritage | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
     const bookRef = useRef<HTMLDivElement>(null);
@@ -51,12 +75,11 @@ export default function FamilyBookPage({}: { params: { userId: string } }) {
                 const treeData = await res.json();
 
                 // Transformation succincte pour le template
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const nodes = treeData.nodes.map((n: any) => ({
+                const nodes = treeData.nodes.map((n: TreeNode) => ({
+                    type: n.isFounder ? 'ancetre' : 'family',
+                    lien: 'Membre',
                     nom: `${n.firstName} ${n.lastName}`,
-                    status: n.status,
-                    generation: n.isFounder ? 0 : 2, // Simplification
-                    type: n.isFounder ? 'ancetre' : 'family'
+                    side: 'paternal'
                 }));
 
                 setProfile({
@@ -74,7 +97,7 @@ export default function FamilyBookPage({}: { params: { userId: string } }) {
                         .select('*')
                         .eq('village_name', prof.village_origin)
                         .maybeSingle();
-                    if (heritage) setVillageHeritage(heritage);
+                    if (heritage) setVillageHeritage(heritage as FamilyBookHeritage);
                 }
             } catch (err) {
                 console.error("Fetch error:", err);
@@ -177,11 +200,13 @@ export default function FamilyBookPage({}: { params: { userId: string } }) {
                     <div className="flex justify-center bg-gray-200 p-8 rounded-[40px] shadow-inner overflow-x-auto">
                         <div className="scale-[0.5] sm:scale-[0.7] md:scale-100 origin-top">
                             <div ref={bookRef}>
-                                <FamilyBook 
-                                    profile={profile} 
-                                    familyNodes={familyNodes} 
-                                    heritage={villageHeritage}
-                                />
+                                {profile && (
+                                    <FamilyBook 
+                                        profile={profile} 
+                                        familyNodes={familyNodes} 
+                                        heritage={villageHeritage ?? undefined}
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>

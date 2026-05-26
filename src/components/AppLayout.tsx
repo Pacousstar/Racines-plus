@@ -8,14 +8,23 @@ interface AppLayoutProps {
     children: React.ReactNode;
     role: string;
     activeTab: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onTabChange: (id: any) => void;
+    onTabChange: (id: string) => void;
     userName: string;
     userAvatar: string | null;
     village?: string;
     onLogout: () => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    permissions?: any;
+    permissions?: {
+        can_validate_users?: boolean;
+        can_manage_villages?: boolean;
+        can_manage_ancestors?: boolean;
+        can_manage_memorial?: boolean;
+        can_issue_certificates?: boolean;
+        can_manage_invitations?: boolean;
+        can_export_data?: boolean;
+        can_manage_roles?: boolean;
+        can_view_audit_logs?: boolean;
+        can_manage_settings?: boolean;
+    };
 }
 
 export default function AppLayout({

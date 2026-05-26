@@ -99,8 +99,7 @@ export default function TreeSpecimens({ userName, userStatus, userRole }: { user
                 {styles.map((style) => (
                     <button
                         key={style.id}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onClick={() => setSelectedStyle(style.id as any)}
+                        onClick={() => setSelectedStyle(style.id as 'heritage' | 'modern' | 'classic')}
                         className={`flex-shrink-0 flex items-center gap-3 p-4 rounded-2xl border-2 transition-all group ${selectedStyle === style.id
                             ? 'border-[#FF6600] bg-orange-50/50 shadow-md translate-y-[-2px]'
                             : 'border-gray-100 bg-white hover:border-gray-200'
