@@ -150,7 +150,8 @@ export async function GET(request: Request) {
             { village }
         );
 
-        const candidates = result.records.map(r => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidates = result.records.map((r: any) => ({
             a: { id: r.get('idA'), firstName: r.get('firstA'), lastName: r.get('lastA'), birthYear: r.get('birthA') },
             b: { id: r.get('idB'), firstName: r.get('firstB'), lastName: r.get('lastB'), birthYear: r.get('birthB') },
         }));

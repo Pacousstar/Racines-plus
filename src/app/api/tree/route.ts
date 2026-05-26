@@ -27,7 +27,8 @@ export async function GET() {
             const nodesMap = new Map<string, Record<string, unknown>>();
             const links: { source: string; target: string; type: string }[] = [];
 
-            result.records.forEach(record => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result.records.forEach((record: any) => {
                 const pathNodes = record.get('nodes') as { properties: Record<string, unknown> }[];
                 const pathRels = record.get('rels') as { startNodeElementId: string; endNodeElementId: string; type: string }[];
 

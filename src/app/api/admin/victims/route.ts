@@ -31,7 +31,8 @@ export async function GET() {
                 ORDER BY v.lastName, v.firstName
             `;
             const result = await session.run(cypherQuery);
-            victims = result.records.map(r => r.get('v').properties);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            victims = result.records.map((r: any) => r.get('v').properties);
 
             // 2. Victimes depuis Supabase (Enfants dans profiles)
             const { data: profilesWithChildren } = await supabase
