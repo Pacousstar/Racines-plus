@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-);
+function getAdminClient() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+        throw new Error('Supabase credentials are not configured');
+    }
+    return createClient(url, key, {
+        auth: { autoRefreshToken: false, persistSession: false }
+    });
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,9 +25,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ statuses: {} });
         }
 
-        // Utilisation de edge function ou d'Admin Client pour chercher les e-mails
-        // Comme auth.users n'est pas query-able globalement sans authentification admin,
-        // on utilise supabaseAdmin pour lister les utilisateurs
+        const supabaseAdmin = getAdminClient();
         const { data: users, error } = await supabaseAdmin.auth.admin.listUsers();
 
         if (error) {
