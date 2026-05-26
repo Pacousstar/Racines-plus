@@ -1,23 +1,64 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase';
 import { Search, Filter, Users, MapPin, ArrowLeft } from 'lucide-react';
 import MemberCard from '@/components/MemberCard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+interface Member {
+    id: string;
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+    emploi: string | null;
+    fonction: string | null;
+    niveau_etudes: string | null;
+    residence_city: string | null;
+    residence_country: string | null;
+    quartier_nom: string | null;
+    whatsapp_1: string | null;
+    is_deceased: boolean | null;
+    disease_type: string | null;
+    status: string;
+    role: string;
+}
+
 export default function AnnuairePage() {
     const router = useRouter();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [members, setMembers] = useState<any[]>([]);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [filteredMembers, setFilteredMembers] = useState<any[]>([]);
+    const [members, setMembers] = useState<Member[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Filtres Actifs
     const [activeFilter, setActiveFilter] = useState<'All' | 'Diaspora' | 'Local' | 'Gbeya' | 'Bonye'>('All');
+
+    const filteredMembers = useMemo(() => {
+        let result = members;
+
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            result = result.filter(m =>
+                (m.first_name && m.first_name.toLowerCase().includes(lowerSearch)) ||
+                (m.last_name && m.last_name.toLowerCase().includes(lowerSearch)) ||
+                (m.emploi && m.emploi.toLowerCase().includes(lowerSearch)) ||
+                (m.residence_city && m.residence_city.toLowerCase().includes(lowerSearch))
+            );
+        }
+
+        if (activeFilter === 'Diaspora') {
+            result = result.filter(m => m.residence_country && m.residence_country !== 'CI');
+        } else if (activeFilter === 'Local') {
+            result = result.filter(m => !m.residence_country || m.residence_country === 'CI');
+        } else if (activeFilter === 'Gbeya') {
+            result = result.filter(m => m.quartier_nom === 'Gbéya');
+        } else if (activeFilter === 'Bonye') {
+            result = result.filter(m => m.quartier_nom === 'Bonyé');
+        }
+
+        return result;
+    }, [members, searchTerm, activeFilter]);
 
     useEffect(() => {
         const supabase = createClient();
@@ -39,7 +80,6 @@ export default function AnnuairePage() {
                 console.error('Erreur annuaire:', error);
             } else if (data) {
                 setMembers(data);
-                setFilteredMembers(data);
             }
             setIsLoading(false);
         };
@@ -62,38 +102,7 @@ export default function AnnuairePage() {
         };
 
         checkAuthAndFetch();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router]);
-
-    // Moteur de recherche et de filtres combinés
-    useEffect(() => {
-        let result = members;
-
-        // 1. Filtrage Textuel (Nom, Prénom, Métier, Ville)
-        if (searchTerm) {
-            const lowerSearch = searchTerm.toLowerCase();
-            result = result.filter(m =>
-                (m.first_name && m.first_name.toLowerCase().includes(lowerSearch)) ||
-                (m.last_name && m.last_name.toLowerCase().includes(lowerSearch)) ||
-                (m.emploi && m.emploi.toLowerCase().includes(lowerSearch)) ||
-                (m.residence_city && m.residence_city.toLowerCase().includes(lowerSearch))
-            );
-        }
-
-        // 2. Filtrage Rapide (Pastilles)
-        // residence_country est un code pays (CI, FR, US, ...) sauvegardé à l'inscription
-        if (activeFilter === 'Diaspora') {
-            result = result.filter(m => m.residence_country && m.residence_country !== 'CI');
-        } else if (activeFilter === 'Local') {
-            result = result.filter(m => !m.residence_country || m.residence_country === 'CI');
-        } else if (activeFilter === 'Gbeya') {
-            result = result.filter(m => m.quartier_nom === 'Gbéya');
-        } else if (activeFilter === 'Bonye') {
-            result = result.filter(m => m.quartier_nom === 'Bonyé');
-        }
-
-        setFilteredMembers(result);
-    }, [searchTerm, activeFilter, members]);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-black font-sans pb-20">

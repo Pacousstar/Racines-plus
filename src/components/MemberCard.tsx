@@ -14,7 +14,7 @@ interface MemberCardProps {
         residence_country: string | null;
         quartier_nom: string | null;
         whatsapp_1: string | null;
-        is_deceased: boolean;
+        is_deceased: boolean | null;
         disease_type: string | null;
     };
 }
