@@ -2,15 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/neo4j';
 
-// Client service_role pour bypass RLS
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-);
-
 // Helper : uploader la photo via service_role
-async function uploadPhoto(userId: string, photoFile: File): Promise<string | null> {
+async function uploadPhoto(supabaseAdmin: any, userId: string, photoFile: File): Promise<string | null> {
     try {
         const arrayBuffer = await photoFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -34,7 +27,7 @@ async function uploadPhoto(userId: string, photoFile: File): Promise<string | nu
 }
 
 // Helper : upsert profil via service_role
-async function upsertProfile(userId: string, data: Record<string, unknown>) {
+async function upsertProfile(supabaseAdmin: any, userId: string, data: Record<string, unknown>) {
     const { error } = await supabaseAdmin.from('profiles').upsert({
         id: userId,
         ...data,
@@ -80,6 +73,12 @@ async function sendWelcomeEmail(email: string, firstName: string, lastName: stri
 
 export async function POST(request: NextRequest) {
     try {
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+        );
+
         const formData = await request.formData();
 
         const email = (formData.get('email') as string || '').trim().toLowerCase();
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
         // ── 2. Upload photo ────────────────────────────────────────────────────
         let avatarUrl: string | null = null;
         if (photoFile && photoFile.size > 0) {
-            avatarUrl = await uploadPhoto(userId, photoFile);
+            avatarUrl = await uploadPhoto(supabaseAdmin, userId, photoFile);
         }
 
         // ── 3. Upsert profil (toujours, même si user existait) ────────────────
@@ -200,7 +199,7 @@ export async function POST(request: NextRequest) {
         };
         if (avatarUrl) profilePayload.avatar_url = avatarUrl;
 
-        const errorUpsert = await upsertProfile(userId, profilePayload);
+        const errorUpsert = await upsertProfile(supabaseAdmin, userId, profilePayload);
         if (errorUpsert) {
             console.error('[register] Upsert failed, rolling back user auth creation...', errorUpsert.message);
             // Rollback only if it was a new user cleanly created (to avoid deleting existing users on updates)
