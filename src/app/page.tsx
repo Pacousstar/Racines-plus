@@ -21,7 +21,7 @@ export default function Home() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [featuredAncestor, setFeaturedAncestor] = useState<Record<string, unknown> | null>(null);
+  const [featuredAncestor, setFeaturedAncestor] = useState<Record<string, any> | null>(null);
   const supabase = createClient();
 
   useEffect(() => {

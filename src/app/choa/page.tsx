@@ -323,13 +323,24 @@ export default function ChoBoard() {
     };
 
     const loadComments = async (profileId: string) => {
-        try {
-            const result = await loadCommentsFromService(profileId);
-            setComments(result || []);
-            markNotificationsAsRead();
-        } catch (err) {
-            console.error('Error fetching comments:', err);
+        const { data, error } = await supabase
+            .from('validation_comments')
+            .select('*, author:profiles(first_name, last_name)')
+            .eq('profile_id', profileId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching comments:', error);
+            return;
         }
+
+        const enhancedComments = data.map(c => ({
+            ...c,
+            author_name: `${(c.author as any)?.first_name || ''} ${(c.author as any)?.last_name || ''}`.trim()
+        }));
+
+        setComments(enhancedComments);
+        markNotificationsAsRead();
     };
 
     const handlePostComment = async (profileId: string) => {

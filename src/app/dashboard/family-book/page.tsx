@@ -180,7 +180,6 @@ export default function FamilyBookPage({}: { params: { userId: string } }) {
                                 <FamilyBook 
                                     profile={profile} 
                                     familyNodes={familyNodes} 
-                                    archives={[]} 
                                     heritage={villageHeritage}
                                 />
                             </div>

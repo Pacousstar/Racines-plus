@@ -21,7 +21,7 @@ import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileM
 import { TreePine } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import ProofViewerModal from '@/components/ProofViewerModal';
-import type { Profile, Village, Quartier, Victim, MemorialVictim, StatsData, AdminPermission, ActivityLog } from '@/types';
+import type { Profile } from '@/types';
 import { computeStats, filterProfiles } from '@/services/admin';
 import { getServiceClient } from '@/services/supabase';
 
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
                 fonction: profile.fonction || '',
                 retraite: profile.retraite || false,
                 nombreEnfants: profile.nombre_enfants || 0,
-                detailsEnfants: profile.details_enfants || [],
+                detailsEnfants: (profile.details_enfants || []) as ExtendedProfileData['detailsEnfants'],
                 consentementEnfants: profile.consentement_enfants || false,
                 adresseResidence: profile.adresse_residence || '',
                 residenceCity: profile.residence_city || '',
@@ -292,7 +292,7 @@ export default function AdminDashboard() {
             setVillages(villages);
             setQuartiers(quartiers);
 
-            if (memorialRes.ok) {
+            if (victimsRes.ok) {
                 const victimsData = await victimsRes.json();
                 if (victimsData.success) {
                     setVictims(victimsData.victims);
