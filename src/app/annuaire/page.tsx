@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
-import { Search, Filter, Users, MapPin, Briefcase, ArrowLeft } from 'lucide-react';
+import { Search, Filter, Users, MapPin, ArrowLeft } from 'lucide-react';
 import MemberCard from '@/components/MemberCard';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -10,7 +10,9 @@ import Link from 'next/link';
 export default function AnnuairePage() {
     const supabase = createClient();
     const router = useRouter();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [members, setMembers] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [filteredMembers, setFilteredMembers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +40,7 @@ export default function AnnuairePage() {
         };
 
         checkAuthAndFetch();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router, supabase]);
 
     const fetchMembers = async () => {
@@ -107,7 +110,7 @@ export default function AnnuairePage() {
             <main className="pt-24 px-4 sm:px-6 max-w-7xl mx-auto">
                 <div className="mb-8">
                     <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">
-                        L'Annuaire Intelligent 📖
+                        L&apos;Annuaire Intelligent 📖
                     </h1>
                     <p className="text-gray-600 dark:text-gray-300 font-medium">Recherchez un membre, un talent ou un contact au sein de la famille Racines+.</p>
                 </div>
@@ -147,7 +150,7 @@ export default function AnnuairePage() {
                             onClick={() => setActiveFilter('Local')}
                             className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap flex items-center gap-2 ${activeFilter === 'Local' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
                         >
-                            <MapPin className="w-4 h-4" /> Côte d'Ivoire
+                            <MapPin className="w-4 h-4" /> Côte d&apos;Ivoire
                         </button>
                         <button
                             onClick={() => setActiveFilter('Gbeya')}
@@ -168,13 +171,13 @@ export default function AnnuairePage() {
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20">
                         <div className="w-12 h-12 border-4 border-[#FF6600] border-t-transparent rounded-full animate-spin mb-4" />
-                        <p className="text-gray-500 font-bold">Recherche dans l'arbre...</p>
+                        <p className="text-gray-500 font-bold">Recherche dans l&apos;arbre...</p>
                     </div>
                 ) : filteredMembers.length === 0 ? (
                     <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm">
                         <Filter className="w-16 h-16 mx-auto text-gray-300 mb-4" />
                         <h3 className="text-xl font-black text-gray-900 mb-2">Aucun membre trouvé</h3>
-                        <p className="text-gray-500 font-medium">Testez d'autres mots-clés ou modifiez vos filtres.</p>
+                        <p className="text-gray-500 font-medium">Testez d&apos;autres mots-clés ou modifiez vos filtres.</p>
                         <button
                             onClick={() => { setSearchTerm(''); setActiveFilter('All'); }}
                             className="mt-6 px-6 py-2.5 bg-gray-100 font-bold text-gray-900 rounded-xl hover:bg-gray-200 transition-colors"

@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Image from "next/image";
-import Link from "next/link";
 import {
-    ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
+    ShieldCheck, CheckCircle, Clock, XCircle,
     Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Home, AlertTriangle
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
@@ -13,6 +11,8 @@ import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import AppLayout from '@/components/AppLayout';
 import InternalMessaging from '@/components/InternalMessaging';
+import { getUnreadNotificationCount, exportProfilesToCSV, markNotificationsAsRead as markNotifsRead } from '@/services/validation';
+import { getServiceClient } from '@/services/supabase';
 
 interface PendingProfile {
     id: string;
@@ -28,6 +28,7 @@ interface PendingProfile {
     residence_country?: string;
     residence_city?: string;
     mother_birth_date?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: any;
     pre_validated_by?: string | null;
     choa_approvals?: string[];
@@ -88,7 +89,7 @@ export default function ChoBoard() {
     const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
     const [viewingCommentsProfile, setViewingCommentsProfile] = useState<PendingProfile | null>(null);
     const [infoModalProfile, setInfoModalProfile] = useState<PendingProfile | null>(null);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [, setUnreadCount] = useState(0);
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -122,20 +123,18 @@ export default function ChoBoard() {
                 const data = await res.json();
                 
                 if (data.profiles) {
+                    /* eslint-disable @typescript-eslint/no-explicit-any */
                     const all: any[] = data.profiles;
                     setPendingProfiles(all.filter((u: any) => u.status === 'probable'));
                     setConfirmedProfiles(all.filter((u: any) => u.status === 'confirmed'));
                     setRejectedProfiles(all.filter((u: any) => u.status === 'rejected'));
+                    /* eslint-enable @typescript-eslint/no-explicit-any */
                 }
                 if (data.team) setTeam(data.team);
                 if (data.me) setMyProfile(data.me);
 
-                const { count } = await supabase
-                    .from('notifications')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('user_id', session.user.id)
-                    .eq('is_read', false);
-                setUnreadCount(count || 0);
+                const notifCount = await getUnreadNotificationCount(session.user.id);
+                setUnreadCount(notifCount);
 
             } catch (err) {
                 console.error("Erreur chargement CHO:", err);
@@ -148,6 +147,7 @@ export default function ChoBoard() {
         
         const interval = setInterval(load, 120000);
         return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [supabase, router]);
 
     const handleRequestExport = async () => {
@@ -172,28 +172,7 @@ export default function ChoBoard() {
             alert("Rien à exporter.");
             return;
         }
-        const headers = ["Nom", "Prénoms", "Quartier", "Statut", "Inscrit le"];
-        const rows = dataToExport.map(p => [
-            p.last_name || '—',
-            p.first_name || '—',
-            p.quartier_nom || '—',
-            p.status || 'pending',
-            new Date(p.created_at).toLocaleDateString('fr-FR')
-        ]);
-
-        const csvContent = [
-            headers.join(";"),
-            ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(";"))
-        ].join("\n");
-
-        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `export_${label}_${myProfile?.village_origin || 'village'}_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        exportProfilesToCSV(dataToExport, `export_${label}_${myProfile?.village_origin || 'village'}_${new Date().toISOString().split('T')[0]}.csv`);
     };
 
     const handleStatusChange = async (profileId: string, newStatus: string, isFinal: boolean = false) => {
@@ -306,9 +285,10 @@ export default function ChoBoard() {
     };
 
     const markNotificationsAsRead = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const svc = getServiceClient();
+        const user = await svc.getAuthUser().catch(() => null);
         if (user) {
-            await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id);
+            await markNotifsRead(user.id);
             setUnreadCount(0);
         }
     };
@@ -349,6 +329,7 @@ export default function ChoBoard() {
                             <div className="absolute -inset-2 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-3xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-700" />
                             <div className="relative w-20 h-20 rounded-3xl bg-gray-100 overflow-hidden border-4 border-white shadow-2xl">
                                 {profile.avatar_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF6600] to-orange-400 text-white text-2xl font-black">
@@ -517,7 +498,8 @@ export default function ChoBoard() {
         <AppLayout
             role="cho"
             activeTab={activeTab}
-            onTabChange={(id) => setActiveTab(id as any)}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+onTabChange={(id) => setActiveTab(id as any)}
             userName={(myProfile?.first_name || myProfile?.last_name) ? `${myProfile.first_name || ''} ${myProfile.last_name || ''}`.trim() : 'Chargement...'}
             userAvatar={myProfile?.avatar_url || null}
             onLogout={async () => { await supabase.auth.signOut(); router.push('/login'); }}
@@ -699,8 +681,8 @@ export default function ChoBoard() {
                             <TreePine className="w-12 h-12 text-purple-600" />
                         </div>
 
-                        <h2 className="font-black text-3xl text-gray-900 mb-2">Inscrire l'Ancêtre Fondateur</h2>
-                        <p className="text-gray-500 font-medium mb-10 max-w-sm">Cette action certifie immuablement l'origine du village dans le Grand Registre Patrimonial.</p>
+                        <h2 className="font-black text-3xl text-gray-900 mb-2">Inscrire l&apos;Ancêtre Fondateur</h2>
+                        <p className="text-gray-500 font-medium mb-10 max-w-sm">Cette action certifie immuablement l&apos;origine du village dans le Grand Registre Patrimonial.</p>
 
                         {ancestreSaved ? (
                             <div className="animate-in zoom-in duration-500 flex flex-col items-center">
@@ -708,7 +690,7 @@ export default function ChoBoard() {
                                     <CheckCircle className="w-10 h-10 text-green-600" />
                                 </div>
                                 <h3 className="font-black text-2xl text-gray-900 mb-2">Ancêtre Certifié !</h3>
-                                <p className="text-gray-500 font-medium">L'ancêtre <strong>{ancestreNom}</strong> est désormais le socle de ce village.</p>
+                                <p className="text-gray-500 font-medium">L&apos;ancêtre <strong>{ancestreNom}</strong> est désormais le socle de ce village.</p>
                                 <button onClick={() => setAncretreSaved(false)} className="mt-8 text-sm font-black text-purple-600 hover:underline">Inscrire un autre ancêtre</button>
                             </div>
                         ) : (
@@ -770,7 +752,7 @@ export default function ChoBoard() {
                                 >
                                     {isSavingAncetre
                                         ? <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-                                        : <><Stamp className="w-6 h-6 text-[#FF6600]" /> SCELLER L'HISTOIRE</>
+                                        : <><Stamp className="w-6 h-6 text-[#FF6600]" /> SCELLER L&apos;HISTOIRE</>
                                     }
                                 </button>
                                 <p className="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase mt-4">Action irréversible • Protocole CHO de Grade S</p>
@@ -799,6 +781,7 @@ export default function ChoBoard() {
                                         <div className="flex items-center gap-4 mb-6">
                                             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black overflow-hidden border-2 border-white shadow-md group-hover:scale-105 transition-transform">
                                                 {member.avatar_url ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={member.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                                                 ) : (
                                                     (member.first_name?.[0] || '?').toUpperCase()
@@ -827,7 +810,7 @@ export default function ChoBoard() {
                                     </div>
                                     <p className="text-gray-900 font-black text-xl">Aucun Adjoint Détecté</p>
                                     <p className="text-gray-500 font-medium max-w-xs mx-auto mt-2 text-sm italic">Les CHOa certifiés apparaîtront ici pour coordonner la validation.</p>
-                                    <button className="mt-8 text-[10px] font-black text-[#FF6600] px-6 py-3 bg-orange-50 rounded-full border border-orange-100 uppercase tracking-widest">Contacter l'Administration</button>
+                                    <button className="mt-8 text-[10px] font-black text-[#FF6600] px-6 py-3 bg-orange-50 rounded-full border border-orange-100 uppercase tracking-widest">Contacter l&apos;Administration</button>
                                 </div>
                             )}
                         </div>
@@ -869,6 +852,7 @@ export default function ChoBoard() {
                                 <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 text-green-600 flex items-center justify-center text-3xl font-black overflow-hidden border-2 border-white shadow-md flex-shrink-0">
                                         {infoModalProfile.avatar_url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img src={infoModalProfile.avatar_url} alt="Photo" className="w-full h-full object-cover" />
                                         ) : (
                                             (infoModalProfile.first_name?.[0] || '?').toUpperCase()
@@ -940,7 +924,7 @@ export default function ChoBoard() {
                                             <p className="font-bold text-gray-900">{infoModalProfile.emploi || infoModalProfile.fonction || 'Non renseigné'}</p>
                                         </div>
                                         <div className="col-span-2">
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Niveau d'études</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Niveau d&apos;études</p>
                                             <p className="font-bold text-gray-900">{infoModalProfile.niveau_etudes || 'N/A'}</p>
                                         </div>
                                     </div>
@@ -1007,7 +991,7 @@ export default function ChoBoard() {
                                             <h4 className="text-xs font-black uppercase text-orange-800 tracking-widest">Recours / Justificatif</h4>
                                         </div>
                                         <div className="bg-white/80 p-4 rounded-xl border border-orange-100">
-                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Explication de l'utilisateur :</p>
+                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Explication de l&apos;utilisateur :</p>
                                             <p className="text-sm font-semibold text-gray-900 leading-relaxed italic">« {infoModalProfile.metadata.proof_text} »</p>
                                         </div>
                                         {infoModalProfile.metadata.proof_url && (

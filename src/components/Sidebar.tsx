@@ -4,9 +4,9 @@ import React from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import {
-    Home, Users, TreePine, ShieldCheck, Flame,
+    Users, TreePine, ShieldCheck, Flame,
     BarChart3, Shield, Map, Share2, Stamp,
-    Settings, LogOut, ChevronRight, Bell, Menu, X, Activity
+    Settings, LogOut, ChevronRight, X, Activity
 } from 'lucide-react';
 
 export interface NavItem {
@@ -21,6 +21,7 @@ export interface NavItem {
 interface SidebarProps {
     role: string;
     activeTab: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onTabChange: (id: any) => void;
     userName: string;
     userAvatar: string | null;
@@ -94,7 +95,7 @@ export default function Sidebar({
                 if (!item.permission) return true;
                 
                 const perms = Array.isArray(item.permission) ? item.permission : [item.permission];
-                // @ts-ignore
+                // @ts-expect-error // supabase.transaction types are incomplete
                 return perms.some(p => permissions[p] === true);
             });
         }
@@ -196,6 +197,7 @@ export default function Sidebar({
                                 <div className="absolute -inset-1 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-2xl blur-sm opacity-20" />
                                 <div className="relative w-10 h-10 rounded-2xl bg-white overflow-hidden border-2 border-white shadow-sm flex items-center justify-center text-[#FF6600] font-black">
                                     {userAvatar ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
                                     ) : (
                                         userName[0]?.toUpperCase()

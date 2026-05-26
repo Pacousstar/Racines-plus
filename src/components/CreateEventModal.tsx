@@ -34,6 +34,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess, organisat
 
             if (error) throw error;
             onSuccess();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.error('Erreur création événement:', error);
             alert("Une erreur est survenue lors de la création de l'événement.");
@@ -58,7 +59,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess, organisat
                 <div className="overflow-y-auto p-6 flex-1">
                     <form id="createEventForm" onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-1.5">
-                            <label className="text-sm font-bold text-gray-700">Titre de l'événement *</label>
+                            <label className="text-sm font-bold text-gray-700">Titre de l&apos;événement *</label>
                             <input
                                 required
                                 type="text"
@@ -143,7 +144,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess, organisat
                             className="bg-[#FF6600] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#e55c00] transition-colors shadow-md shadow-[#FF6600]/20 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            Publier l'événement
+                            Publier l&apos;événement
                         </button>
                     </div>
                 </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { ShieldCheck, Printer, Award, XCircle } from 'lucide-react';
 
 interface CertificateProps {
@@ -27,7 +28,7 @@ const CertificateView: React.FC<CertificateProps> = ({ userData, onClose }) => {
                 {/* Header Actions */}
                 <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-b border-gray-100 print:hidden">
                     <h3 className="font-bold flex items-center gap-2">
-                        <Award className="w-5 h-5 text-amber-500" /> Certificat d'Appartenance
+                        <Award className="w-5 h-5 text-amber-500" /> Certificat d&apos;Appartenance
                     </h3>
                     <div className="flex items-center gap-2">
                         <button
@@ -55,7 +56,7 @@ const CertificateView: React.FC<CertificateProps> = ({ userData, onClose }) => {
 
                         <div className="text-center relative z-10">
                             <div className="flex justify-center mb-6">
-                                <img src="/LOGO_Racines.png" alt="Racines+" className="h-16 w-auto object-contain" />
+                                <Image src="/LOGO_Racines.png" alt="Racines+" width={180} height={64} className="h-16 w-auto object-contain" />
                             </div>
 
                             <h1 className="text-3xl md:text-4xl font-serif font-black text-gray-900 mb-2 uppercase tracking-tighter">
@@ -77,7 +78,7 @@ const CertificateView: React.FC<CertificateProps> = ({ userData, onClose }) => {
 
                             <div className="flex justify-center gap-16 mb-12">
                                 <div className="text-center">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-tighter">Sceau d'Authenticité numérique</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase mb-4 tracking-tighter">Sceau d&apos;Authenticité numérique</p>
                                     <div className="w-28 h-28 rounded-full border-4 border-double border-[#FF6600]/40 flex items-center justify-center relative rotate-12">
                                         <div className="w-24 h-24 rounded-full bg-[#FF6600]/5 flex flex-col items-center justify-center border border-[#FF6600]/30 scale-90">
                                             <ShieldCheck className="w-8 h-8 text-[#FF6600] mb-1" />
@@ -96,7 +97,7 @@ const CertificateView: React.FC<CertificateProps> = ({ userData, onClose }) => {
 
                             <div className="mb-8">
                                 <span className="px-4 py-1.5 bg-gray-900 text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
-                                    Délivré par l'Administration Racines+
+                                    Délivré par l&apos;Administration Racines+
                                 </span>
                             </div>
 

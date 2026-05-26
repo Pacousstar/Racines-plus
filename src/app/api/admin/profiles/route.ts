@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/admin/profiles
  * Retourne tous les profils (admin uniquement, via service role).
@@ -43,5 +41,7 @@ export async function GET(request: Request) {
             last_name: callerProfile.last_name,
             avatar_url: callerProfile.avatar_url
         }
+    }, {
+        headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
     });
 }

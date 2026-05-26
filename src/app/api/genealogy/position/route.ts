@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const body = await req.json();
-        const { profil_id, ancetre_id, village_nom, quartier_nom } = body;
+        const { profil_id, ancetre_id, quartier_nom } = body;
 
         if (!profil_id || !ancetre_id) {
             return NextResponse.json({ success: false, error: 'profil_id et ancetre_id sont requis.' }, { status: 400 });

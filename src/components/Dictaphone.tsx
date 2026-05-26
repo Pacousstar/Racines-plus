@@ -74,13 +74,13 @@ export default function Dictaphone({ userId }: { userId: string }) {
                 <Mic className="w-5 h-5 text-[#FF6600]" /> Témoignage Oral (IA)
             </h4>
             <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                Racontez l'histoire d'un ancêtre ou d'une lignée. L'IA de Racines+ la convertira automatiquement en texte pour les archives.
+                Racontez l&apos;histoire d&apos;un ancêtre ou d&apos;une lignée. L&apos;IA de Racines+ la convertira automatiquement en texte pour les archives.
             </p>
             
             {!isRecording && !audioUrl && (
                 <button onClick={startRecording} className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 py-3 px-6 rounded-2xl font-bold flex flex-col items-center justify-center w-full transition-all">
                     <Mic className="w-8 h-8 mb-2" />
-                    Commencer l'enregistrement
+                    Commencer l&apos;enregistrement
                 </button>
             )}
 
@@ -108,7 +108,7 @@ export default function Dictaphone({ userId }: { userId: string }) {
 
             {transcription && (
                 <div className="mt-4 p-4 bg-orange-50 border border-orange-100 rounded-2xl text-left text-sm text-gray-800 italic">
-                    "{transcription}"
+                    &quot;{transcription}&quot;
                     <button onClick={() => alert('Sauvegardé avec succès !')} className="mt-3 text-xs bg-orange-600 hover:bg-orange-700 text-white px-3 py-2 rounded-lg font-bold flex items-center gap-1 transition-colors">
                         <Upload className="w-3 h-3" /> Associer comme Archive Officielle
                     </button>

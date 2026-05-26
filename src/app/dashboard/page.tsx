@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import Image from "next/image";
-import Link from "next/link";
-import { User, Bell, LogOut, Mail, AlertCircle, X } from 'lucide-react';
+import { Mail, AlertCircle } from 'lucide-react';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import MemorialView from '@/components/MemorialView';
 import CertificateView from '@/components/CertificateView';
@@ -20,10 +18,11 @@ export default function Dashboard() {
     const [profileName, setProfileName] = useState<string>('');
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'mon_arbre' | 'memorial' | 'migration'>('mon_arbre');
-    const [isLoading, setIsLoading] = useState(true);
+    const [, setIsLoading] = useState(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [userProfile, setUserProfile] = useState<any>(null);
     const [showCertificate, setShowCertificate] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [, setUnreadCount] = useState(0);
     const [emailVerified, setEmailVerified] = useState(true);
     const [emailResent, setEmailResent] = useState(false);
 
@@ -141,8 +140,6 @@ export default function Dashboard() {
         router.push('/login');
     };
 
-    const initials = profileName !== 'Mon Profil' ? profileName.substring(0, 2).toUpperCase() : '…';
-
     return (
         <AppLayout
             role={userProfile?.role || 'user'}
@@ -159,6 +156,7 @@ export default function Dashboard() {
                         alert("🔒 Votre dossier doit d'abord être 'Certifié ✅' par le CHO pour demander un certificat.");
                     }
                 } else {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     setActiveTab(id as any);
                 }
             }}
@@ -184,7 +182,7 @@ export default function Dashboard() {
                             onClick={handleResendVerification}
                             className="flex items-center justify-center gap-2 text-xs font-black uppercase tracking-widest bg-amber-600 text-white px-6 py-3 rounded-2xl hover:bg-amber-700 transition-all shadow-lg shadow-amber-100"
                         >
-                            <Mail className="w-4 h-4" /> Renvoyer l'email
+                            <Mail className="w-4 h-4" /> Renvoyer l&apos;email
                         </button>
                     )}
                 </div>

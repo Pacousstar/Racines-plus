@@ -104,6 +104,7 @@ export default function MigrationMap() {
 
     useEffect(() => {
         fetchMigrationData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchMigrationData = async () => {

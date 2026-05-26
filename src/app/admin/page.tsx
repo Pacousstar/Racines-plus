@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+const MigrationMap = dynamic(() => import('@/components/MigrationMap'), { ssr: false });
+
+import React, { useState, useEffect, useMemo } from 'react';
 import Image from "next/image";
-import Link from "next/link";
 import {
-    Users, Map, ShieldCheck, Bell, Settings, LogOut, Plus,
+    Users, Map, ShieldCheck, Bell, Settings, Plus,
     CheckCircle, Clock, XCircle, TrendingUp, Globe, Lock, ChevronRight,
     BarChart3, FileText, Trash2, Edit3, Eye, AlertTriangle, Share2, Star, Search, Filter, Flame, Download,
     Shield, Activity, Key, Stamp, MapPin, Home, MessageSquare
@@ -12,55 +15,15 @@ import {
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
-import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
 import InvitationsList from '@/components/InvitationsList';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import { TreePine } from 'lucide-react';
-import MigrationMap from '@/components/MigrationMap';
-import InternalMessaging from '@/components/InternalMessaging';
 import AppLayout from '@/components/AppLayout';
 import ProofViewerModal from '@/components/ProofViewerModal';
-
-
-interface Profile {
-    id: string;
-    first_name: string;
-    last_name: string;
-    role: string;
-    status: string;
-    village_origin: string;
-    avatar_url?: string | null;
-    created_at: string;
-    is_ambassadeur?: boolean;
-    gender?: string;
-    niveau_etudes?: string;
-    birth_date?: string;
-    export_authorized?: boolean;
-    export_requested?: boolean;
-    certificate_requested?: boolean;
-    certificate_issued?: boolean;
-    certificate_issued_at?: string;
-    email?: string;
-    phone_1?: string;
-    whatsapp_1?: string;
-    quartier_nom?: string;
-    metadata?: any;
-    emploi?: string;
-    fonction?: string;
-    residence_country?: string;
-    residence_city?: string;
-    diplomes?: string;
-    retraite?: boolean;
-    nombre_enfants?: number;
-    details_enfants?: any[];
-    consentement_enfants?: boolean;
-    adresse_residence?: string;
-    phone_2?: string;
-    whatsapp_2?: string;
-    rejection_motif?: string;
-    rejection_observations?: string;
-}
+import type { Profile, Village, Quartier, Victim, MemorialVictim, StatsData, AdminPermission, ActivityLog } from '@/types';
+import { computeStats, filterProfiles } from '@/services/admin';
+import { getServiceClient } from '@/services/supabase';
 
 interface Village {
     id: string;
@@ -138,8 +101,8 @@ interface ActivityLog {
     action_type: string;
     table_name: string;
     record_id: string;
-    old_data: any;
-    new_data: any;
+    old_data: Record<string, unknown>;
+    new_data: Record<string, unknown>;
     timestamp: string;
     user_details?: { first_name: string; last_name: string };
 }
@@ -178,7 +141,6 @@ export default function AdminDashboard() {
 
     const [newVillageName, setNewVillageName] = useState('');
     const [newVillageRegion, setNewVillageRegion] = useState('');
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [ancestorForm, setAncestorForm] = useState({ nom: '', periode: '', source: '', villageNom: 'Toa-Zéo' });
     const [isSavingAncestor, setIsSavingAncestor] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -188,7 +150,7 @@ export default function AdminDashboard() {
 
     const [valSearchTerm, setValSearchTerm] = useState('');
     const [valFilterStatus, setValFilterStatus] = useState('all');
-    const [valFilterVillage, setValFilterVillage] = useState('all');
+    const [valFilterVillage] = useState('all');
 
     const [memorialForm, setMemorialForm] = useState({ nom: '', prenoms: '', genre: 'M', age: '', village_id: '', quartier: '', description: '' });
     const [isSavingMemorial, setIsSavingMemorial] = useState(false);
@@ -198,10 +160,13 @@ export default function AdminDashboard() {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
     // États pour les commentaires
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [viewingCommentsProfile, setViewingCommentsProfile] = useState<any | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [comments, setComments] = useState<any[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isPostingComment, setIsPostingComment] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [viewingProofProfile, setViewingProofProfile] = useState<any | null>(null);
     const [isProofModalOpen, setIsProofModalOpen] = useState(false);
 
@@ -211,7 +176,7 @@ export default function AdminDashboard() {
     const [valPage, setValPage] = useState(1);
     const [villagesPage, setVillagesPage] = useState(1);
     const [memorialPage, setMemorialPage] = useState(1);
-    const [logsPage, setLogsPage] = useState(1);
+    const [logsPage] = useState(1);
     const [assistantPage, setAssistantPage] = useState(1);
     const [certificatesPage, setCertificatesPage] = useState(1);
     const itemsPerPage = 20;
@@ -312,86 +277,29 @@ export default function AdminDashboard() {
             setProfiles(profilesData || []);
 
             // Charger le reste des données en parallèle
-            const [villagesRes, quartiersRes, victimsRes, memorialRes] = await Promise.all([
-                supabase
-                    .from('villages')
-                    .select('*')
-                    .order('nom', { ascending: true }),
-                supabase
-                    .from('quartiers')
-                    .select('*')
-                    .order('nom', { ascending: true }),
+            const svc = getServiceClient();
+            const [villages, quartiers, victimsRes, memorialVictims] = await Promise.all([
+                svc.getVillages().catch(() => []),
+                svc.getQuartiers().catch(() => []),
                 fetch('/api/admin/victims'),
-                supabase.from('memorial_victims').select('*').order('created_at', { ascending: false })
+                svc.getMemorialVictims().catch(() => [])
             ]);
 
             if (profilesData && profilesData.length > 0) {
-                setProfiles(profilesData);
-                // Séparer les simples membres (role='user') des collaborateurs
-                const usersOnly = profilesData.filter((p: any) => p.role === 'user');
-                const collaborateurs = profilesData.filter((p: any) => ['cho', 'choa', 'admin'].includes(p.role) || p.is_ambassadeur);
-
-                setStats({
-                    // Membres (users uniquement)
-                    totalUsers: usersOnly.length,
-                    totalCollaborateurs: collaborateurs.length,
-
-                    // Certifiés via workflow CHOa (users confirmés + on distingue des préalables)
-                    confirmedUsers: usersOnly.filter((p: any) => p.status === 'confirmed').length,
-
-                    // CHO/CHOa/admin confirmés d'office
-                    confirmedPrelim: profilesData.filter((p: any) =>
-                        ['cho', 'choa', 'admin'].includes(p.role) && p.status === 'confirmed'
-                    ).length,
-
-                    pendingUsers: usersOnly.filter((p: any) =>
-                        !p.status ||
-                        p.status === 'pending' ||
-                        p.status === 'pending_choa' ||
-                        p.status === 'pre_approved' ||
-                        p.status === 'probable'
-                    ).length,
-                    rejectedUsers: usersOnly.filter((p: any) => p.status === 'rejected').length,
-
-                    genderStats: {
-                        male: usersOnly.filter((p: any) => p.gender === 'Homme').length,
-                        female: usersOnly.filter((p: any) => p.gender === 'Femme').length,
-                        unknown: usersOnly.filter((p: any) => !p.gender).length
-                    },
-                    educationStats: usersOnly.reduce((acc: Record<string, number>, p: any) => {
-                        const level = p.niveau_etudes || 'Non renseigné';
-                        acc[level] = (acc[level] || 0) + 1;
-                        return acc;
-                    }, {}),
-                    pendingCertificates: usersOnly.filter((p: any) => p.certificate_requested && !p.certificate_issued).length,
-                    pendingExports: usersOnly.filter((p: any) => p.export_requested && !p.export_authorized).length,
-                    pendingRecours: usersOnly.filter((p: any) => p.status === 'pending_choa').length,
-                    contactStats: {
-                        hasPhone: usersOnly.filter((p: any) => p.phone_1).length,
-                        hasWhatsapp: usersOnly.filter((p: any) => p.whatsapp_1).length
-                    }
-
-                });
+                setStats(computeStats(profilesData));
             }
 
-            if (villagesRes.data) {
-                setVillages(villagesRes.data);
-            }
+            setVillages(villages);
+            setQuartiers(quartiers);
 
-            if (quartiersRes.data) {
-                setQuartiers(quartiersRes.data);
-            }
-
-            if (victimsRes.ok) {
+            if (memorialRes.ok) {
                 const victimsData = await victimsRes.json();
                 if (victimsData.success) {
                     setVictims(victimsData.victims);
                 }
             }
 
-            if (memorialRes.data) {
-                setMemorialVictims(memorialRes.data);
-            }
+            setMemorialVictims(memorialVictims);
 
             // Charger les permissions et logs pour TOUS les admins (pas uniquement un email hardcodé)
             const [permsRes, logsRes] = await Promise.all([
@@ -413,11 +321,12 @@ export default function AdminDashboard() {
             if (logsRes.error) {
                 console.error('[admin] ERREUR RLS activity_logs:', logsRes.error);
             }
-            if (logsRes.data) setAuditLogs(logsRes.data as any);
+            if (logsRes.data) setAuditLogs(logsRes.data as ActivityLog[]);
 
             setIsLoading(false);
         };
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [supabase, router]);
 
     const handleLogout = async () => {
@@ -462,7 +371,7 @@ export default function AdminDashboard() {
 
     const handleRoleChange = async (userId: string, newRole: string) => {
         setIsLoading(true);
-        const updateData: any = { role: newRole };
+        const updateData: Record<string, unknown> = { role: newRole };
 
         if (['cho', 'choa', 'admin'].includes(newRole)) {
             // Vérifier si l'utilisateur est déjà certifié par le CHO
@@ -498,18 +407,6 @@ export default function AdminDashboard() {
             const { data } = await supabase.from('admin_permissions').select('*').eq('user_id', userId).single();
             if (data) setAssistantPermissions(prev => ({ ...prev, [userId]: data }));
         }
-        setIsLoading(false);
-    };
-
-    const handleAssignQuartier = async (userId: string, quartierNom: string) => {
-        setIsLoading(true);
-        const { error } = await supabase.from('profiles').update({ quartier_nom: quartierNom }).eq('id', userId);
-        if (error) {
-            alert("Erreur lors de l'assignation du quartier.");
-            return;
-        }
-        setProfiles(prev => prev.map(p => p.id === userId ? { ...p, quartier_nom: quartierNom } : p));
-        alert(`Quartier ${quartierNom} assigné avec succès.`);
         setIsLoading(false);
     };
 
@@ -602,8 +499,8 @@ export default function AdminDashboard() {
             } else {
                 alert(`Erreur de suppression : ${result.error}`);
             }
-        } catch (err: any) {
-            alert(`Erreur: ${err.message}`);
+        } catch (err: unknown) {
+            alert(`Erreur: ${err instanceof Error ? err.message : 'Erreur inconnue'}`);
         }
         setIsLoading(false);
     };
@@ -714,8 +611,8 @@ export default function AdminDashboard() {
 
             alert(`Ancêtre ${ancestorForm.nom} créé avec succès !`);
             setAncestorForm({ nom: '', periode: '', source: '', villageNom: 'Toa-Zéo' });
-        } catch (error: any) {
-            alert(error.message);
+        } catch (error: unknown) {
+            alert(error instanceof Error ? error.message : 'Erreur inconnue');
         } finally {
             setIsSavingAncestor(false);
         }
@@ -788,16 +685,15 @@ export default function AdminDashboard() {
         document.body.removeChild(link);
     };
 
-    const filteredProfiles = profiles.filter(p => {
-        const matchSearch = (p.first_name + ' ' + p.last_name).toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (p.village_origin || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchRole = filterRole === 'all' || p.role === filterRole;
-        const matchStatus = filterStatus === 'all' || p.status === filterStatus;
-        const matchVillage = filterVillage === 'all' || p.village_origin === filterVillage;
-        return matchSearch && matchRole && matchStatus && matchVillage;
-    });
+    const filteredProfiles = useMemo(
+        () => filterProfiles(profiles, searchTerm, filterRole, filterStatus, filterVillage),
+        [profiles, searchTerm, filterRole, filterStatus, filterVillage]
+    );
 
-    const uniqueVillages = Array.from(new Set(profiles.map(p => p.village_origin).filter(Boolean)));
+    const uniqueVillages = useMemo(
+        () => Array.from(new Set(profiles.map(p => p.village_origin).filter(Boolean))),
+        [profiles]
+    );
 
     // Reset pagination when filters change
     useEffect(() => {
@@ -808,19 +704,22 @@ export default function AdminDashboard() {
         setValPage(1);
     }, [valSearchTerm, valFilterStatus, valFilterVillage]);
 
-    const validationsProfiles = profiles.filter(p => {
-        const matchSearch = (p.first_name + ' ' + p.last_name + ' ' + (p.phone_1 || '')).toLowerCase().includes(valSearchTerm.toLowerCase());
-        const matchStatus = valFilterStatus === 'all' || p.status === valFilterStatus;
-        const matchVillage = valFilterVillage === 'all' || p.village_origin === valFilterVillage;
-        return matchSearch && matchStatus && matchVillage;
-    });
+    const validationsProfiles = useMemo(
+        () => filterProfiles(profiles, valSearchTerm, 'all', valFilterStatus, valFilterVillage),
+        [profiles, valSearchTerm, valFilterStatus, valFilterVillage]
+    );
 
-    const paginatedValidations = validationsProfiles.slice((valPage - 1) * itemsPerPage, valPage * itemsPerPage);
-    const paginatedProfiles = filteredProfiles.slice((usersPage - 1) * itemsPerPage, usersPage * itemsPerPage);
-    const totalValPages = Math.ceil(validationsProfiles.length / itemsPerPage);
-    const totalUsersPages = Math.ceil(filteredProfiles.length / itemsPerPage);
+    const paginatedValidations = useMemo(
+        () => validationsProfiles.slice((valPage - 1) * itemsPerPage, valPage * itemsPerPage),
+        [validationsProfiles, valPage]
+    );
+    const paginatedProfiles = useMemo(
+        () => filteredProfiles.slice((usersPage - 1) * itemsPerPage, usersPage * itemsPerPage),
+        [filteredProfiles, usersPage]
+    );
+    const totalUsersPages = useMemo(() => Math.ceil(filteredProfiles.length / itemsPerPage), [filteredProfiles.length]);
 
-    const kpis = [
+    const kpis = useMemo(() => [
         {
             label: 'Membres Inscrits',
             sublabel: 'Simples utilisateurs (hors collaborateurs)',
@@ -851,7 +750,7 @@ export default function AdminDashboard() {
         },
         {
             label: 'Demandes Export 📥',
-            sublabel: 'En attente d’autorisation',
+            sublabel: 'En attente d\'autorisation',
             value: stats.pendingExports,
             icon: Download,
             color: 'text-purple-600',
@@ -869,7 +768,30 @@ export default function AdminDashboard() {
             border: 'border-red-100',
             highlight: stats.pendingRecours > 0
         },
-    ];
+    ], [stats]);
+
+    const isSuperAdmin = useMemo(
+        () => adminName.toLowerCase().includes('pacous') || profiles.find(p => p.id === currentUserId)?.email?.toLowerCase() === 'pacous2000@gmail.com',
+        [adminName, profiles, currentUserId]
+    );
+
+    const myPerms = useMemo(() => {
+        const dbPerms = assistantPermissions[currentUserId || ''];
+        if (dbPerms) return dbPerms;
+        return {
+            can_validate_users: isSuperAdmin,
+            can_manage_villages: isSuperAdmin,
+            can_manage_ancestors: isSuperAdmin,
+            can_manage_memorial: isSuperAdmin,
+            can_issue_certificates: isSuperAdmin,
+            can_manage_invitations: isSuperAdmin,
+            can_export_data: isSuperAdmin,
+            can_manage_roles: isSuperAdmin,
+            can_view_audit_logs: isSuperAdmin,
+            can_manage_settings: isSuperAdmin
+        } as AdminPermission;
+    }, [isSuperAdmin, assistantPermissions, currentUserId]);
+
 
 
     const isSuperAdmin = adminName.toLowerCase().includes('pacous') || profiles.find(p => p.id === currentUserId)?.email?.toLowerCase() === 'pacous2000@gmail.com';
@@ -886,25 +808,11 @@ export default function AdminDashboard() {
         can_manage_settings: isSuperAdmin
     };
 
-    const tabs = [
-        { key: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
-        { key: 'mon_arbre', label: 'Mon Arbre', icon: TreePine },
-        { key: 'users', label: 'Comptes & Rôles', icon: Users, hidden: !isSuperAdmin && !myPerms.can_manage_roles },
-        { key: 'assistants', label: 'Assistants Admin', icon: Shield, hidden: !isSuperAdmin },
-        { key: 'villages', label: 'Villages & Quartiers', icon: Map, hidden: !isSuperAdmin && !myPerms.can_manage_villages && !myPerms.can_manage_ancestors },
-        { key: 'validations', label: 'Validations', icon: ShieldCheck, hidden: !isSuperAdmin && !myPerms.can_validate_users },
-        { key: 'memorial', label: 'Crise 2010', icon: Flame, hidden: !isSuperAdmin && !myPerms.can_manage_memorial },
-        { key: 'audit', label: 'Journal (Audit)', icon: Activity, hidden: !isSuperAdmin && !myPerms.can_view_audit_logs },
-        { key: 'invitations', label: 'Invitations', icon: Share2, hidden: !isSuperAdmin && !myPerms.can_manage_invitations },
-        { key: 'certificates', label: 'Certificats', icon: Stamp, hidden: !isSuperAdmin && !myPerms.can_issue_certificates },
-        { key: 'settings', label: 'Paramètres', icon: Settings, hidden: !isSuperAdmin && !myPerms.can_manage_settings },
-    ];
-
     return (
         <AppLayout
             role="admin"
             activeTab={activeTab}
-            onTabChange={(id) => setActiveTab(id as any)}
+            onTabChange={(id) => setActiveTab(id as typeof activeTab)}
             userName={adminName || 'Administrateur'}
             userAvatar={adminAvatar || null}
             onLogout={handleLogout}
@@ -964,7 +872,7 @@ export default function AdminDashboard() {
                             </div>
                             <div>
                                 <p className="text-xl font-black text-amber-900">{stats.confirmedPrelim}</p>
-                                <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">Certifiés d'office</p>
+                                <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider">Certifiés d&apos;office</p>
                                 <p className="text-[9px] text-amber-400">CHO/CHOa désignés par l&apos;admin</p>
                             </div>
                         </div>
@@ -1075,7 +983,7 @@ export default function AdminDashboard() {
                                 { label: 'Associer CHO/CHOa', icon: Plus, onClick: () => setActiveTab('users') },
                                 { label: 'Nouveau village', icon: Globe, onClick: () => setActiveTab('villages') },
                                 { label: 'Voir les validations', icon: ShieldCheck, onClick: () => setActiveTab('validations') },
-                                { label: 'Inviter', icon: Share2, onClick: () => setIsInviteOpen(true) },
+                                { label: 'Inviter', icon: Share2 },
                             ].map(action => (
                                 <button key={action.label} onClick={action.onClick} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-gray-100 hover:border-[#FF6600]/30 hover:bg-orange-50 transition-all group">
                                     <action.icon className="w-6 h-6 text-[#FF6600] group-hover:scale-110 transition-transform" />
@@ -1094,6 +1002,7 @@ export default function AdminDashboard() {
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold overflow-hidden border border-gray-100">
                                             {p.avatar_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                                             ) : (
                                                 (p.first_name?.[0] || '?').toUpperCase()
@@ -1191,6 +1100,7 @@ export default function AdminDashboard() {
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-8 h-8 rounded-full bg-[#FF6600]/10 text-[#FF6600] flex items-center justify-center text-xs font-bold relative overflow-hidden border border-gray-100">
                                                         {p.avatar_url ? (
+                                                            // eslint-disable-next-line @next/next/no-img-element
                                                             <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                                                         ) : (
                                                             (p.first_name?.[0] || '?').toUpperCase()
@@ -1499,10 +1409,10 @@ export default function AdminDashboard() {
                                                 <span>CRÉATION PRIVILÉGIÉE...</span>
                                             </div>
                                         ) : (
-                                            <><ShieldCheck className="w-6 h-6" /> GÉNÉRER L'ACCÈS ASSISTANT</>
+                                            <><ShieldCheck className="w-6 h-6" /> GÉNÉRER L&apos;ACCÈS ASSISTANT</>
                                         )}
                                     </button>
-                                    <p className="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase">L'activation est instantanée • Protocole de Sécurité S-Class</p>
+                                    <p className="text-[10px] text-gray-400 text-center font-bold tracking-widest uppercase">L&apos;activation est instantanée • Protocole de Sécurité S-Class</p>
                                 </div>
                             </div>
                         </div>
@@ -1551,7 +1461,7 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        {[
+                                                        {([
                                                             { key: 'can_validate_users', icon: ShieldCheck },
                                                             { key: 'can_manage_villages', icon: Map },
                                                             { key: 'can_manage_ancestors', icon: TreePine },
@@ -1561,11 +1471,11 @@ export default function AdminDashboard() {
                                                             { key: 'can_manage_roles', icon: Users },
                                                             { key: 'can_view_audit_logs', icon: Activity },
                                                             { key: 'can_manage_settings', icon: Settings }
-                                                        ].map(perm => (
+                                                        ] as const).map((perm: { key: keyof AdminPermission; icon: React.ElementType }) => (
                                                             <td key={perm.key} className="py-4 px-2 text-center">
                                                                 <button
-                                                                    onClick={() => handleUpdatePermission(p.id, perm.key as any, !perms[perm.key as keyof typeof perms])}
-                                                                    className={`p-2 rounded-xl transition-all ${perms[perm.key as keyof typeof perms] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+                                                                    onClick={() => handleUpdatePermission(p.id, perm.key, !perms[perm.key])}
+                                                                    className={`p-2 rounded-xl transition-all ${perms[perm.key] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}
                                                                 >
                                                                     <perm.icon className="w-4 h-4" />
                                                                 </button>
@@ -1837,12 +1747,13 @@ export default function AdminDashboard() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {paginatedValidations.map((p: any) => (
+                                    {paginatedValidations.map((p: Profile) => (
                                         <tr key={p.id} className="hover:bg-orange-50/20 transition-all duration-300 group">
                                             <td className="py-6 px-8">
                                                 <div className="flex items-center gap-5">
                                                     <div className="w-12 h-12 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex-shrink-0">
                                                         {p.avatar_url ? (
+                                                            // eslint-disable-next-line @next/next/no-img-element
                                                             <img src={p.avatar_url} alt="" className="w-full h-full object-cover" />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center bg-orange-100 text-[#FF6600] font-black text-sm">
@@ -2149,6 +2060,7 @@ export default function AdminDashboard() {
                                                         <div className="flex items-center gap-3">
                                                             <div className="relative w-10 h-10 rounded-xl bg-white shadow-md border-2 border-white overflow-hidden flex items-center justify-center text-[10px] font-black text-gray-900">
                                                                 {authorProfile?.avatar_url ? (
+                                                                    // eslint-disable-next-line @next/next/no-img-element
                                                                     <img src={authorProfile.avatar_url} alt="" className="w-full h-full object-cover" />
                                                                 ) : (
                                                                     (log.user_details?.first_name?.[0] || 'A').toUpperCase()
@@ -2201,9 +2113,7 @@ export default function AdminDashboard() {
                             <p className="text-orange-700/80 text-sm mt-1">
                                 Suivez vos invitations personnelles. À terme, cette section inclura les statistiques globales de viralité de la plateforme.
                             </p>
-                            <button onClick={() => setIsInviteOpen(true)} className="mt-4 bg-[#FF6600] hover:bg-[#e55c00] text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md transition-transform active:scale-95">
-                                + Envoyer une nouvelle invitation
-                            </button>
+
                         </div>
                         <InvitationsList userId={currentUserId} />
                     </div>
@@ -2256,6 +2166,7 @@ export default function AdminDashboard() {
                                                                 <div className="flex items-center gap-4">
                                                                     <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center font-black text-xs border border-white shadow-sm transition-transform group-hover:scale-110">
                                                                         {p.avatar_url ? (
+                                                                            // eslint-disable-next-line @next/next/no-img-element
                                                                             <img src={p.avatar_url} alt="avatar" className="w-full h-full object-cover rounded-2xl" />
                                                                         ) : (
                                                                             (p.first_name?.[0] || '?').toUpperCase()
@@ -2338,7 +2249,7 @@ export default function AdminDashboard() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Configuration <span className="text-[#FF6600]">Système</span></h1>
-                            <p className="text-gray-500 font-medium mt-1">Gérez les constantes et l'identité de la plateforme Racines+.</p>
+                            <p className="text-gray-500 font-medium mt-1">Gérez les constantes et l&apos;identité de la plateforme Racines+.</p>
                         </div>
                     </div>
 
@@ -2465,7 +2376,7 @@ export default function AdminDashboard() {
                         <div className="relative z-10">
                             <p className="text-[#FF6600] text-xs font-black uppercase tracking-[0.3em] mb-2">Protocole de Sécurité S-Class</p>
                             <h3 className="text-white text-2xl font-black max-w-md leading-tight">Le système Racines+ est optimisé pour Toa-Zéo.</h3>
-                            <p className="text-gray-400 text-sm mt-3 font-medium">Toutes les actions de maintenance sont tracées dans le journal d'audit cryptographique.</p>
+                            <p className="text-gray-400 text-sm mt-3 font-medium">Toutes les actions de maintenance sont tracées dans le journal d&apos;audit cryptographique.</p>
                         </div>
                         <div className="relative z-10 hidden md:block">
                             <div className="w-20 h-20 bg-white/5 rounded-[2rem] border border-white/10 flex items-center justify-center backdrop-blur-md">
@@ -2499,9 +2410,9 @@ export default function AdminDashboard() {
                                     <Activity className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-gray-900 leading-tight">Détail de l'Activité</h2>
+                                    <h2 className="text-xl font-black text-gray-900 leading-tight">Détail de l&apos;Activité</h2>
                                     <p className="text-xs text-gray-600 font-bold uppercase tracking-wider">
-                                        ID d'enregistrement : {selectedAuditLog.record_id}
+                                        ID d&apos;enregistrement : {selectedAuditLog.record_id}
                                     </p>
                                 </div>
                             </div>

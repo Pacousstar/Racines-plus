@@ -41,6 +41,7 @@ export default function MemberCard({ member }: MemberCardProps) {
             {badge}
 
             <div className="flex items-start gap-4 mb-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                     src={member.avatar_url || `https://ui-avatars.com/api/?name=${member.first_name}+${member.last_name}&background=124E35&color=fff`}
                     alt={`${member.first_name} ${member.last_name}`}

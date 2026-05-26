@@ -68,6 +68,7 @@ export default function ProofViewerModal({ isOpen, onClose, profile, onApprove, 
                         {profile.metadata?.proof_url ? (
                             <div className="group relative rounded-[2rem] overflow-hidden border-4 border-gray-50 shadow-xl bg-gray-100 aspect-video flex items-center justify-center">
                                 {hasImage ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img 
                                         src={profile.metadata.proof_url} 
                                         alt="Preuve" 

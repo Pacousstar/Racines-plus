@@ -84,7 +84,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                             <UserPlus className="w-5 h-5" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Ajouter à l'Arbre</h2>
+                            <h2 className="text-xl font-bold text-gray-900">Ajouter à l&apos;Arbre</h2>
                             <p className="text-xs text-gray-500">Village : {villageNom}</p>
                         </div>
                     </div>
@@ -209,7 +209,7 @@ export default function AddAncestorModal({ isOpen, onClose, onSuccess, villageNo
                                         <option value="">-- Type de source --</option>
                                         <option value="oral">Témoignage oral</option>
                                         <option value="archive">Archive publique</option>
-                                        <option value="acte">Acte d'état civil</option>
+                                        <option value="acte">Acte d&apos;état civil</option>
                                         <option value="religieux">Document religieux</option>
                                         <option value="autre">Autre</option>
                                     </select>

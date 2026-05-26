@@ -61,6 +61,7 @@ export async function POST(req: Request) {
             raw_response: content
         });
         
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.error("Erreur Analyse DeepSeek:", e);
         return NextResponse.json({ error: e.message }, { status: 500 });

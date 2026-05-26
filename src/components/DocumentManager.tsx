@@ -84,6 +84,7 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
             if (dbError) throw dbError;
 
             fetchDocuments();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Erreur Upload Archive:', err);
             setUploadError(err.message);
@@ -104,6 +105,7 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
             if (dbError) throw dbError;
 
             setDocuments(documents.filter(d => d.id !== id));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Erreur suppression:', err);
             alert('Erreur: ' + err.message);
@@ -111,7 +113,7 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
     };
 
     // Création d'un "Signed URL" temporaire pour les documents privés !
-    const handleDownload = async (filePath: string, title: string) => {
+    const handleDownload = async (filePath: string) => {
         try {
             // Lien valable 60 secondes (1 min) pour sécuriser l'accès
             const { data, error } = await supabase.storage.from('archives').createSignedUrl(filePath, 60);
@@ -173,7 +175,7 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
                     ) : documents.length === 0 ? (
                         <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100">
                             <p className="text-gray-500 font-medium text-sm">Votre coffre aux archives est actuellement vide.</p>
-                            <p className="text-gray-400 text-xs mt-1">Les documents téléversés ici ne seront visibles que par vous, l'Admin et votre CHO.</p>
+                            <p className="text-gray-400 text-xs mt-1">Les documents téléversés ici ne seront visibles que par vous, l&apos;Admin et votre CHO.</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
@@ -189,7 +191,7 @@ export default function DocumentManager({ userId }: DocumentManagerProps) {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => handleDownload(doc.file_url, doc.title)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Télécharger / Voir">
+                                        <button onClick={() => handleDownload(doc.file_url)} className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Télécharger / Voir">
                                             <Download className="w-4 h-4" />
                                         </button>
                                         <button onClick={() => handleDelete(doc.id, doc.file_url)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">

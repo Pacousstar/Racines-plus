@@ -70,6 +70,8 @@ export async function GET() {
                             village: profile.village_origin
                         }],
                         links: []
+                    }, {
+                        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
                     });
                 }
             }
@@ -77,7 +79,9 @@ export async function GET() {
             // Convertir Map en Array
             const nodes = Array.from(nodesMap.values());
 
-            return NextResponse.json({ nodes, links });
+            return NextResponse.json({ nodes, links }, {
+                headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
+            });
 
         } finally {
             await session.close();

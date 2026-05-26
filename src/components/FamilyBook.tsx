@@ -1,17 +1,19 @@
 import React from 'react';
-import { TreePine, ScrollText, Award, MapPin, Calendar, Camera, Crown, Shield, Flower2, Quote, History, BookOpen, Wand2, Sparkles, Loader2, RefreshCw, Heart } from 'lucide-react';
+import Image from 'next/image';
+import { TreePine, ScrollText, Award, MapPin, Crown, Shield, Flower2, Quote, History, BookOpen, Wand2, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 interface FamilyBookProps {
     profile: any;
-    familyNodes: any[]; // Ce sont les parents, fratrie, etc.
-    archives: any[];
+    familyNodes: any[];
     heritage?: any;
     format?: 'portrait' | 'landscape';
     initialStory?: string;
     onSaveStory?: (story: string) => void;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
-export default function FamilyBook({ profile, familyNodes, archives, heritage, format = 'portrait', initialStory, onSaveStory }: FamilyBookProps) {
+export default function FamilyBook({ profile, familyNodes, heritage, format = 'portrait', initialStory, onSaveStory }: FamilyBookProps) {
     const [story, setStory] = React.useState(initialStory || "");
     const [isGenerating, setIsGenerating] = React.useState(false);
     const isLandscape = format === 'landscape';
@@ -39,7 +41,7 @@ export default function FamilyBook({ profile, familyNodes, archives, heritage, f
                 
                 <div className="flex flex-col items-center gap-8 mt-12 scale-110">
                     <div className="w-32 h-32 bg-[#1c3a2f] rounded-[2.5rem] flex items-center justify-center p-6 shadow-2xl rotate-3">
-                        <img src="/LOGO_Racines.png" alt="Logo" className="w-full h-full object-contain brightness-0 invert" />
+                        <Image src="/LOGO_Racines.png" alt="Logo" width={128} height={128} className="w-full h-full object-contain brightness-0 invert" />
                     </div>
                     <div className="text-center">
                         <h2 className="text-amber-600 text-sm tracking-[0.5em] font-black uppercase mb-2">Mémoire de Ligné</h2>
@@ -299,7 +301,10 @@ export default function FamilyBook({ profile, familyNodes, archives, heritage, f
                             {parents.map((p, i) => (
                                 <div key={i} className="flex flex-col items-center relative">
                                     <div className={`w-28 h-28 rounded-3xl border-4 border-[#1c3a2f] shadow-2xl flex items-center justify-center overflow-hidden ${p.side === 'paternal' ? 'bg-blue-600' : 'bg-[#C05C3C]'}`}>
-                                        {p.avatar_url ? <img src={p.avatar_url} alt="Photo" className="w-full h-full object-cover" /> : (
+                                        {p.avatar_url ? <>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={p.avatar_url} alt="Photo" className="w-full h-full object-cover" />
+                                        </> : (
                                             p.side === 'paternal' ? <Shield className="w-12 h-12 text-white/40" /> : <Flower2 className="w-12 h-12 text-white/40" />
                                         )}
                                     </div>

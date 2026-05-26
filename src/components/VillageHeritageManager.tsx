@@ -22,7 +22,7 @@ export default function VillageHeritageManager({ villageName }: { villageName: s
     useEffect(() => {
         async function loadHeritage() {
             setIsLoading(true);
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('village_heritage')
                 .select('*')
                 .eq('village_name', villageName)

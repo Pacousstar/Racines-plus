@@ -8,7 +8,6 @@ import { toast } from 'react-hot-toast';
 interface InviteModalProps {
     isOpen: boolean;
     onClose: () => void;
-    inviterId?: string;
     inviterName?: string;
     villageNom?: string;
 }
@@ -16,7 +15,6 @@ interface InviteModalProps {
 export default function InviteModal({
     isOpen,
     onClose,
-    inviterId = '',
     inviterName = '',
     villageNom = 'Toa-Zéo'
 }: InviteModalProps) {

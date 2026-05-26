@@ -20,6 +20,7 @@ export async function GET() {
 
     try {
         const session = await getSession();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let victims: any[] = [];
 
         try {
@@ -40,6 +41,7 @@ export async function GET() {
 
             if (profilesWithChildren) {
                 profilesWithChildren.forEach(profile => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const children = profile.details_enfants as any[];
                     if (Array.isArray(children)) {
                         children.forEach(child => {
@@ -89,7 +91,9 @@ export async function GET() {
                 }
             }
 
-            return NextResponse.json({ success: true, victims });
+            return NextResponse.json({ success: true, victims }, {
+                headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' }
+            });
         } finally {
             await session.close();
         }

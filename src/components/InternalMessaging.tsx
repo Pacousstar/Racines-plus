@@ -36,6 +36,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
         return [];
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rolesIcons: Record<string, { icon: any, label: string, color: string }> = {
         admin: { icon: Shield, label: 'Administration', color: 'text-purple-600' },
         cho: { icon: ShieldCheck, label: 'Chefs (CHO)', color: 'text-blue-600' },
@@ -50,7 +51,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
 
         const loadMessages = async () => {
             setIsLoading(true);
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('internal_messages')
                 .select('*')
                 .in('receiver_role', [selectedRole, currentUserRole])
@@ -67,7 +68,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
 
                 // Récupération globale des IDs d'expéditeurs pour éviter les requêtes N+1
                 const senderIds = [...new Set(filtered.map(m => m.sender_id))];
-                let profilesMap: Record<string, { first_name: string; last_name: string; role: string; avatar_url: string | null }> = {};
+                const profilesMap: Record<string, { first_name: string; last_name: string; role: string; avatar_url: string | null }> = {};
 
                 if (senderIds.length > 0) {
                     const { data: profiles } = await supabase
@@ -88,6 +89,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
                     sender: profilesMap[m.sender_id] || { first_name: 'Utilisateur', last_name: 'Inconnu', role: 'Inconnu', avatar_url: null }
                 }));
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 setMessages(enhancedMessages as any);
                 setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 150);
             }
@@ -121,6 +123,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
             sender: { first_name: 'Moi', last_name: '', role: currentUserRole } // Fallback
         };
         
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setMessages(prev => [...prev, optimisticMsg as any]);
         setNewMessage('');
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
@@ -216,6 +219,7 @@ export default function InternalMessaging({ currentUserRole, currentUserId }: In
                                             {!isMe && showHeader && (
                                                 <div className="w-8 h-8 rounded-2xl overflow-hidden flex-shrink-0 bg-gray-100 shadow-sm border border-gray-200 flex items-center justify-center text-[10px] font-black text-gray-500 uppercase">
                                                     {m.sender?.avatar_url ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
                                                         <img src={m.sender.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                                                     ) : (
                                                         m.sender?.first_name?.[0] || '?'

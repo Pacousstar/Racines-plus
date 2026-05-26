@@ -24,7 +24,7 @@ export default function EvenementsPage() {
     const [events, setEvents] = useState<FamilyEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [activeFilter, setActiveFilter] = useState<'tous' | 'reunion' | 'mariage' | 'obseques'>('tous');
-    const [userStatus, setUserStatus] = useState('pending');
+    const [, setUserStatus] = useState('pending');
     const [userRole, setUserRole] = useState('user');
     const [currentUserId, setCurrentUserId] = useState('');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -53,6 +53,7 @@ export default function EvenementsPage() {
         if (error) {
             console.error("Erreur de chargement des évènements", error);
         } else if (eventsData) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const formattedEvents = eventsData.map((e: any) => ({
                 ...e,
                 organisateur_nom: e.profiles ? `${e.profiles.first_name || ''} ${e.profiles.last_name || ''}`.trim() : 'Inconnu'
@@ -64,6 +65,7 @@ export default function EvenementsPage() {
 
     useEffect(() => {
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [router, supabase]);
 
     const getEventConfig = (type: string) => {
@@ -191,7 +193,7 @@ export default function EvenementsPage() {
                                                     </div>
                                                     {event.description && (
                                                         <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-50 italic">
-                                                            "{event.description}"
+                                                            &quot;{event.description}&quot;
                                                         </p>
                                                     )}
                                                 </div>

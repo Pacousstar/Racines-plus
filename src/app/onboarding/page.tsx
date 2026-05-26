@@ -432,6 +432,7 @@ export default function Onboarding() {
                                 <div className="relative">
                                     {photoPreview ? (
                                         <div className="relative group">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img
                                                 src={photoPreview}
                                                 alt="Aperçu"
@@ -772,7 +773,7 @@ export default function Onboarding() {
                                     className="mt-0.5 w-4 h-4 rounded border-white/30 text-[#FF6600] focus:ring-[#FF6600] accent-[#FF6600]"
                                 />
                                 <label htmlFor="cgu" className="text-xs text-white/90 leading-relaxed cursor-pointer">
-                                    J'accepte sans réserve les <Link href="/cgu" target="_blank" className="text-white font-bold hover:underline decoration-[#FF6600] underline-offset-2">Conditions Générales d'Utilisation</Link> et la <Link href="/politique-confidentialite" target="_blank" className="text-white font-bold hover:underline decoration-[#FF6600] underline-offset-2">Politique de Confidentialité RGPD</Link> de Racines+.
+                                    J&apos;accepte sans réserve les <Link href="/cgu" target="_blank" className="text-white font-bold hover:underline decoration-[#FF6600] underline-offset-2">Conditions Générales d&apos;Utilisation</Link> et la <Link href="/politique-confidentialite" target="_blank" className="text-white font-bold hover:underline decoration-[#FF6600] underline-offset-2">Politique de Confidentialité RGPD</Link> de Racines+.
                                 </label>
                             </div>
 

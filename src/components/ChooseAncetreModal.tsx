@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TreePine, X, Search, CheckCircle, Clock, ChevronRight, Users } from 'lucide-react';
+import { TreePine, X, CheckCircle, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
 interface Ancetre {
@@ -18,15 +18,13 @@ interface ChooseAncetreModalProps {
     onClose: () => void;
     onSelect: (ancetreId: string, ancetreNom: string) => void;
     villageNom?: string;
-    userId?: string;
 }
 
 export default function ChooseAncetreModal({
     isOpen,
     onClose,
     onSelect,
-    villageNom = 'Toa-Zéo',
-    userId
+    villageNom = 'Toa-Zéo'
 }: ChooseAncetreModalProps) {
     const supabase = createClient();
     const [ancestres, setAncestres] = useState<Ancetre[]>([]);

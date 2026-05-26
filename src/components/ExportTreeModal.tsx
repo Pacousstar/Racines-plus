@@ -1,10 +1,14 @@
 "use client";
 
+import dynamic from 'next/dynamic';
 import React, { useRef, useState } from 'react';
 import { X, Download, Crown, ChevronRight, Loader2, Sparkles } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { PremiumTreeTemplate, StandardTreeTemplate, LineageData } from './PremiumTreeTemplate';
+import type { LineageData } from './PremiumTreeTemplate';
+
+const PremiumTreeTemplate = dynamic(() => import('./PremiumTreeTemplate').then(m => m.PremiumTreeTemplate), { ssr: false });
+const StandardTreeTemplate = dynamic(() => import('./PremiumTreeTemplate').then(m => m.StandardTreeTemplate), { ssr: false });
 
 interface ExportTreeModalProps {
     isOpen: boolean;
@@ -108,7 +112,7 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
                             <li className="flex gap-3"><span className="text-[#124E35]">✓</span> Filiation Nucléaire (Parents, Vous, Enfants)</li>
                             <li className="flex gap-3"><span className="text-[#124E35]">✓</span> Format Image (PNG)</li>
                             <li className="flex gap-3"><span className="text-[#124E35]">✓</span> Partage social rapide</li>
-                            <li className="flex gap-3 text-gray-400 line-through"><span className="text-gray-300">✗</span> Remontée à l'Ancêtre Fondateur</li>
+                            <li className="flex gap-3 text-gray-400 line-through"><span className="text-gray-300">✗</span> Remontée à l&apos;Ancêtre Fondateur</li>
                         </ul>
                     </div>
 
@@ -122,7 +126,7 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
                             className="w-full flex items-center justify-center gap-2 py-4 px-6 bg-gray-900 hover:bg-black text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
                         >
                             {isExporting === 'standard' ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                            Télécharger l'Image
+                            Télécharger l&apos;Image
                         </button>
                     </div>
                 </div>
@@ -151,10 +155,10 @@ export default function ExportTreeModal({ isOpen, onClose, data, userRole }: Exp
                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-400 blur-3xl opacity-20 animate-pulse"></div>
 
                         <ul className="space-y-4 text-sm text-stone-700 relative z-10 font-medium">
-                            <li className="flex gap-3 items-start"><Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" /> Remontée Chronologique Complète (jusqu'à l'Ancêtre Fondateur 👑)</li>
+                            <li className="flex gap-3 items-start"><Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" /> Remontée Chronologique Complète (jusqu&apos;à l&apos;Ancêtre Fondateur 👑)</li>
                             <li className="flex gap-3 items-start"><Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" /> Dates de Vie, Statuts (Mémorial 🔥) et Drapeaux de Résidence 🇨🇮</li>
                             <li className="flex gap-3 items-start"><Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" /> Design Parchemin Prestigieux</li>
-                            <li className="flex gap-3 items-start"><Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" /> Format PDF Haute Définition (A3/A4) prêt pour l'encadrement en salon.</li>
+                            <li className="flex gap-3 items-start"><Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" /> Format PDF Haute Définition (A3/A4) prêt pour l&apos;encadrement en salon.</li>
                         </ul>
                     </div>
 

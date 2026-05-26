@@ -4,9 +4,10 @@
  * Dashboard Utilisateur - Composant central de gestion de l'arbre et du profil.
  */
 
+import dynamic from 'next/dynamic';
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    User, Bell, Share2, ShieldCheck, MapPin, Plus, CheckCircle,
+    User, Share2, ShieldCheck, MapPin, CheckCircle,
     AlertTriangle, Camera, Clock, XCircle, Users, Search, Calendar, Award, FileText
 } from 'lucide-react';
 import Link from 'next/link';
@@ -16,9 +17,10 @@ import InviteModal from '@/components/InviteModal';
 import TreeSpecimens from '@/components/TreeSpecimens';
 import EditProfileModal, { ExtendedProfileData } from '@/components/EditProfileModal';
 import PersonalLineageTree from '@/components/PersonalLineageTree';
-import MigrationMap from '@/components/MigrationMap';
 import DocumentManager from '@/components/DocumentManager';
 import MediaGallery from '@/components/MediaGallery';
+
+const MigrationMap = dynamic(() => import('@/components/MigrationMap'), { ssr: false });
 import Dictaphone from '@/components/Dictaphone';
 import { createClient } from '@/lib/supabase';
 
@@ -34,6 +36,7 @@ interface ProfileData {
     rejectionMotif?: string | null;
     rejectionObservations?: string | null;
     extendedData: ExtendedProfileData;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata: any;
 }
 
@@ -48,7 +51,6 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isChooseAncetreOpen, setIsChooseAncetreOpen] = useState(false);
     const [isInviteOpen, setIsInviteOpen] = useState(false);
-    const [selectedAncetre, setSelectedAncetre] = useState<string | null>(null);
     const [profileData, setProfileData] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -102,6 +104,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
             setActiveTab('notifications');
             setProofText('');
             setProofFile(null);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error("Erreur recours :", err);
             alert("Erreur lors de la soumission du recours.");
@@ -243,7 +246,10 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                             <div className="relative -mt-10 mb-4 w-fit mx-auto">
                                 <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                                     {profileData?.avatarUrl
-                                        ? <img src={profileData.avatarUrl} alt="Photo de profil" className="object-cover w-full h-full" />
+                                        ? <>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={profileData.avatarUrl} alt="Photo de profil" className="object-cover w-full h-full" />
+                                        </>
                                         : <User className="w-10 h-10 text-gray-400" />
                                     }
                                 </div>
@@ -369,7 +375,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                         </p>
                         <div className="mb-4 p-3 bg-green-900/40 rounded-xl border border-green-700/50">
                             <p className="text-[10px] text-green-300 font-medium leading-tight">
-                                ⚠️ Seules les données issues de l&apos;onboarding initial sont soumises à la certification officielle du CHO. Les ajouts via la "Fiche détaillée" (enfants, etc.) sont portés à titre informatif et déclaratif.
+                                 ⚠️ Seules les données issues de l&apos;onboarding initial sont soumises à la certification officielle du CHO. Les ajouts via la &quot;Fiche détaillée&quot; (enfants, etc.) sont portés à titre informatif et déclaratif.
                             </p>
                         </div>
                         <button onClick={() => alert("Analyse IA : Fonctionnalité en cours d'intégration.")} className="text-xs font-bold uppercase tracking-wider bg-white text-green-800 px-4 py-2 rounded-lg hover:bg-green-50 w-full transition-colors">
@@ -569,7 +575,7 @@ export default function UserDashboardContent({ userId, activeSection = 'arbre' }
                     onSuccess={() => { setIsAddModalOpen(false); fetchProfile(); }}
                     villageNom={profileData?.village || 'Toa-Zéo'}
                 />
-                <ChooseAncetreModal isOpen={isChooseAncetreOpen} onClose={() => setIsChooseAncetreOpen(false)} onSelect={(id: string, nom: string) => { setSelectedAncetre(nom); setIsChooseAncetreOpen(false); }} villageNom={profileData?.village || 'Toa-Zéo'} />
+                <ChooseAncetreModal isOpen={isChooseAncetreOpen} onClose={() => setIsChooseAncetreOpen(false)} onSelect={() => { setIsChooseAncetreOpen(false); }} villageNom={profileData?.village || 'Toa-Zéo'} />
                 <EditProfileModal isOpen={isEditProfileOpen} onClose={() => setIsEditProfileOpen(false)} onSuccess={() => { setIsEditProfileOpen(false); fetchProfile(); }} initialData={profileData?.extendedData} userId={userId} />
                 <InviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} inviterName={`${profileData?.firstName || ''} ${profileData?.lastName || ''}`.trim()} villageNom={profileData?.village || 'Toa-Zéo'} />
             </div>

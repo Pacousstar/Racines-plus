@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { TreePine, Crown, Clock, Heart, GitBranch, FileText, Image as ImageIcon, BookOpen, ChevronRight, Download, Shield, Flower2, Sparkles } from 'lucide-react';
+import { TreePine, Crown, Download, Shield, Flower2, Sparkles } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase';
 import AncestorDetailsModal, { AncestorModalData } from './AncestorDetailsModal';
@@ -103,6 +103,7 @@ function HeritageNode({
                     `}
                 >
                     {node.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
                     ) : isPatriarch ? (
                         <Crown className="w-8 h-8 text-amber-300" />
@@ -162,7 +163,6 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
     const [selectedNode, setSelectedNode] = useState<AncestorModalData | null>(null);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [userRole, setUserRole] = useState('user');
-    const [stats, setStats] = useState({ members: 0, generations: 0 });
 
     useEffect(() => {
         const load = async () => {
@@ -236,11 +236,12 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 setCurrentUser(selfNode);
 
                 // 4. Famille via Neo4j
-                let parentNodes: LineageNode[] = [];
-                let childNodes: LineageNode[] = [];
-                let spouseNodes: LineageNode[] = [];
-                let siblingNodes: LineageNode[] = [];
-                let extendNodes: LineageNode[] = [];
+                /* eslint-disable @typescript-eslint/no-explicit-any */
+                const parentNodes: LineageNode[] = [];
+                const childNodes: LineageNode[] = [];
+                const spouseNodes: LineageNode[] = [];
+                const siblingNodes: LineageNode[] = [];
+                const extendNodes: LineageNode[] = [];
 
                 try {
                     const res = await fetch('/api/tree');
@@ -249,7 +250,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                         
                         // Récupérer les avatars depuis Supabase pour TOUS les nœuds présents dans Neo4j
                         const allNodeIds = treeData.nodes.map((n: any) => n.id);
-                        let profileMap: Record<string, any> = {};
+                        const profileMap: Record<string, any> = {};
                         if (allNodeIds.length > 0) {
                             const { data: profiles } = await supabase
                                 .from('profiles')
@@ -356,6 +357,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                                 }
                             }
                         });
+                        /* eslint-enable @typescript-eslint/no-explicit-any */
                     }
                 } catch { /* Neo4j non disponible */ }
 
@@ -376,14 +378,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 setSiblings(siblingNodes);
                 setExtended(extendNodes);
 
-                // 5. Stats globales du village
-                const { count: memberCount } = await supabase
-                    .from('profiles')
-                    .select('*', { count: 'exact', head: true })
-                    .in('status', ['confirmed', 'probable']);
-                setStats({ members: memberCount || 0, generations: ancestreNode ? 3 : 1 });
-
-                // 6. Position IA
+                // 5. Position IA
                 const { data: val } = await supabase
                     .from('validations')
                     .select('observations')
@@ -410,6 +405,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
         };
 
         if (userId) load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId]);
 
     const handleSelect = (node: LineageNode) => {
@@ -441,7 +437,7 @@ export default function PersonalLineageTree({ userId, villageNom = 'Toa-Zéo' }:
                 </div>
                 <h3 className="font-black text-gray-900 mb-2">Certification en cours...</h3>
                 <p className="text-sm text-gray-600 max-w-xs leading-relaxed">
-                    L'arbre de <strong>{villageNom}</strong> sera automatiquement généré et révélé dès que votre Chief Heritage Officer (CHO) aura certifié l'Ancêtre Fondateur.
+                    L&apos;arbre de <strong>{villageNom}</strong> sera automatiquement généré et révélé dès que votre Chief Heritage Officer (CHO) aura certifié l&apos;Ancêtre Fondateur.
                 </p>
             </div>
         );

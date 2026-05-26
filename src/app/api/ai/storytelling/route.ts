@@ -22,8 +22,10 @@ export async function POST(req: Request) {
         const lastName = profile.lastName.toUpperCase();
         const firstName = profile.firstName;
         
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const paternalNames = parents.filter((p: any) => p.side === 'paternal').map((p: any) => p.nom).join(', ');
         const maternalNames = parents.filter((p: any) => p.side === 'maternal').map((p: any) => p.nom).join(', ');
+        /* eslint-enable @typescript-eslint/no-explicit-any */
         const proverbs = heritage?.proverbs ? heritage.proverbs.join('; ') : "";
 
         const systemPrompt = `Tu es un Griot africain traditionnel, gardien de la mémoire de Toa-Zéo. Ton rôle est de raconter l'épopée d'une lignée familiale avec noblesse, poésie et sagesse. Utilise des métaphores liées à la terre, aux racines et aux ancêtres.`;
@@ -59,6 +61,7 @@ export async function POST(req: Request) {
             message: "Épopée générée avec succès par l'IA DeepSeek." 
         });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.error("DeepSeek Storytelling Error:", e);
         return NextResponse.json({ error: e.message }, { status: 500 });

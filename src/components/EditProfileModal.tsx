@@ -35,6 +35,7 @@ export interface ExtendedProfileData {
         mother_last_name?: string;
         mother_birth_date?: string;
         mother_status?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         [key: string]: any;
     };
     detailsEnfants?: Array<{
@@ -118,6 +119,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
         if (isOpen) {
             fetchVillagesAndQuartiers();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
     const fetchVillagesAndQuartiers = async () => {
@@ -237,7 +239,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-foreground">Éditer mon profil complet</h2>
-                            <p className="text-xs text-gray-600">Mettez à jour vos informations pour l'arbre généalogique</p>
+                            <p className="text-xs text-gray-600">Mettez à jour vos informations pour l&apos;arbre généalogique</p>
                         </div>
                     </div>
                     <button onClick={onClose} type="button" className="p-2 text-gray-600 hover:text-black hover:bg-gray-200 rounded-full transition-colors">
@@ -300,7 +302,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                     <input type="date" value={formData.birthDate} onChange={e => setFormData({ ...formData, birthDate: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all text-gray-700" required />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Village d'origine <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Village d&apos;origine <span className="text-red-500">*</span></label>
                                     <select
                                         value={formData.village_origin}
                                         onChange={e => setFormData({ ...formData, village_origin: e.target.value, quartier_nom: '' })}
@@ -333,7 +335,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
 
                         {/* Lignée Héritage */}
                         <div>
-                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Lignée & Héritage (Indispensable pour l'IA)</h3>
+                            <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">2. Lignée & Héritage (Indispensable pour l&apos;IA)</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
                                     <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-3">Lignée Paternelle</p>
@@ -389,7 +391,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                             <h3 className="text-sm font-bold border-b pb-2 mb-4 text-[#FF6600]">3. Éducation & Situation Professionnelle</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Niveau d'études <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1 ml-1">Niveau d&apos;études <span className="text-red-500">*</span></label>
                                     <select value={formData.niveauEtudes} onChange={e => setFormData({ ...formData, niveauEtudes: e.target.value })} className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF6600] focus:ring-2 focus:ring-[#FF6600]/20 outline-none transition-all bg-white" required>
                                         <option value="">Sélectionner</option>
                                         <option value="Aucun">Aucun</option>
@@ -591,7 +593,7 @@ export default function EditProfileModal({ isOpen, onClose, onSuccess, initialDa
                                                             }}
                                                             className="w-4 h-4 accent-[#FF6600] rounded"
                                                         />
-                                                        <span className="text-xs font-bold text-gray-600 uppercase">Mention "décédé(e)"</span>
+                                                        <span className="text-xs font-bold text-gray-600 uppercase">Mention &quot;décédé(e)&quot;</span>
                                                     </label>
 
                                                     {child.isDeceased && (

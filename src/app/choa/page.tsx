@@ -1,21 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import Image from "next/image";
-import Link from "next/link";
 import {
-    ShieldCheck, CheckCircle, Clock, XCircle, LogOut,
-    Eye, MessageSquare, Users, TreePine, Stamp, Share2, Download, Lock, MapPin, Activity, Search, Home, AlertTriangle, BookOpen
+    ShieldCheck, CheckCircle, Clock, XCircle,
+    Eye, MessageSquare, Users, TreePine, MapPin, Activity, Home, AlertTriangle, BookOpen
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useRoleRedirect } from '@/hooks/useRoleRedirect';
 import ProofViewerModal from '@/components/ProofViewerModal';
 import VillageHeritageManager from '@/components/VillageHeritageManager';
-import InviteModal from '@/components/InviteModal';
 import UserDashboardContent from '@/components/UserDashboardContent';
-import InternalMessaging from '@/components/InternalMessaging';
 import AppLayout from '@/components/AppLayout';
+import { getUnreadNotificationCount } from '@/services/validation';
 
 interface PendingProfile {
     id: string;
@@ -31,6 +28,7 @@ interface PendingProfile {
     residence_country?: string;
     residence_city?: string;
     mother_status?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: any;
     choa_approvals?: string[];
     rejection_motif?: string;
@@ -58,6 +56,7 @@ interface MyProfile {
 }
 
 // Composant utilitaire pour les états vides
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const EmptyTabState = ({ message, icon: Icon }: { message: string, icon: any }) => (
     <div className="bg-white/40 backdrop-blur-xl rounded-[3rem] p-16 text-center border border-white/60 shadow-xl animate-in fade-in zoom-in duration-700">
         <div className="w-24 h-24 bg-orange-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-orange-100 shadow-inner group">
@@ -84,21 +83,15 @@ export default function ChoBoard() {
     const [newComment, setNewComment] = useState('');
     const [isPostingComment, setIsPostingComment] = useState(false);
     const [viewingCommentsProfile, setViewingCommentsProfile] = useState<PendingProfile | null>(null);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const [, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [motifModal, setMotifModal] = useState<{ id: string; action: 'confirmed' | 'probable' | 'rejected' } | null>(null);
     const [infoModalProfile, setInfoModalProfile] = useState<PendingProfile | null>(null);
     const [motifText, setMotifText] = useState('');
     const [observations, setObservations] = useState('');
-    const [isInviteOpen, setIsInviteOpen] = useState(false);
-    const [ancestreNom, setAncetreNom] = useState('');
-    const [ancestrePeriode, setAncretrePeriode] = useState('');
-    const [ancestreSource, setAncetreSource] = useState('');
-    const [isSavingAncetre, setIsSavingAncetre] = useState(false);
-    const [ancestreSaved, setAncretreSaved] = useState(false);
     const [viewingProofProfile, setViewingProofProfile] = useState<PendingProfile | null>(null);
     const [isProofModalOpen, setIsProofModalOpen] = useState(false);
-    const [isProcessingProof, setIsProcessingProof] = useState(false);
+    const [isProcessingProof] = useState(false);
 
     // Onglet activité quartier
     interface QuartierActivity {
@@ -115,12 +108,7 @@ export default function ChoBoard() {
     const [quartierActivity, setQuartierActivity] = useState<QuartierActivity[]>([]);
     const [isLoadingActivity, setIsLoadingActivity] = useState(false);
 
-    // Pagination States
-    const [pendingPage, setPendingPage] = useState(1);
-    const [sentToChoPage, setSentToChoPage] = useState(1);
-    const [confirmedPage, setConfirmedPage] = useState(1);
-    const [rejectedPage, setRejectedPage] = useState(1);
-    const itemsPerPage = 20;
+
     const load = async () => {
         // Optimisation : Ne pas déclencher isLoading(true) si on a déjà des profils 
         // pour éviter le "flash" de chargement complet.
@@ -173,11 +161,13 @@ export default function ChoBoard() {
                 console.log(`📊 [CHOa Debug] Profils totaux reçus: ${allUsersRaw.length}`);
                 console.log("📄 [CHOa Debug] Contenu brut des profils:", JSON.stringify(allUsersRaw.slice(0, 3), null, 2));
                 const CHOA_PENDING_STATUSES = ['pending_choa', 'pending', 'pre_approved'];
+                /* eslint-disable @typescript-eslint/no-explicit-any */
                 const pending = allUsersRaw.filter((u: any) => CHOA_PENDING_STATUSES.includes(u.status || 'pending_choa'));
                 const probable = allUsersRaw.filter((u: any) => u.status === 'probable');
                 const confirmed = allUsersRaw.filter((u: any) => u.status === 'confirmed');
                 const rejected = allUsersRaw.filter((u: any) => u.status === 'rejected');
                 const recours = allUsersRaw.filter((u: any) => u.status === 'rejected' && u.metadata?.proof_url);
+                /* eslint-enable @typescript-eslint/no-explicit-any */
                 
                 console.log(`📊 [CHOa Debug] Dispatch: Pending=${pending.length}, Probable=${probable.length}, Confirmed=${confirmed.length}, Recours=${recours.length}`);
 
@@ -189,12 +179,8 @@ export default function ChoBoard() {
             }
 
             // Récupérer les notifications
-            const { count } = await supabase
-                .from('notifications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id).eq('is_read', false);
-            
-            setUnreadCount(count || 0);
+            const notifCount = await getUnreadNotificationCount(user.id);
+            setUnreadCount(notifCount);
             setIsLoading(false);
         } catch (err) {
             console.error('[choa] Exception in load():', err);
@@ -213,54 +199,6 @@ export default function ChoBoard() {
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, myProfile]);
-
-    const handleRequestExport = async () => {
-        if (!myProfile) return;
-        setIsLoading(true);
-        const { error } = await supabase.from('profiles').update({ export_requested: true }).eq('id', currentUserId);
-        if (error) {
-            alert("Erreur lors de la demande d'accès export.");
-        } else {
-            setMyProfile({ ...myProfile, export_requested: true });
-            alert("📩 Votre demande d'accès à l'exportation a été envoyée à l'Admin.");
-        }
-        setIsLoading(false);
-    };
-
-
-
-    const handleExport = (dataToExport: PendingProfile[], label: string) => {
-        if (!myProfile?.export_authorized) {
-            alert("🔒 Vous n'êtes pas autorisé à exporter des données. Veuillez en faire la demande.");
-            return;
-        }
-        if (dataToExport.length === 0) {
-            alert("Rien à exporter.");
-            return;
-        }
-        const headers = ["Nom", "Prénoms", "Quartier", "Statut", "Inscrit le"];
-        const rows = dataToExport.map(p => [
-            p.last_name || '—',
-            p.first_name || '—',
-            p.quartier_nom || '—',
-            p.status || 'pending',
-            new Date(p.created_at).toLocaleDateString('fr-FR')
-        ]);
-
-        const csvContent = [
-            headers.join(";"),
-            ...rows.map(row => row.map(cell => `"${cell.toString().replace(/"/g, '""')}"`).join(";"))
-        ].join("\n");
-
-        const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `export_${label}_${myProfile?.village_origin || 'village'}_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
 
     const handleStatusChange = async (profileId: string, newStatus: string) => {
         if (!motifModal && newStatus === 'rejected') {
@@ -385,24 +323,13 @@ export default function ChoBoard() {
     };
 
     const loadComments = async (profileId: string) => {
-        const { data, error } = await supabase
-            .from('validation_comments')
-            .select('*, author:profiles(first_name, last_name)')
-            .eq('profile_id', profileId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('Error fetching comments:', error);
-            return;
+        try {
+            const result = await loadCommentsFromService(profileId);
+            setComments(result || []);
+            markNotificationsAsRead();
+        } catch (err) {
+            console.error('Error fetching comments:', err);
         }
-
-        const enhancedComments = data.map(c => ({
-            ...c,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            author_name: `${(c.author as any)?.first_name || ''} ${(c.author as any)?.last_name || ''}`.trim()
-        }));
-        setComments(enhancedComments);
-        markNotificationsAsRead();
     };
 
     const handlePostComment = async (profileId: string) => {
@@ -474,6 +401,7 @@ export default function ChoBoard() {
                                 <div className="absolute -inset-2 bg-gradient-to-tr from-[#FF6600] to-amber-400 rounded-3xl blur opacity-0 group-hover:opacity-20 transition-opacity duration-700" />
                                 <div className="relative w-20 h-20 rounded-3xl bg-gray-100 overflow-hidden border-4 border-white shadow-2xl">
                                     {profile.avatar_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={profile.avatar_url} alt="avatar" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF6600] to-orange-400 text-white text-2xl font-black">
@@ -629,6 +557,7 @@ export default function ChoBoard() {
         <AppLayout
             role="choa"
             activeTab={activeTab}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onTabChange={(id) => setActiveTab(id as any)}
             userName={`${myProfile?.first_name ?? ''} ${myProfile?.last_name ?? ''}`}
             userAvatar={myProfile?.avatar_url ?? null}
@@ -904,7 +833,10 @@ export default function ChoBoard() {
                             <div className="flex-1 overflow-y-auto p-8 space-y-6">
                                 <div className="flex items-center gap-6 p-6 bg-gray-50 rounded-[2rem] border border-gray-100 shadow-sm">
                                     <div className="w-24 h-24 rounded-3xl bg-white text-[#FF6600] flex items-center justify-center text-4xl font-black overflow-hidden border-4 border-white shadow-xl flex-shrink-0">
-                                        {infoModalProfile.avatar_url ? <img src={infoModalProfile.avatar_url} alt="Photo" className="w-full h-full object-cover" /> : infoModalProfile.first_name?.[0]}
+                                        {infoModalProfile.avatar_url ? <>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={infoModalProfile.avatar_url} alt="Photo" className="w-full h-full object-cover" />
+                                        </> : infoModalProfile.first_name?.[0]}
                                     </div>
                                     <div>
                                         <h2 className="font-black text-2xl text-gray-900 leading-tight">{infoModalProfile.first_name} {infoModalProfile.last_name}</h2>
@@ -975,7 +907,7 @@ export default function ChoBoard() {
                                             <h4 className="text-xs font-black uppercase text-orange-800 tracking-widest">Recours / Justificatif</h4>
                                         </div>
                                         <div className="bg-white/80 p-4 rounded-xl border border-orange-100">
-                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Explication de l'utilisateur :</p>
+                                            <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Explication de l&apos;utilisateur :</p>
                                             <p className="text-sm font-semibold text-gray-900 leading-relaxed italic">« {infoModalProfile.metadata.proof_text} »</p>
                                         </div>
                                         {infoModalProfile.metadata.proof_url && (

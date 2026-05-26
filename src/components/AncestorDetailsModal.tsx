@@ -97,6 +97,7 @@ export default function AncestorDetailsModal({ isOpen, onClose, person }: Ancest
                             {isLoadingAvatar ? (
                                 <div className="w-6 h-6 border-2 border-[#FF6600] border-t-transparent flex-shrink-0 rounded-full animate-spin" />
                             ) : avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img src={avatarUrl} alt={person.nom} className="w-full h-full object-cover" />
                             ) : isAncestor ? (
                                 <Crown className={`w-12 h-12 ${person.isDeceased ? 'text-text-muted' : 'text-amber-500'}`} />

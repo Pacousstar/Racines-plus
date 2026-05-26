@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Flame, Search, MapPin, Info, User } from 'lucide-react';
+import { Flame, Search, MapPin, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
 interface MemorialVictim {

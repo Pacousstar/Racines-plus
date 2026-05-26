@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,6 @@ import ContactModal from "@/components/ContactModal";
 import { Download, MessageCircle, Crown, ShieldCheck, Sparkles, ChevronRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase';
 
-// Typage pour le prompt d'installation PWA
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -22,10 +21,7 @@ export default function Home() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const conceptRef = useRef<HTMLElement>(null);
-  const diasporaRef = useRef<HTMLElement>(null);
-  const certifRef = useRef<HTMLElement>(null);
-  const [featuredAncestor, setFeaturedAncestor] = useState<any>(null);
+  const [featuredAncestor, setFeaturedAncestor] = useState<Record<string, unknown> | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -56,6 +52,7 @@ export default function Home() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('beforeinstallprompt', handleInstall);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleInstallPWA = async () => {
@@ -68,8 +65,8 @@ export default function Home() {
     }
   };
 
-  const scrollTo = (ref: React.RefObject<HTMLElement | null>) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToSection = (sectionId: string) => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
@@ -115,8 +112,8 @@ export default function Home() {
             <Image src="/LOGO_Racines.png" alt="Logo Racines+" width={110} height={38} className="object-contain" priority />
           </Link>
           <nav className="hidden md:flex gap-8 text-sm font-semibold">
-            {[{ label: 'Concept', ref: conceptRef }, { label: 'Diaspora', ref: diasporaRef }, { label: 'Certification', ref: certifRef }].map(({ label, ref }) => (
-              <button key={label} onClick={() => scrollTo(ref)} className="text-foreground/60 hover:text-[#FF6600] transition-colors relative group">
+            {[{ label: 'Concept', id: 'concept' }, { label: 'Diaspora', id: 'diaspora' }, { label: 'Certification', id: 'certification' }].map(({ label, id }) => (
+              <button key={label} onClick={() => scrollToSection(id)} className="text-foreground/60 hover:text-[#FF6600] transition-colors relative group">
                 {label}
                 <span className="absolute -bottom-0.5 left-0 w-0 group-hover:w-full h-0.5 bg-[#FF6600] transition-all duration-300 rounded-full" />
               </button>
@@ -136,7 +133,7 @@ export default function Home() {
       {/* ═══════════════ HERO ═══════════════ */}
       <main className="relative flex flex-col items-center justify-center min-h-screen pt-20 px-4 sm:px-12 text-center z-10">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FF6600]/10 border border-[#FF6600]/15 text-[#FF6600] text-sm font-bold mb-8 cursor-pointer hover:bg-[#FF6600]/20 transition-all hover:scale-105"
-          onClick={() => scrollTo(conceptRef)}>
+          onClick={() => scrollToSection('concept')}>
           <span className="w-2 h-2 rounded-full bg-[#FF6600] animate-pulse" />
           Pilote officiel — Village de Toa-Zéo ✨
         </div>
@@ -162,7 +159,7 @@ export default function Home() {
               <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
             </svg>
           </Link>
-          <button onClick={() => scrollTo(conceptRef)}
+          <button onClick={() => scrollToSection('concept')}
             className="flex items-center justify-center gap-2 w-full sm:w-auto bg-white/80 dark:bg-white/5 border border-black/10 dark:border-white/10 backdrop-blur-sm px-8 py-4 rounded-2xl text-base font-semibold hover:bg-black/5 hover:border-[#FF6600]/30 transition-all">
             Explorer le concept
           </button>
@@ -176,12 +173,12 @@ export default function Home() {
         {/* Stats */}
         <div className="mt-14 pt-8 border-t border-black/5 dark:border-white/5 flex items-center justify-center gap-6 sm:gap-8 flex-wrap opacity-50 hover:opacity-70 transition-opacity">
           {[
-            { label: 'IA de Racines+', value: 'IA', color: 'text-racines-green', ref: certifRef },
-            { label: 'Arbres Inviolables', value: 'Graphe', color: 'text-foreground', ref: conceptRef },
-            { label: 'Certifié CHO', value: '✅', color: 'text-amber-500', ref: certifRef },
-          ].map(({ label, value, color, ref }) => (
+            { label: 'IA de Racines+', value: 'IA', color: 'text-racines-green', sid: 'certification' },
+            { label: 'Arbres Inviolables', value: 'Graphe', color: 'text-foreground', sid: 'concept' },
+            { label: 'Certifié CHO', value: '✅', color: 'text-amber-500', sid: 'certification' },
+          ].map(({ label, value, color, sid }) => (
             <React.Fragment key={label}>
-              <button onClick={() => scrollTo(ref)} className="flex flex-col items-center hover:opacity-100 transition-opacity group">
+              <button onClick={() => scrollToSection(sid)} className="flex flex-col items-center hover:opacity-100 transition-opacity group">
                 <span className={`font-bold text-xl sm:text-2xl ${color} group-hover:scale-110 transition-transform`}>{value}</span>
                 <span className="text-xs uppercase tracking-wider mt-0.5">{label}</span>
               </button>
@@ -218,7 +215,7 @@ export default function Home() {
                 </div>
 
                 <div className="hidden lg:block">
-                  <button onClick={() => scrollTo(conceptRef)} className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#FF6600] group-hover:text-white transition-all">
+                  <button onClick={() => scrollToSection('concept')} className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#FF6600] group-hover:text-white transition-all">
                     <ChevronRight className="w-6 h-6" />
                   </button>
                 </div>
@@ -227,7 +224,7 @@ export default function Home() {
       )}
 
       {/* ═══════════════ SECTION CONCEPT ═══════════════ */}
-      <section ref={conceptRef} id="concept" className="py-20 sm:py-28 px-4 sm:px-6 max-w-6xl mx-auto">
+      <section id="concept" className="py-20 sm:py-28 px-4 sm:px-6 max-w-6xl mx-auto">
         <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-racines-green/10 text-racines-green text-xs font-bold mb-5 uppercase tracking-widest">
@@ -278,7 +275,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════ SECTION DIASPORA ═══════════════ */}
-      <section ref={diasporaRef} id="diaspora" className="py-20 sm:py-28 px-4 sm:px-6 bg-gradient-to-b from-gray-50 to-white dark:from-white/[0.02] dark:to-black">
+      <section id="diaspora" className="py-20 sm:py-28 px-4 sm:px-6 bg-gradient-to-b from-gray-50 to-white dark:from-white/[0.02] dark:to-black">
         <div className="max-w-6xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF6600]/10 text-[#FF6600] text-xs font-bold mb-5 uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-[#FF6600]" /> Diaspora
@@ -311,7 +308,7 @@ export default function Home() {
       </section>
 
       {/* ═══════════════ SECTION CERTIFICATION ═══════════════ */}
-      <section ref={certifRef} id="certification" className="py-20 sm:py-28 px-4 sm:px-6 max-w-6xl mx-auto">
+      <section id="certification" className="py-20 sm:py-28 px-4 sm:px-6 max-w-6xl mx-auto">
         <div className="text-center mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-racines-green/10 text-racines-green text-xs font-bold mb-5 uppercase tracking-widest">
             <span className="w-1.5 h-1.5 rounded-full bg-racines-green animate-pulse" /> Certification
@@ -367,11 +364,11 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-widest text-foreground/30 mb-3">Navigation</p>
               <div className="flex flex-col gap-2">
                 {[
-                  { label: 'Concept', action: () => scrollTo(conceptRef) },
-                  { label: 'Diaspora', action: () => scrollTo(diasporaRef) },
-                  { label: 'Certification', action: () => scrollTo(certifRef) },
-                ].map(({ label, action }) => (
-                  <button key={label} onClick={action} className="text-sm text-foreground/50 hover:text-[#FF6600] transition-colors text-left">{label}</button>
+                  { label: 'Concept', sid: 'concept' },
+                  { label: 'Diaspora', sid: 'diaspora' },
+                  { label: 'Certification', sid: 'certification' },
+                ].map(({ label, sid }) => (
+                  <button key={label} onClick={() => scrollToSection(sid)} className="text-sm text-foreground/50 hover:text-[#FF6600] transition-colors text-left">{label}</button>
                 ))}
               </div>
             </div>

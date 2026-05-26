@@ -14,6 +14,7 @@ import type { MigrationMarker } from './MigrationMap';
 import { COUNTRY_COORDS } from './MigrationMap';
 
 // ─── Correction icônes Leaflet pour Next.js ─────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -125,7 +126,10 @@ function MemberPopup({ item }: { item: MigrationMarker }) {
                                 flexShrink: 0, marginLeft: i > 0 ? '-10px' : '0', zIndex: 10 - i, position: 'relative'
                             }}>
                                 {member.avatarUrl
-                                    ? <img src={member.avatarUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ? <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={member.avatarUrl} alt={member.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </>
                                     : <div style={{ width: '100%', height: '100%', backgroundColor: '#FFEBCC', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 900, color: '#FF6600' }}>
                                         {member.name.charAt(0).toUpperCase()}
                                     </div>

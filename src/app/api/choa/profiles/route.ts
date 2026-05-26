@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/choa/profiles
  * Retourne tous les profils du village du CHOa connecté.
@@ -75,5 +73,7 @@ export async function GET(request: Request) {
             ...choaProfile,
             role: (choaProfile.role || 'user').toLowerCase().trim()
         }
+    }, {
+        headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
     });
 }

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/me
  * Retourne le profil de l'utilisateur connecté via service role.
@@ -33,5 +31,7 @@ export async function GET(request: Request) {
         profile.role = (profile.role || 'user').toLowerCase().trim();
     }
 
-    return NextResponse.json({ profile });
+    return NextResponse.json({ profile }, {
+        headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
+    });
 }

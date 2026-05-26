@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         const data = await response.json();
         return NextResponse.json({ text: data.text });
         
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.error("Erreur Dictaphone:", e);
         return NextResponse.json({ error: e.message }, { status: 500 });

@@ -3,23 +3,25 @@
 import React from 'react';
 import { Crown } from 'lucide-react';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface LineageData {
     ancestre: any;
     parents: any[];
     self: any;
     children: any[];
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: LineageData, orientation?: 'portrait' | 'landscape' }>(({ data, orientation = 'portrait' }, ref) => {
     const isLandscape = orientation === 'landscape';
     // Rend chaque nœud de manière luxueuse
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderNode = (node: any, isAncetre = false) => {
         if (!node) return null;
         const initials = node.nom ? node.nom.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : '??';
         const statusIcon = node.status === 'confirmed' ? '✓' : node.status === 'probable' ? '○' : '⏳';
 
-        let period = node.periodeOuNaissance || node.periode || node.birthYear || 'Date inconnue';
-        const flag = "🇨🇮";
+        const period = node.periodeOuNaissance || node.periode || node.birthYear || 'Date inconnue';
 
         const sideColor = node.side === 'paternal' ? 'border-blue-600' : node.side === 'maternal' ? 'border-[#C05C3C]' : isAncetre ? 'border-amber-500' : 'border-[#124E35]';
 
@@ -27,6 +29,7 @@ export const PremiumTreeTemplate = React.forwardRef<HTMLDivElement, { data: Line
             <div className="flex flex-col items-center gap-2 m-4 bg-white/80 p-4 rounded-xl border border-amber-200 shadow-md transform transition-all">
                 <div className={`relative w-24 h-24 rounded-full border-4 shadow-xl flex items-center justify-center bg-stone-100 overflow-hidden ${sideColor}`}>
                     {node.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={node.avatarUrl} alt={node.nom} className="w-full h-full object-cover" />
                     ) : isAncetre ? (
                         <Crown className="w-12 h-12 text-amber-500" />
@@ -159,6 +162,7 @@ PremiumTreeTemplate.displayName = 'PremiumTreeTemplate';
 
 export const StandardTreeTemplate = React.forwardRef<HTMLDivElement, { data: LineageData }>(({ data }, ref) => {
     // Rend chaque nœud de manière standard (moderne, simple)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderNode = (node: any, isSelf = false) => {
         if (!node) return null;
         const initials = node.nom ? node.nom.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2) : '??';
@@ -231,7 +235,7 @@ export const StandardTreeTemplate = React.forwardRef<HTMLDivElement, { data: Lin
             </div>
 
             <div className="mt-8 pt-4 border-t border-gray-200 text-center w-full">
-                <p className="text-xs text-gray-500">Généré par Racines+ • Passez à la version Premium pour l'arbre complet HD.</p>
+                <p className="text-xs text-gray-500">Généré par Racines+ • Passez à la version Premium pour l&apos;arbre complet HD.</p>
             </div>
         </div>
     );

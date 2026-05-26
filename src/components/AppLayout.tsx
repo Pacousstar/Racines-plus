@@ -3,17 +3,18 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { Menu, Bell, Search, Globe } from 'lucide-react';
-import Link from 'next/link';
 
 interface AppLayoutProps {
     children: React.ReactNode;
     role: string;
     activeTab: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onTabChange: (id: any) => void;
     userName: string;
     userAvatar: string | null;
     village?: string;
     onLogout: () => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     permissions?: any;
 }
 

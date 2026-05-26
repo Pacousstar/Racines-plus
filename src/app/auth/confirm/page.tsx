@@ -92,7 +92,7 @@ export default function AuthConfirmPage() {
                 {status === 'error' && (
                     <div className="space-y-3">
                         <p className="text-sm text-gray-500">
-                            Retournez sur l'application et demandez un nouvel email de vérification depuis votre tableau de bord.
+                            Retournez sur l&apos;application et demandez un nouvel email de vérification depuis votre tableau de bord.
                         </p>
                         <Link
                             href="/login"

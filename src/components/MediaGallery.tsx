@@ -94,6 +94,7 @@ export default function MediaGallery({ userId }: { userId: string }) {
             if (dbError) throw dbError;
 
             fetchMedia();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Erreur Upload Media:', err);
             alert('Erreur lors du téléversement: ' + err.message);
@@ -116,6 +117,7 @@ export default function MediaGallery({ userId }: { userId: string }) {
             if (dbError) throw dbError;
 
             setMedia(media.filter(m => m.id !== id));
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Erreur suppression:', err);
             alert('Erreur: ' + err.message);
@@ -168,6 +170,7 @@ export default function MediaGallery({ userId }: { userId: string }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[200px]">
                         {media.map((item) => (
                             <div key={item.id} className="relative group rounded-2xl overflow-hidden cursor-pointer bg-gray-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
                                     src={item.type === 'video' ? 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80' : item.url}
                                     alt={item.title}
@@ -205,7 +208,7 @@ export default function MediaGallery({ userId }: { userId: string }) {
                 {!isLoading && media.length === 0 && (
                     <div className="py-12 text-center text-gray-500">
                         <ImageIcon className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-                        <p className="font-medium">Aucun souvenir n'a encore été ajouté.</p>
+                        <p className="font-medium">Aucun souvenir n&apos;a encore été ajouté.</p>
                         <p className="text-sm mt-1">Soyez le premier à partager une photo de famille !</p>
                     </div>
                 )}
