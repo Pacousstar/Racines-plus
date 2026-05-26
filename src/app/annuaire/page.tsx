@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function AnnuairePage() {
-    const supabase = createClient();
     const router = useRouter();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [members, setMembers] = useState<any[]>([]);
@@ -21,6 +20,30 @@ export default function AnnuairePage() {
     const [activeFilter, setActiveFilter] = useState<'All' | 'Diaspora' | 'Local' | 'Gbeya' | 'Bonye'>('All');
 
     useEffect(() => {
+        const supabase = createClient();
+
+        const fetchMembers = async () => {
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('profiles')
+                .select(`
+                    id, first_name, last_name, avatar_url, emploi, fonction, 
+                    niveau_etudes, residence_city, residence_country, quartier_nom, 
+                    whatsapp_1, is_deceased, disease_type, status, role
+                `)
+                .in('status', ['confirmed'])
+                .or('role.eq.cho,role.eq.admin')
+                .order('last_name', { ascending: true });
+
+            if (error) {
+                console.error('Erreur annuaire:', error);
+            } else if (data) {
+                setMembers(data);
+                setFilteredMembers(data);
+            }
+            setIsLoading(false);
+        };
+
         const checkAuthAndFetch = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -28,7 +51,6 @@ export default function AnnuairePage() {
                 return;
             }
 
-            // Vérification du statut confirmé (Admin, CHO, User Confirmé)
             const { data: profile } = await supabase.from('profiles').select('status, role').eq('id', session.user.id).single();
             if (profile?.status !== 'confirmed' && profile?.role !== 'admin' && profile?.role !== 'cho') {
                 alert("Votre profil n'est pas encore validé. L'accès à l'annuaire est restreint.");
@@ -36,35 +58,12 @@ export default function AnnuairePage() {
                 return;
             }
 
-            fetchMembers();
+            await fetchMembers();
         };
 
         checkAuthAndFetch();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [router, supabase]);
-
-    const fetchMembers = async () => {
-        setIsLoading(true);
-        // On récupère tous les profils validés
-        const { data, error } = await supabase
-            .from('profiles')
-            .select(`
-                id, first_name, last_name, avatar_url, emploi, fonction, 
-                niveau_etudes, residence_city, residence_country, quartier_nom, 
-                whatsapp_1, is_deceased, disease_type, status, role
-            `)
-            .in('status', ['confirmed'])
-            .or('role.eq.cho,role.eq.admin')
-            .order('last_name', { ascending: true });
-
-        if (error) {
-            console.error('Erreur annuaire:', error);
-        } else if (data) {
-            setMembers(data);
-            setFilteredMembers(data);
-        }
-        setIsLoading(false);
-    };
+    }, [router]);
 
     // Moteur de recherche et de filtres combinés
     useEffect(() => {

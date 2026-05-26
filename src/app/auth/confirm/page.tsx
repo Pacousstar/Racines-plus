@@ -7,11 +7,11 @@ import Link from 'next/link';
 
 export default function AuthConfirmPage() {
     const router = useRouter();
-    const supabase = createClient();
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState('Vérification de votre email en cours...');
 
     useEffect(() => {
+        const supabase = createClient();
         const handleEmailConfirmation = async () => {
             // Supabase gère automatiquement l'échange du token depuis l'URL
             // Il suffit d'attendre que la session soit établie
@@ -45,7 +45,7 @@ export default function AuthConfirmPage() {
         };
 
         handleEmailConfirmation();
-    }, [router, supabase]);
+    }, [router]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
