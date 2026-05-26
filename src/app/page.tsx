@@ -21,7 +21,7 @@ export default function Home() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [featuredAncestor, setFeaturedAncestor] = useState<Record<string, any> | null>(null);
+  const [featuredAncestor, setFeaturedAncestor] = useState<Record<string, unknown> | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -204,13 +204,13 @@ export default function Home() {
                         <Sparkles className="w-3.5 h-3.5" /> Figure Fondatrice
                     </div>
                     <h2 className="text-3xl sm:text-4xl font-black text-[#1c3a2f] dark:text-white mb-2 leading-none uppercase">
-                        {featuredAncestor.nom_complet}
+                        {featuredAncestor.nom_complet as string}
                     </h2>
                     <p className="text-amber-600 font-bold mb-6 flex items-center justify-center md:justify-start gap-2">
                         <ShieldCheck className="w-4 h-4" /> Ancêtre Fondateur de Toa-Zéo
                     </p>
                     <p className="text-gray-500 text-sm leading-relaxed max-w-xl italic">
-                        {featuredAncestor.details || "Le premier pilier de la lignée, garant des coutumes et protecteur de la mémoire de Toa-Zéo. Validé officiellement par le Conseil des Sages et le CHO."}
+                        {(featuredAncestor.details as string) || "Le premier pilier de la lignée, garant des coutumes et protecteur de la mémoire de Toa-Zéo. Validé officiellement par le Conseil des Sages et le CHO."}
                     </p>
                 </div>
 

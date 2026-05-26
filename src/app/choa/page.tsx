@@ -336,7 +336,7 @@ export default function ChoBoard() {
 
         const enhancedComments = data.map(c => ({
             ...c,
-            author_name: `${(c.author as any)?.first_name || ''} ${(c.author as any)?.last_name || ''}`.trim()
+            author_name: `${(c.author as { first_name?: string; last_name?: string })?.first_name || ''} ${(c.author as { first_name?: string; last_name?: string })?.last_name || ''}`.trim()
         }));
 
         setComments(enhancedComments);

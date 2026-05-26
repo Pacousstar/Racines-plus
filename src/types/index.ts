@@ -30,8 +30,8 @@ export interface Profile {
     residence_country?: string;
     residence_city?: string;
     adresse_residence?: string;
-    metadata?: Record<string, any>;
-    details_enfants?: Record<string, any>[];
+    metadata?: Record<string, unknown>;
+    details_enfants?: Array<Record<string, unknown>>;
     consentement_enfants?: boolean;
     rejection_motif?: string;
     rejection_observations?: string;

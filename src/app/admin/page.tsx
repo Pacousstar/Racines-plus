@@ -1118,22 +1118,22 @@ export default function AdminDashboard() {
                                             <td className="py-3 px-4 whitespace-nowrap">
                                                 <div className="flex flex-col">
                                                     <span className="text-xs font-bold text-gray-700">
-                                                        {p.metadata?.father_first_name} {p.metadata?.father_last_name}
+                                                        {p.metadata?.father_first_name as string} {p.metadata?.father_last_name as string}
                                                         {(!p.metadata?.father_first_name && !p.metadata?.father_last_name) && <span className="text-gray-400 italic font-medium">À compléter</span>}
                                                     </span>
-                                                    <span className={`text-[9px] font-black uppercase ${p.metadata?.father_status === 'Vivant' ? 'text-green-500' : 'text-red-500'}`}>
-                                                        {p.metadata?.father_status || '—'}
+                                                    <span className={`text-[9px] font-black uppercase ${(p.metadata?.father_status as string) === 'Vivant' ? 'text-green-500' : 'text-red-500'}`}>
+                                                        {p.metadata?.father_status as string || '—'}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="py-3 px-4 whitespace-nowrap">
                                                 <div className="flex flex-col">
                                                     <span className="text-xs font-bold text-gray-700">
-                                                        {p.metadata?.mother_first_name} {p.metadata?.mother_last_name}
+                                                        {p.metadata?.mother_first_name as string} {p.metadata?.mother_last_name as string}
                                                         {(!p.metadata?.mother_first_name && !p.metadata?.mother_last_name) && <span className="text-gray-400 italic font-medium">À compléter</span>}
                                                     </span>
-                                                    <span className={`text-[9px] font-black uppercase ${p.metadata?.mother_status === 'Vivante' ? 'text-green-500' : 'text-red-500'}`}>
-                                                        {p.metadata?.mother_status || '—'}
+                                                    <span className={`text-[9px] font-black uppercase ${(p.metadata?.mother_status as string) === 'Vivante' ? 'text-green-500' : 'text-red-500'}`}>
+                                                        {p.metadata?.mother_status as string || '—'}
                                                     </span>
                                                 </div>
                                             </td>
@@ -1772,18 +1772,18 @@ export default function AdminDashboard() {
                                                     <div className="flex flex-col">
                                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Père :</span>
                                                         <p className="text-[11px] font-bold text-gray-900 truncate">
-                                                            {p.metadata?.father_first_name || '—'} {p.metadata?.father_last_name || ''}
-                                                            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${p.metadata?.father_status === 'Vivant' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                                {p.metadata?.father_status || '—'}
+                                                            {(p.metadata?.father_first_name as string) || '—'} {(p.metadata?.father_last_name as string) || ''}
+                                                            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${(p.metadata?.father_status as string) === 'Vivant' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                {(p.metadata?.father_status as string) || '—'}
                                                             </span>
                                                         </p>
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Mère :</span>
                                                         <p className="text-[11px] font-bold text-gray-900 truncate">
-                                                            {p.metadata?.mother_first_name || '—'} {p.metadata?.mother_last_name || ''}
-                                                            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${p.metadata?.mother_status === 'Vivante' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                                {p.metadata?.mother_status || '—'}
+                                                            {(p.metadata?.mother_first_name as string) || '—'} {(p.metadata?.mother_last_name as string) || ''}
+                                                            <span className={`ml-1.5 px-1.5 py-0.5 rounded-md text-[8px] ${(p.metadata?.mother_status as string) === 'Vivante' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                {(p.metadata?.mother_status as string) || '—'}
                                                             </span>
                                                         </p>
                                                     </div>
