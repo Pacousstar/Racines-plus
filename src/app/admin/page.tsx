@@ -792,22 +792,6 @@ export default function AdminDashboard() {
         } as AdminPermission;
     }, [isSuperAdmin, assistantPermissions, currentUserId]);
 
-
-
-    const isSuperAdmin = adminName.toLowerCase().includes('pacous') || profiles.find(p => p.id === currentUserId)?.email?.toLowerCase() === 'pacous2000@gmail.com';
-    const myPerms = assistantPermissions[currentUserId || ''] || {
-        can_validate_users: isSuperAdmin,
-        can_manage_villages: isSuperAdmin,
-        can_manage_ancestors: isSuperAdmin,
-        can_manage_memorial: isSuperAdmin,
-        can_issue_certificates: isSuperAdmin,
-        can_manage_invitations: isSuperAdmin,
-        can_export_data: isSuperAdmin,
-        can_manage_roles: isSuperAdmin,
-        can_view_audit_logs: isSuperAdmin,
-        can_manage_settings: isSuperAdmin
-    };
-
     return (
         <AppLayout
             role="admin"
