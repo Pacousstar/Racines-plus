@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/neo4j';
 
 // Helper : uploader la photo via service_role
-async function uploadPhoto(supabaseAdmin: any, userId: string, photoFile: File): Promise<string | null> {
+async function uploadPhoto(supabaseAdmin: SupabaseClient, userId: string, photoFile: File): Promise<string | null> {
     try {
         const arrayBuffer = await photoFile.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
@@ -27,7 +27,7 @@ async function uploadPhoto(supabaseAdmin: any, userId: string, photoFile: File):
 }
 
 // Helper : upsert profil via service_role
-async function upsertProfile(supabaseAdmin: any, userId: string, data: Record<string, unknown>) {
+async function upsertProfile(supabaseAdmin: SupabaseClient, userId: string, data: Record<string, unknown>) {
     const { error } = await supabaseAdmin.from('profiles').upsert({
         id: userId,
         ...data,
