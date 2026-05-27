@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import * as Sentry from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   compress: true,
@@ -54,11 +55,11 @@ const nextConfig: NextConfig = {
 };
 
 const sentryConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? require('@sentry/nextjs').withSentryConfig(nextConfig, {
+  ? Sentry.withSentryConfig(nextConfig, {
       org: process.env.SENTRY_ORG || 'racines-plus',
       project: process.env.SENTRY_PROJECT || 'racines-plus',
       silent: true,
-    } as import('@sentry/nextjs').SentryBuildOptions)
+    } satisfies import('@sentry/nextjs').SentryBuildOptions)
   : nextConfig;
 
 export default sentryConfig;
