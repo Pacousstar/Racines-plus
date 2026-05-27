@@ -6,9 +6,20 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  NEO4J_URI: ${{ secrets.NEO4J_URI }}
+  NEO4J_USER: ${{ secrets.NEO4J_USER }}
+  NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+  RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+
 jobs:
   quality:
+    name: Lint & Build & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -20,18 +31,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint
-        run: npm run lint -- --max-warnings 150
+      - run: npm run lint
 
-      - name: Tests
-        run: npm test
+      - run: npm run build
 
-      - name: Build
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEO4J_URI: ${{ secrets.NEO4J_URI }}
-          NEO4J_USER: ${{ secrets.NEO4J_USER }}
-          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+      - run: npm run test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: next-build-output
+          path: .next/

@@ -1,13 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Compresser les responses pour améliorer les performances
   compress: true,
-
-  // Supprimer le header X-Powered-By pour la sécurité
   poweredByHeader: false,
 
-  // Domaines d'images autorisés (Supabase Storage)
   images: {
     remotePatterns: [
       {
@@ -18,7 +14,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com', // Avatars Google si OAuth plus tard
+        hostname: 'lh3.googleusercontent.com',
       },
       {
         protocol: 'https',
@@ -30,17 +26,14 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
 
-  // Variables d'environnement exposées côté client (en plus des NEXT_PUBLIC_*)
   env: {
     NEXT_PUBLIC_APP_NAME: 'Racines+',
     NEXT_PUBLIC_APP_VERSION: '0.1.0-MVP',
     NEXT_PUBLIC_APP_VILLAGE_PILOTE: 'Toa-Zéo',
   },
 
-  // Désactiver strictement le mode source-maps en production
   productionBrowserSourceMaps: false,
 
-  // Headers de sécurité supplémentaires
   async headers() {
     return [
       {
@@ -60,4 +53,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? require('@sentry/nextjs').withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG || 'racines-plus',
+      project: process.env.SENTRY_PROJECT || 'racines-plus',
+      silent: true,
+    } as import('@sentry/nextjs').SentryBuildOptions)
+  : nextConfig;
+
+export default sentryConfig;
