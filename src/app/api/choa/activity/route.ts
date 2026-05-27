@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { error } from '@/lib/api-response';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    if (!authHeader) return error('Non autorisé', 401);
 
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    if (authError || !user) return error('Non autorisé', 401);
 
     // Récupérer le village du CHOa
     const { data: choaProfile } = await supabaseAdmin
@@ -61,13 +62,13 @@ export async function GET(request: Request) {
         console.log(`[api/choa/activity] No village filter (Role: ${choaProfile.role})`);
     }
 
-    const { data: activity, error } = await query
+    const { data: activity, error: activityError } = await query
         .order('created_at', { ascending: false })
         .limit(50);
 
-    if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    if (activityError) {
+        return error(activityError.message, 500);
     }
 
-    return NextResponse.json({ activity: activity || [] });
+    return NextResponse.json({ success: true, data: { activity: activity || [] } });
 }

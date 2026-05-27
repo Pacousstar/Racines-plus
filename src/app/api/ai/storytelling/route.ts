@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
@@ -9,13 +9,13 @@ export async function POST(req: Request) {
         const apiKey = process.env.DEEPSEEK_API_KEY;
 
         if (!profile || !profile.lastName) {
-            return NextResponse.json({ error: 'Données de profil manquantes.' }, { status: 400 });
+            return error('Données de profil manquantes.', 400);
         }
 
         // --- MOTEUR NARRATIF "GRIOT RACINES+" (DEEPSEEK REAL) ---
         if (!apiKey) {
             // Fallback Simulation si pas de clé
-            return NextResponse.json({ 
+            return success({ 
                 story: `L'Épopée de la Maison ${profile.lastName.toUpperCase()}. (Clé API manquante pour la génération réelle)`, 
                 message: "Simulation active (DEEPSEEK_API_KEY non trouvée)." 
             });
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
         const data = await response.json();
         const narrative = data.choices?.[0]?.message?.content || "Le souffle des ancêtres est silencieux pour le moment.";
 
-        return NextResponse.json({ 
+        return success({ 
             story: narrative, 
             message: "Épopée générée avec succès par l'IA DeepSeek." 
         });
@@ -67,6 +67,6 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.error("DeepSeek Storytelling Error:", e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return error(e.message, 500);
     }
 }

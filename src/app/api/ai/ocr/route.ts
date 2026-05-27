@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
@@ -10,13 +10,13 @@ export async function POST(req: Request) {
         const apiKey = process.env.DEEPSEEK_API_KEY;
         
         if (!file) {
-            return NextResponse.json({ error: 'Document manquant pour l\'OCR.' }, { status: 400 });
+            return error('Document manquant pour l\'OCR.', 400);
         }
 
         if (!apiKey) {
             // Simulation si pas de clé
             await new Promise(resolve => setTimeout(resolve, 1500));
-            return NextResponse.json({ 
+            return success({ 
                 data: {
                     firstName: "Jean-Baptiste",
                     lastName: "Kouadio",
@@ -30,13 +30,13 @@ export async function POST(req: Request) {
         // --- BRANCHEMENT RÉEL DEEPSEEK VISION / OCR ---
         // Ici on pourrait envoyer l'image à un modèle vision-capable pour extraction
         
-        return NextResponse.json({ 
+        return success({ 
             data: { /* Données extraites réellement */ }, 
             message: "Données extraites avec succès via DeepSeek." 
         });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return error(e.message, 500);
     }
 }

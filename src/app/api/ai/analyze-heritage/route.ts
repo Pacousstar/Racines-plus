@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
@@ -8,7 +8,7 @@ export async function POST(req: Request) {
         const { text, context } = await req.json();
         
         if (!text) {
-            return NextResponse.json({ error: 'Texte manquant.' }, { status: 400 });
+            return error('Texte manquant.', 400);
         }
 
         const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
         if (!apiKey) {
             console.warn("DEEPSEEK_API_KEY non définie. Utilisation du mock d'analyse.");
             await new Promise(resolve => setTimeout(resolve, 2000));
-            return NextResponse.json({ 
+            return success({ 
                 analysis: "L'ancêtre a été détecté. Liens familiaux suggérés fondés sur Toa-Zéo.",
                 entities: ["Gbéya", "Toa Zéo", "1850"],
                 logic_check: "Aucune anomalie temporelle détectée."
@@ -52,14 +52,14 @@ export async function POST(req: Request) {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Erreur DeepSeek API: ${error.error?.message || response.statusText}`);
+            const errData = await response.json();
+            throw new Error(`Erreur DeepSeek API: ${errData.error?.message || response.statusText}`);
         }
 
         const data = await response.json();
         const content = data.choices[0]?.message?.content || "";
         
-        return NextResponse.json({ 
+        return success({ 
             analysis: content,
             raw_response: content
         });
@@ -67,6 +67,6 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.error("Erreur Analyse DeepSeek:", e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return error(e.message, 500);
     }
 }

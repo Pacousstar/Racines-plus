@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
         const audio = formData.get('audio') as Blob;
         
         if (!audio) {
-            return NextResponse.json({ error: 'Fichier audio manquant.' }, { status: 400 });
+            return error('Fichier audio manquant.', 400);
         }
 
         const apiKey = process.env.OPENAI_API_KEY;
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
             // Simulation en attendant la clé API :
             await new Promise(resolve => setTimeout(resolve, 3000));
             const mockTranscription = "Je m'appelle Gbéya et voici l'histoire de la famille de Toa Zéo. L'ancêtre fondateur est arrivé vers 1850 pour cultiver ces terres...";
-            return NextResponse.json({ text: mockTranscription });
+            return success({ text: mockTranscription });
         }
 
         // --- Appel Réel à OpenAI Whisper ---
@@ -37,16 +37,16 @@ export async function POST(req: Request) {
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Erreur Whisper API: ${error.error?.message || response.statusText}`);
+            const errData = await response.json();
+            throw new Error(`Erreur Whisper API: ${errData.error?.message || response.statusText}`);
         }
 
         const data = await response.json();
-        return NextResponse.json({ text: data.text });
+        return success({ text: data.text });
         
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         console.error("Erreur Dictaphone:", e);
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        return error(e.message, 500);
     }
 }

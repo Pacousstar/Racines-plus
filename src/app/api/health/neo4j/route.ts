@@ -1,8 +1,7 @@
-import { NextRequest } from 'next/server';
 import { healthcheck } from '@/lib/neo4j';
 import { success, error } from '@/lib/api-response';
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
     const result = await healthcheck();
     if (result.ok) {
         return success({ latency: result.latency }, 200);
