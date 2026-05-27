@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
+    const rateLimitResponse = rateLimitMiddleware(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
     try {
         const formData = await req.formData();
         const file = formData.get('file') as Blob;

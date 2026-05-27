@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
+import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
+    const rateLimitResponse = rateLimitMiddleware(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
     try {
         const { profile, parents, heritage } = await req.json();
         const apiKey = process.env.DEEPSEEK_API_KEY;

@@ -7,7 +7,6 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
@@ -15,6 +14,8 @@ const eslintConfig = defineConfig([
     "tmp/**",
     "scripts/**",
     "*.cjs",
+    "make_transparent.*",
+    "supabase/**",
   ]),
 ]);
 

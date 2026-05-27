@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/neo4j';
+import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 // Helper : uploader la photo via service_role
 async function uploadPhoto(supabaseAdmin: SupabaseClient, userId: string, photoFile: File): Promise<string | null> {
@@ -72,6 +73,9 @@ async function sendWelcomeEmail(email: string, firstName: string, lastName: stri
 }
 
 export async function POST(request: NextRequest) {
+    const rateLimitResponse = rateLimitMiddleware(request, 'register');
+    if (rateLimitResponse) return rateLimitResponse;
+
     try {
         const supabaseAdmin = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
