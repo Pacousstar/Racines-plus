@@ -9,8 +9,9 @@ export async function GET() {
     );
 
     const { data, error } = await supabaseAdmin
-        .from('admin_permissions')
-        .select('*');
+        .from('villages')
+        .select('*')
+        .order('nom');
 
     if (error) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -27,30 +28,54 @@ export async function POST(request: Request) {
     );
 
     try {
-        const { action, userId, permissions, key, value } = await request.json();
+        const { action, nom, region, id } = await request.json();
 
-        if (!action || !userId) {
-            return NextResponse.json({ success: false, error: 'action et userId requis' }, { status: 400 });
+        if (!action) {
+            return NextResponse.json({ success: false, error: 'action requis' }, { status: 400 });
         }
 
-        if (action === 'upsert') {
-            const { data, error: upsertError } = await supabaseAdmin
-                .from('admin_permissions')
-                .upsert({ user_id: userId, ...permissions }, { onConflict: 'user_id' })
+        if (action === 'insert') {
+            if (!nom || !region) {
+                return NextResponse.json({ success: false, error: 'nom et region requis' }, { status: 400 });
+            }
+
+            const { data, error: insertError } = await supabaseAdmin
+                .from('villages')
+                .insert({ nom, region })
                 .select()
                 .single();
 
-            if (upsertError) {
-                return NextResponse.json({ success: false, error: upsertError.message }, { status: 500 });
+            if (insertError) {
+                return NextResponse.json({ success: false, error: insertError.message }, { status: 500 });
             }
             return NextResponse.json({ success: true, data });
         }
 
+        if (action === 'delete') {
+            if (!id) {
+                return NextResponse.json({ success: false, error: 'id requis' }, { status: 400 });
+            }
+
+            const { error: deleteError } = await supabaseAdmin
+                .from('villages')
+                .delete()
+                .eq('id', id);
+
+            if (deleteError) {
+                return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 });
+            }
+            return NextResponse.json({ success: true, data: { id } });
+        }
+
         if (action === 'update') {
+            if (!id || !nom) {
+                return NextResponse.json({ success: false, error: 'id et nom requis' }, { status: 400 });
+            }
+
             const { data, error: updateError } = await supabaseAdmin
-                .from('admin_permissions')
-                .update({ [key]: value })
-                .eq('user_id', userId)
+                .from('villages')
+                .update({ nom })
+                .eq('id', id)
                 .select()
                 .single();
 

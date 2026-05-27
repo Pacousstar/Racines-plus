@@ -61,3 +61,61 @@ export async function GET(request: Request) {
         headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
     });
 }
+
+export async function POST(request: Request) {
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) return error('Non autorisé', 401);
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return error('Non autorisé', 401);
+
+    const { data: callerProfile } = await supabaseAdmin
+        .from('profiles').select('role').eq('id', user.id).single();
+
+    if (!callerProfile || callerProfile.role !== 'admin') {
+        return error('Accès réservé aux admins', 403);
+    }
+
+    try {
+        const { action, userId, data } = await request.json();
+
+        if (!action || !userId) {
+            return error('action et userId requis', 400);
+        }
+
+        if (action === 'update') {
+            const { data: result, error: updateError } = await supabaseAdmin
+                .from('profiles')
+                .update(data)
+                .eq('id', userId)
+                .select()
+                .single();
+
+            if (updateError) return error(updateError.message, 500);
+            return NextResponse.json({ success: true, data: result });
+        }
+
+        if (action === 'updateStatus') {
+            const { data: result, error: updateError } = await supabaseAdmin
+                .from('profiles')
+                .update({ status: data.status })
+                .eq('id', userId)
+                .select()
+                .single();
+
+            if (updateError) return error(updateError.message, 500);
+            return NextResponse.json({ success: true, data: result });
+        }
+
+        return error('Action non reconnue: ' + action, 400);
+    } catch (e) {
+        return error(e instanceof Error ? e.message : 'Erreur serveur', 500);
+    }
+}

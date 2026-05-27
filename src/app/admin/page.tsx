@@ -278,9 +278,9 @@ export default function AdminDashboard() {
 
             // Charger le reste des données en parallèle
             const svc = getServiceClient();
-            const [villages, quartiers, victimsRes, memorialVictims] = await Promise.all([
-                svc.getVillages().catch(() => []),
-                svc.getQuartiers().catch(() => []),
+            const [villagesRes, quartiersRes, victimsRes, memorialVictims] = await Promise.all([
+                fetch('/api/admin/villages'),
+                fetch('/api/admin/quartiers'),
                 fetch('/api/admin/victims'),
                 svc.getMemorialVictims().catch(() => [])
             ]);
@@ -289,8 +289,8 @@ export default function AdminDashboard() {
                 setStats(computeStats(profilesData));
             }
 
-            setVillages(villages);
-            setQuartiers(quartiers);
+            if (villagesRes.ok) { const vData = await villagesRes.json(); if (vData.success) setVillages(vData.data); }
+            if (quartiersRes.ok) { const qData = await quartiersRes.json(); if (qData.success) setQuartiers(qData.data); }
 
             if (victimsRes.ok) {
                 const victimsData = await victimsRes.json();
@@ -342,8 +342,9 @@ export default function AdminDashboard() {
 
     const handleToggleAmbassadeur = async (userId: string, currentStatus: boolean) => {
         const newStatus = !currentStatus;
-        const { error } = await supabase.from('profiles').update({ is_ambassadeur: newStatus }).eq('id', userId);
-        if (error) {
+        const res = await fetch('/api/admin/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId, data: { is_ambassadeur: newStatus } }) });
+        const result = await res.json();
+        if (!result.success) {
             alert("Erreur lors de la mise à jour du statut ambassadeur.");
             return;
         }
@@ -352,11 +353,9 @@ export default function AdminDashboard() {
     };
 
     const handleIssueCertificate = async (userId: string) => {
-        const { error } = await supabase.from('profiles').update({
-            certificate_issued: true,
-            certificate_issued_at: new Date().toISOString()
-        }).eq('id', userId);
-        if (error) {
+        const res = await fetch('/api/admin/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId, data: { certificate_issued: true, certificate_issued_at: new Date().toISOString() } }) });
+        const result = await res.json();
+        if (!result.success) {
             alert("Erreur lors de la délivrance du certificat.");
             return;
         }
@@ -366,8 +365,9 @@ export default function AdminDashboard() {
 
     const handleToggleExportAuth = async (userId: string, currentStatus: boolean | undefined) => {
         const newStatus = !currentStatus;
-        const { error } = await supabase.from('profiles').update({ export_authorized: newStatus, export_requested: false }).eq('id', userId);
-        if (error) {
+        const res = await fetch('/api/admin/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId, data: { export_authorized: newStatus, export_requested: false } }) });
+        const result = await res.json();
+        if (!result.success) {
             alert("Erreur lors de la mise à jour de l'autorisation d'export.");
             return;
         }
@@ -389,10 +389,10 @@ export default function AdminDashboard() {
             }
         }
 
-        const { error } = await supabase.from('profiles').update(updateData).eq('id', userId);
-
-        if (error) {
-            alert(`Erreur lors du changement de rôle : ${error.message}. Il se peut que les politiques RLS bloquent cette action.`);
+        const res = await fetch('/api/admin/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId, data: updateData }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert(`Erreur lors du changement de rôle : ${result.error || 'Erreur inconnue'}. Il se peut que les politiques RLS bloquent cette action.`);
             setIsLoading(false);
             return;
         }
@@ -408,30 +408,27 @@ export default function AdminDashboard() {
         }
 
         if (newRole === 'admin') {
-            await supabase.from('admin_permissions').upsert({ user_id: userId }, { onConflict: 'user_id' });
-            // Recharger les permissions
-            const { data } = await supabase.from('admin_permissions').select('*').eq('user_id', userId).single();
-            if (data) setAssistantPermissions(prev => ({ ...prev, [userId]: data }));
+            const permRes = await fetch('/api/admin/permissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'upsert', userId }) });
+            const permResult = await permRes.json();
+            if (permResult.success && permResult.data) {
+                setAssistantPermissions(prev => ({ ...prev, [userId]: permResult.data }));
+            }
         }
         setIsLoading(false);
     };
 
     const loadComments = async (profileId: string) => {
-        const { data, error } = await supabase
-            .from('validation_comments')
-            .select('*, author:profiles(first_name, last_name)')
-            .eq('profile_id', profileId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('Error fetching comments:', error);
+        const res = await fetch('/api/admin/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'list', data: { profileId } }) });
+        const result = await res.json();
+        if (!result.success) {
+            console.error('Error fetching comments:', result.error);
             return;
         }
 
-        const enhancedComments = data.map(c => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const enhancedComments = result.data.map((c: any) => ({
             ...c,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            author_name: `${(c.author as any)?.first_name || ''} ${(c.author as any)?.last_name || ''}`.trim()
+            author_name: `${c.author?.first_name || ''} ${c.author?.last_name || ''}`.trim()
         }));
         setComments(enhancedComments);
     };
@@ -439,14 +436,10 @@ export default function AdminDashboard() {
     const handlePostComment = async (profileId: string) => {
         if (!newComment.trim() || isPostingComment || !currentUserId) return;
         setIsPostingComment(true);
-        const { error } = await supabase.from('validation_comments').insert({
-            profile_id: profileId,
-            author_id: currentUserId,
-            content: newComment
-        });
-
-        if (error) {
-            alert("Erreur lors de l'envoi du commentaire : " + error.message);
+        const res = await fetch('/api/admin/comments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', data: { profile_id: profileId, author_id: currentUserId, content: newComment } }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert("Erreur lors de l'envoi du commentaire : " + (result.error || "Erreur inconnue"));
         } else {
             setNewComment('');
             loadComments(profileId);
@@ -512,9 +505,10 @@ export default function AdminDashboard() {
     };
 
     const handleUpdatePermission = async (userId: string, key: keyof AdminPermission, value: boolean) => {
-        const { error } = await supabase.from('admin_permissions').update({ [key]: value }).eq('user_id', userId);
-        if (error) {
-            alert("Erreur lors de la mise à jour de la permission : " + error.message);
+        const res = await fetch('/api/admin/permissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId, key, value }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert("Erreur lors de la mise à jour de la permission : " + (result.error || "Erreur inconnue"));
             return;
         }
         setAssistantPermissions(prev => ({
@@ -539,12 +533,13 @@ export default function AdminDashboard() {
             return;
         }
 
-        const { data, error } = await supabase.from('villages').insert({ nom, region: newVillageRegion }).select().single();
-        if (error) {
-            alert("Erreur lors de l'ajout du village : " + error.message);
+        const res = await fetch('/api/admin/villages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', nom, region: newVillageRegion }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert("Erreur lors de l'ajout du village : " + (result.error || "Erreur inconnue"));
             return;
         }
-        if (data) setVillages(prev => [...prev, data]);
+        if (result.data) setVillages(prev => [...prev, result.data]);
         setNewVillageName('');
         setNewVillageRegion('');
         alert(`Village "${nom}" ajouté avec succès !`);
@@ -552,9 +547,10 @@ export default function AdminDashboard() {
 
     const handleDeleteVillage = async (id: string, name: string) => {
         if (!confirm(`Voulez-vous vraiment supprimer le village "${name}" ? Cela ne supprimera pas les profils associés mais brisera les liens.`)) return;
-        const { error } = await supabase.from('villages').delete().eq('id', id);
-        if (error) {
-            alert("Erreur lors de la suppression : " + error.message);
+        const res = await fetch('/api/admin/villages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert("Erreur lors de la suppression : " + (result.error || "Erreur inconnue"));
             return;
         }
         setVillages(prev => prev.filter(v => v.id !== id));
@@ -579,19 +575,21 @@ export default function AdminDashboard() {
             return;
         }
 
-        const { data, error } = await supabase.from('quartiers').insert({ village_id: villageId, nom }).select().single();
-        if (error) {
-            alert(error.message);
+        const res = await fetch('/api/admin/quartiers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', nom, villageId }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert(result.error || "Erreur lors de l'ajout du quartier");
             return;
         }
-        if (data) setQuartiers(prev => [...prev, data]);
+        if (result.data) setQuartiers(prev => [...prev, result.data]);
     };
 
     const handleDeleteQuartier = async (id: string) => {
         if (!confirm("Supprimer ce quartier ?")) return;
-        const { error } = await supabase.from('quartiers').delete().eq('id', id);
-        if (error) {
-            alert(error.message);
+        const res = await fetch('/api/admin/quartiers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) });
+        const result = await res.json();
+        if (!result.success) {
+            alert(result.error || "Erreur lors de la suppression");
             return;
         }
         setQuartiers(prev => prev.filter(q => q.id !== id));
@@ -602,18 +600,14 @@ export default function AdminDashboard() {
         if (!ancestorForm.nom.trim()) return;
         setIsSavingAncestor(true);
         try {
-            const { data: village } = await supabase.from('villages').select('id').eq('nom', ancestorForm.villageNom).single();
-            if (!village) throw new Error("Village non trouvé");
+            const villageRes = await fetch('/api/admin/ancestors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getVillage', data: { villageNom: ancestorForm.villageNom } }) });
+            const villageData = await villageRes.json();
+            if (!villageData.success || !villageData.data) throw new Error("Village non trouvé");
+            const village = villageData.data;
 
-            await supabase.from('ancestres').insert({
-                village_id: village.id,
-                nom_complet: ancestorForm.nom,
-                periode: ancestorForm.periode,
-                source: ancestorForm.source,
-                is_certified: true,
-                certified_by: currentUserId,
-                certified_at: new Date().toISOString()
-            });
+            const insertRes = await fetch('/api/admin/ancestors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'insert', data: { village_id: village.id, nom_complet: ancestorForm.nom, periode: ancestorForm.periode, source: ancestorForm.source, is_certified: true, certified_by: currentUserId, certified_at: new Date().toISOString() } }) });
+            const insertResult = await insertRes.json();
+            if (!insertResult.success) throw new Error(insertResult.error || "Erreur lors de la création");
 
             alert(`Ancêtre ${ancestorForm.nom} créé avec succès !`);
             setAncestorForm({ nom: '', periode: '', source: '', villageNom: 'Toa-Zéo' });
@@ -1570,10 +1564,7 @@ export default function AdminDashboard() {
                                                                         onClick={() => {
                                                                             const nextName = prompt("Nouveau nom :", v.nom);
                                                                             if (nextName && nextName !== v.nom) {
-                                                                                supabase.from('villages').update({ nom: nextName }).eq('id', v.id).then(({ error }) => {
-                                                                                    if (error) alert(error.message);
-                                                                                    else setVillages(prev => prev.map(vi => vi.id === v.id ? { ...vi, nom: nextName } : vi));
-                                                                                });
+                                                                                fetch('/api/admin/villages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id: v.id, nom: nextName }) }).then(async (r) => { const d = await r.json(); if (!d.success) alert(d.error || "Erreur"); else setVillages(prev => prev.map(vi => vi.id === v.id ? { ...vi, nom: nextName } : vi)); });
                                                                             }
                                                                         }}
                                                                         className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
@@ -2615,23 +2606,25 @@ export default function AdminDashboard() {
                     onClose={() => setIsProofModalOpen(false)}
                     profile={viewingProofProfile}
                     onApprove={async () => {
-                        const { error } = await supabase.from('profiles').update({ status: 'confirmed' }).eq('id', viewingProofProfile.id);
-                        if (!error) {
+                        const res = await fetch('/api/admin/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId: viewingProofProfile.id, data: { status: 'confirmed' } }) });
+                        const result = await res.json();
+                        if (result.success) {
                             setProfiles(prev => prev.map(u => u.id === viewingProofProfile.id ? { ...u, status: 'confirmed' } : u));
                             setIsProofModalOpen(false);
                             alert("✅ Recours validé. Profil certifié par l'Admin.");
                         } else {
-                            alert("❌ Erreur : " + error.message);
+                            alert("❌ Erreur : " + (result.error || "Erreur inconnue"));
                         }
                     }}
                     onReject={async () => {
-                        const { error } = await supabase.from('profiles').update({ status: 'rejected' }).eq('id', viewingProofProfile.id);
-                        if (!error) {
+                        const res = await fetch('/api/admin/profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', userId: viewingProofProfile.id, data: { status: 'rejected' } }) });
+                        const result = await res.json();
+                        if (result.success) {
                             setProfiles(prev => prev.map(u => u.id === viewingProofProfile.id ? { ...u, status: 'rejected' } : u));
                             setIsProofModalOpen(false);
                             alert("❌ Recours rejeté. Statut 'Rejeté' maintenu définitivement.");
                         } else {
-                            alert("❌ Erreur : " + error.message);
+                            alert("❌ Erreur : " + (result.error || "Erreur inconnue"));
                         }
                     }}
                     role="admin"
