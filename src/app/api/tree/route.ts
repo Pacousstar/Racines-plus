@@ -1,8 +1,10 @@
 import { success, error } from '@/lib/api-response';
 import { getSession } from '@/lib/neo4j';
 import { createClient } from '@/lib/supabase/server';
+import { cacheGet, cacheSet, cacheKey } from '@/lib/cache';
 
-export async function GET() {
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -10,6 +12,10 @@ export async function GET() {
     if (!user) {
         return error('Non autorisé', 401);
     }
+
+    const key = cacheKey('tree', user.id, searchParams.get('personId') || undefined);
+    const cached = await cacheGet<{ nodes: Record<string, unknown>[]; links: { source: string; target: string; type: string }[] }>(key);
+    if (cached) return success(cached);
 
     try {
         const session = await getSession();
@@ -62,21 +68,23 @@ export async function GET() {
             if (nodesMap.size === 0) {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (profile) {
-                    return success({
-                        nodes: [{
-                            id: user.id,
-                            firstName: profile.first_name,
-                            lastName: profile.last_name,
-                            isFounder: false,
-                            village: profile.village_origin
-                        }],
-                        links: []
-                    });
+                    const nodes = [{
+                        id: user.id,
+                        firstName: profile.first_name,
+                        lastName: profile.last_name,
+                        isFounder: false,
+                        village: profile.village_origin
+                    }];
+                    const links: { source: string; target: string; type: string }[] = [];
+                    await cacheSet(key, { nodes, links }, 300);
+                    return success({ nodes, links });
                 }
             }
 
             // Convertir Map en Array
             const nodes = Array.from(nodesMap.values());
+
+            await cacheSet(key, { nodes, links }, 300);
 
             return success({ nodes, links });
 

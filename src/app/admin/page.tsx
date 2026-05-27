@@ -301,27 +301,33 @@ export default function AdminDashboard() {
 
             setMemorialVictims(memorialVictims);
 
-            // Charger les permissions et logs pour TOUS les admins (pas uniquement un email hardcodé)
+            // Charger les permissions et logs via API (service_role, bypass RLS)
             const [permsRes, logsRes] = await Promise.all([
-                supabase.from('admin_permissions').select('*'),
-                supabase.from('activity_logs')
-                    .select('*')
-                    .order('timestamp', { ascending: false })
-                    .limit(50)
+                fetch('/api/admin/permissions'),
+                fetch('/api/admin/activity-logs')
             ]);
-            if (permsRes.error) {
-                console.error('[admin] ERREUR RLS admin_permissions:', permsRes.error);
-                alert("Impossible de charger les permissions admin. RLS bloque sûrement l'accès : " + permsRes.error.message);
+            if (permsRes.ok) {
+                const permsData = await permsRes.json();
+                if (permsData.success && permsData.data) {
+                    console.log("[admin] admin_permissions chargés :", permsData.data.length);
+                    const permsMap = permsData.data.reduce((acc: Record<string, AdminPermission>, p: AdminPermission) => ({ ...acc, [p.user_id]: p }), {} as Record<string, AdminPermission>);
+                    setAssistantPermissions(permsMap);
+                } else {
+                    console.error('[admin] ERREUR admin_permissions:', permsData.error);
+                }
+            } else {
+                console.error('[admin] ERREUR HTTP admin_permissions:', permsRes.status);
             }
-            if (permsRes.data) {
-                console.log("[admin] admin_permissions chargés :", permsRes.data.length);
-                const permsMap = permsRes.data.reduce((acc, p) => ({ ...acc, [p.user_id]: p }), {});
-                setAssistantPermissions(permsMap);
+            if (logsRes.ok) {
+                const logsData = await logsRes.json();
+                if (logsData.success && logsData.data) {
+                    setAuditLogs(logsData.data as ActivityLog[]);
+                } else {
+                    console.error('[admin] ERREUR activity_logs:', logsData.error);
+                }
+            } else {
+                console.error('[admin] ERREUR HTTP activity_logs:', logsRes.status);
             }
-            if (logsRes.error) {
-                console.error('[admin] ERREUR RLS activity_logs:', logsRes.error);
-            }
-            if (logsRes.data) setAuditLogs(logsRes.data as ActivityLog[]);
 
             setIsLoading(false);
         };
