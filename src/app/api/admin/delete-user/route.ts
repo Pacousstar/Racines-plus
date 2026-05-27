@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const supabaseAdmin = createClient(
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !caller) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     // Vérifier si appelant est admin
@@ -28,12 +28,12 @@ export async function POST(request: Request) {
         .single();
 
     if (!callerProfile || callerProfile.role !== 'admin') {
-        return NextResponse.json({ error: 'Accès réservé aux admins' }, { status: 403 });
+        return error('Accès réservé aux admins', 403);
     }
 
     const { user_id } = await request.json();
     if (!user_id) {
-        return NextResponse.json({ error: 'ID utilisateur manquant' }, { status: 400 });
+        return error('ID utilisateur manquant', 400);
     }
 
     // Supprimer l'utilisateur via Supabase Auth Admin.
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
-        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+        return error(deleteError.message, 500);
     }
 
     // Log the action
@@ -90,5 +90,5 @@ export async function POST(request: Request) {
         // Ignore
     }
 
-    return NextResponse.json({ success: true, message: 'Utilisateur supprimé avec succès' });
+    return success({ message: 'Utilisateur supprimé avec succès' });
 }

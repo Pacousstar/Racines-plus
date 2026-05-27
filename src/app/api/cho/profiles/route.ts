@@ -1,4 +1,4 @@
-import { success, error, paginated } from '@/lib/api-response';
+import { error, paginated } from '@/lib/api-response';
 import { parsePagination } from '@/lib/pagination';
 import { createClient } from '@supabase/supabase-js';
 
@@ -55,10 +55,10 @@ export async function GET(request: Request) {
     const { count, error: countErr } = await countQuery;
     if (countErr) return error(countErr.message, 500);
 
-    const { data: profiles, error } = await query
+    const { data: profiles, error: profilesError } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
-    if (error) return error(error.message, 500);
+    if (profilesError) return error(profilesError.message, 500);
 
     return paginated(profiles || [], count || 0, page, limit);
 }

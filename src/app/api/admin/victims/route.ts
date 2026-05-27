@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { error } from '@/lib/api-response';
 import { getSession } from '@/lib/neo4j';
 import { createClient } from '@/lib/supabase/server';
 
@@ -9,13 +10,13 @@ export async function GET() {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
 
     if (!profile || profile.role !== 'admin') {
-        return NextResponse.json({ error: 'Accès refusé. Rôle administrateur requis.' }, { status: 403 });
+        return error('Accès refusé. Rôle administrateur requis.', 403);
     }
 
     try {
@@ -92,15 +93,15 @@ export async function GET() {
                 }
             }
 
-            return NextResponse.json({ success: true, victims }, {
+            return NextResponse.json({ success: true, data: victims }, {
                 headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' }
             });
         } finally {
             await session.close();
         }
-    } catch (error: unknown) {
-        console.error("Erreur Fetch API Victims Neo4j:", error);
-        const msg = error instanceof Error ? error.message : 'Erreur interne API';
-        return NextResponse.json({ error: msg }, { status: 500 });
+    } catch (err: unknown) {
+        console.error("Erreur Fetch API Victims Neo4j:", err);
+        const msg = err instanceof Error ? err.message : 'Erreur interne API';
+        return error(msg, 500);
     }
 }

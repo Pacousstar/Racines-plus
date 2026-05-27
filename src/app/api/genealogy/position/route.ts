@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
         const { profil_id, ancetre_id, quartier_nom } = body;
 
         if (!profil_id || !ancetre_id) {
-            return NextResponse.json({ success: false, error: 'profil_id et ancetre_id sont requis.' }, { status: 400 });
+            return error('profil_id et ancetre_id sont requis.', 400);
         }
 
         // 1. Récupérer les données du profil à positionner
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
             .single();
 
         if (!profil || !ancetre) {
-            return NextResponse.json({ success: false, error: 'Profil ou ancêtre introuvable.' }, { status: 404 });
+            return error('Profil ou ancêtre introuvable.', 404);
         }
 
         // ─────────────────────────────────────
@@ -145,16 +146,16 @@ export async function POST(req: NextRequest) {
             resume: `Vous êtes probablement ${lien_probable} (génération ${generation}, confiance ${confidence}%).`
         };
 
-        return NextResponse.json({ success: true, position }, { status: 200 });
+        return success({ position });
 
     } catch (err) {
         console.error('[API position] Erreur:', err);
-        return NextResponse.json({ success: false, error: 'Erreur interne du serveur.' }, { status: 500 });
+        return error('Erreur interne du serveur.', 500);
     }
 }
 
 export async function GET() {
-    return NextResponse.json({
+    return success({
         endpoint: 'POST /api/genealogy/position',
         description: 'Algorithme IA de positionnement dans la lignée ancestrale',
         version: '1.0.0'

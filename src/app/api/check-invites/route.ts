@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { createClient } from '@supabase/supabase-js';
 
 function getAdminClient() {
@@ -18,19 +19,19 @@ export async function POST(req: NextRequest) {
         const { emails } = body;
 
         if (!emails || !Array.isArray(emails)) {
-            return NextResponse.json({ error: 'Liste d\'emails requise' }, { status: 400 });
+            return error('Liste d\'emails requise', 400);
         }
 
         if (emails.length === 0) {
-            return NextResponse.json({ statuses: {} });
+            return success({ statuses: {} });
         }
 
         const supabaseAdmin = getAdminClient();
-        const { data: users, error } = await supabaseAdmin.auth.admin.listUsers();
+        const { data: users, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
 
-        if (error) {
-            console.error('[check-invites] Erreur listUsers:', error);
-            return NextResponse.json({ error: 'Erreur de vérification des utilisateurs' }, { status: 500 });
+        if (listErr) {
+            console.error('[check-invites] Erreur listUsers:', listErr);
+            return error('Erreur de vérification des utilisateurs', 500);
         }
 
         // Créer un Set des emails enregistrés
@@ -44,10 +45,10 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        return NextResponse.json({ statuses });
+        return success({ statuses });
 
-    } catch (error) {
-        console.error('[check-invites] Exception:', error);
-        return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 });
+    } catch (err) {
+        console.error('[check-invites] Exception:', err);
+        return error('Erreur interne du serveur', 500);
     }
 }

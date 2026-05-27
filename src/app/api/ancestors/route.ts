@@ -151,9 +151,9 @@ export async function POST(request: Request) {
             await session.close();
         }
 
-    } catch (error: unknown) {
-        console.error("Erreur Graph API:", error);
-        const msg = error instanceof Error ? error.message : 'Erreur interne Neo4j';
+    } catch (err: unknown) {
+        console.error("Erreur Graph API:", err);
+        const msg = err instanceof Error ? err.message : 'Erreur interne Neo4j';
         return error(msg, 500);
     }
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { getSession } from '@/lib/neo4j';
 import { createClient } from '@/lib/supabase/server';
 
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     // Vérifier que l'utilisateur est CHO ou Admin
@@ -24,18 +24,18 @@ export async function POST(request: Request) {
         .single();
 
     if (!profile || !['cho', 'admin'].includes(profile.role)) {
-        return NextResponse.json({ error: 'Permission insuffisante. Seuls CHO et Admin peuvent fusionner des nœuds.' }, { status: 403 });
+        return error('Permission insuffisante. Seuls CHO et Admin peuvent fusionner des nœuds.', 403);
     }
 
     try {
         const { keepId, deleteId } = await request.json();
 
         if (!keepId || !deleteId) {
-            return NextResponse.json({ error: 'keepId et deleteId sont obligatoires.' }, { status: 400 });
+            return error('keepId et deleteId sont obligatoires.', 400);
         }
 
         if (keepId === deleteId) {
-            return NextResponse.json({ error: 'Les deux nœuds doivent être différents.' }, { status: 400 });
+            return error('Les deux nœuds doivent être différents.', 400);
         }
 
         const session = await getSession();
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
             );
 
             if (checkResult.records.length === 0) {
-                return NextResponse.json({ error: 'Un ou les deux nœuds sont introuvables.' }, { status: 404 });
+                return error('Un ou les deux nœuds sont introuvables.', 404);
             }
 
             const keepName = checkResult.records[0].get('keepName');
@@ -94,8 +94,7 @@ export async function POST(request: Request) {
                 created_at: new Date().toISOString(),
             });
 
-            return NextResponse.json({
-                success: true,
+            return success({
                 message: `"${deleteName}" a été fusionné dans "${keepName}". Le doublon a été supprimé.`,
             });
 
@@ -103,16 +102,14 @@ export async function POST(request: Request) {
             await session.close();
         }
 
-    } catch (error: unknown) {
-        console.error('[merge-nodes] Erreur:', error);
+    } catch (err: unknown) {
+        console.error('[merge-nodes] Erreur:', err);
         // Si APOC n'est pas disponible, proposer un fallback
-        const msg = error instanceof Error ? error.message : 'Erreur interne Neo4j';
+        const msg = err instanceof Error ? err.message : 'Erreur interne Neo4j';
         if (msg.toLowerCase().includes('apoc')) {
-            return NextResponse.json({
-                error: 'Le plugin APOC est requis pour la fusion de nœuds. Activez-le dans votre instance Neo4j.',
-            }, { status: 501 });
+            return error('Le plugin APOC est requis pour la fusion de nœuds. Activez-le dans votre instance Neo4j.', 501);
         }
-        return NextResponse.json({ error: msg }, { status: 500 });
+        return error(msg, 500);
     }
 }
 
@@ -124,12 +121,12 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const { data: profile } = await supabase.from('profiles').select('role, village_origin').eq('id', user.id).single();
     if (!profile || !['cho', 'admin'].includes(profile.role)) {
-        return NextResponse.json({ error: 'Permission insuffisante' }, { status: 403 });
+        return error('Permission insuffisante', 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -156,7 +153,7 @@ export async function GET(request: Request) {
             b: { id: r.get('idB'), firstName: r.get('firstB'), lastName: r.get('lastB'), birthYear: r.get('birthB') },
         }));
 
-        return NextResponse.json({ success: true, candidates });
+        return success({ candidates });
     } finally {
         await session.close();
     }

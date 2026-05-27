@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getSession } from '@/lib/neo4j';
 import { rateLimitMiddleware } from '@/lib/rate-limit';
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
         const photoFile = formData.get('photo') as File | null;
 
         if (!email || !password || !firstName || !lastName) {
-            return NextResponse.json({ error: 'Prénom, nom, email et mot de passe obligatoires.' }, { status: 400 });
+            return error('Prénom, nom, email et mot de passe obligatoires.', 400);
         }
 
         let userId: string;
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
                 // Si la date limite correspond, c'est un doublon bloquant
                 const isRealDup = possibleDups.some(p => p.birth_date === birthDate || !p.birth_date);
                 if (isRealDup) {
-                    return NextResponse.json({ error: 'DOUBLON : Un profil avec ce nom, prénom et date de naissance existe déjà. Contactez le CHO.' }, { status: 409 });
+                    return error('DOUBLON : Un profil avec ce nom, prénom et date de naissance existe déjà. Contactez le CHO.', 409);
                 }
             }
         }
@@ -144,11 +145,11 @@ export async function POST(request: NextRequest) {
                 // Chercher l'utilisateur existant par email
                 const { data: listData, error: listErr } = await supabaseAdmin.auth.admin.listUsers();
                 if (listErr || !listData) {
-                    return NextResponse.json({ error: 'Impossible de récupérer le compte existant.' }, { status: 500 });
+                    return error('Impossible de récupérer le compte existant.', 500);
                 }
                 const existingUser = listData.users.find(u => u.email?.toLowerCase() === email);
                 if (!existingUser) {
-                    return NextResponse.json({ error: 'Email déjà utilisé mais compte introuvable. Essayez de vous connecter.' }, { status: 409 });
+                    return error('Email déjà utilisé mais compte introuvable. Essayez de vous connecter.', 409);
                 }
 
                 // Mettre à jour le mot de passe uniquement et forcer la confirmation de l'email
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
                 userId = existingUser.id;
                 isNewUser = false;
             } else {
-                return NextResponse.json({ error: authError.message }, { status: 400 });
+                return error(authError.message, 400);
             }
         } else {
             userId = authData.user.id;
@@ -210,7 +211,7 @@ export async function POST(request: NextRequest) {
             if (isNewUser) {
                 await supabaseAdmin.auth.admin.deleteUser(userId);
             }
-            return NextResponse.json({ error: "L'enregistrement du profil a échoué : " + errorUpsert.message }, { status: 500 });
+            return error("L'enregistrement du profil a échoué : " + errorUpsert.message, 500);
         }
         // ── 4. Neo4j : Création du noeud utilisateur et ses parents ───────────
         try {
@@ -286,8 +287,7 @@ export async function POST(request: NextRequest) {
             await sendWelcomeEmail(email, firstName, lastName, villageOrigin);
         }
 
-        return NextResponse.json({
-            success: true,
+        return success({
             userId,
             isNewUser,
             message: isNewUser
@@ -297,6 +297,6 @@ export async function POST(request: NextRequest) {
 
     } catch (err: unknown) {
         console.error('[register] Unexpected error:', err);
-        return NextResponse.json({ error: err instanceof Error ? err.message : 'Erreur inattendue' }, { status: 500 });
+        return error(err instanceof Error ? err.message : 'Erreur inattendue', 500);
     }
 }

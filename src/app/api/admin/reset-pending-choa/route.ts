@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     // Vérifier l'authorization (admin uniquement)
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const supabaseAdmin = createClient(
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const { data: callerProfile } = await supabaseAdmin
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
         .single();
 
     if (!callerProfile || callerProfile.role !== 'admin') {
-        return NextResponse.json({ error: 'Accès réservé aux admins' }, { status: 403 });
+        return error('Accès réservé aux admins', 403);
     }
 
     // Récupérer tous les users avec un statut à repositionner
@@ -49,12 +49,11 @@ export async function POST(request: Request) {
         .neq('status', 'probable');
 
     if (usersErr) {
-        return NextResponse.json({ error: usersErr.message }, { status: 500 });
+        return error(usersErr.message, 500);
     }
 
     if (!usersToMigrate || usersToMigrate.length === 0) {
-        return NextResponse.json({
-            success: true,
+        return success({
             migrated: 0,
             message: 'Aucun utilisateur à repositionner.'
         });
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
         .in('id', usersToMigrate.map(u => u.id));
 
     if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
+        return error(updateError.message, 500);
     }
 
     // Logger l'action (non bloquant — on ignore les erreurs de log)
@@ -88,8 +87,7 @@ export async function POST(request: Request) {
         // Ignore log errors
     }
 
-    return NextResponse.json({
-        success: true,
+    return success({
         migrated: usersToMigrate.length,
         message: `${usersToMigrate.length} utilisateur(s) repositionné(s) en pending_choa.`
     });

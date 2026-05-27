@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const supabaseAdmin = createClient(
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !caller) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const { data: callerProfile } = await supabaseAdmin
@@ -33,14 +33,14 @@ export async function POST(request: Request) {
         .single();
 
     if (!callerProfile || callerProfile.role !== 'admin') {
-        return NextResponse.json({ error: 'Accès réservé aux admins' }, { status: 403 });
+        return error('Accès réservé aux admins', 403);
     }
 
     const body = await request.json();
     const { email, password, first_name, last_name, phone, poste, village_origin, permissions } = body;
 
     if (!email || !password || !first_name || !last_name) {
-        return NextResponse.json({ error: 'Champs obligatoires manquants : email, password, first_name, last_name' }, { status: 400 });
+        return error('Champs obligatoires manquants : email, password, first_name, last_name', 400);
     }
 
     // Créer le compte Auth
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     });
 
     if (createError || !newAuthUser.user) {
-        return NextResponse.json({ error: createError?.message || 'Erreur création Auth' }, { status: 500 });
+        return error(createError?.message || 'Erreur création Auth', 500);
     }
 
     const newUserId = newAuthUser.user.id;
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     if (profileError) {
         // Rollback : supprimer le compte Auth si le profil échoue
         await supabaseAdmin.auth.admin.deleteUser(newUserId);
-        return NextResponse.json({ error: profileError.message }, { status: 500 });
+        return error(profileError.message, 500);
     }
 
     // Créer les permissions dans admin_permissions
@@ -109,8 +109,7 @@ export async function POST(request: Request) {
         // non bloquant
     }
 
-    return NextResponse.json({
-        success: true,
+    return success({
         user_id: newUserId,
         message: `Assistant Admin ${first_name} ${last_name} créé avec succès. Il peut se connecter avec : ${email}`
     });

@@ -1,4 +1,5 @@
-import { success, error, paginated } from '@/lib/api-response';
+import { NextResponse } from 'next/server';
+import { error } from '@/lib/api-response';
 import { parsePagination } from '@/lib/pagination';
 import { createClient } from '@supabase/supabase-js';
 
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
     // Récupérer le profil du CHOa pour connaître son village
     const { data: choaProfile, error: profileErr } = await supabaseAdmin
         .from('profiles')
-        .select('role, village_origin, quartier_nom, avatar_url, first_name, last_name')
+        .select('id, role, village_origin, quartier_nom, avatar_url, first_name, last_name')
         .eq('id', user.id)
         .single();
 

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { error } from '@/lib/api-response';
+import { parsePagination } from '@/lib/pagination';
 
 /**
  * GET /api/admin/profiles
@@ -7,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
  */
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    if (!authHeader) return error('Non autorisé', 401);
 
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,29 +19,43 @@ export async function GET(request: Request) {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    if (authError || !user) return error('Non autorisé', 401);
 
     const { data: callerProfile } = await supabaseAdmin
         .from('profiles').select('first_name, last_name, role, avatar_url').eq('id', user.id).single();
 
     if (!callerProfile || callerProfile.role !== 'admin') {
-        return NextResponse.json({ error: 'Accès réservé aux admins' }, { status: 403 });
+        return error('Accès réservé aux admins', 403);
     }
 
-    const { data: profiles, error } = await supabaseAdmin
-        .from('profiles')
-        .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email, residence_city, residence_country, metadata, emploi, fonction, rejection_motif, rejection_observations')
-        .order('created_at', { ascending: false });
+    const { searchParams } = new URL(request.url);
+    const { page, limit, offset } = parsePagination(searchParams);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data: profiles, error: profilesError, count } = await supabaseAdmin
+        .from('profiles')
+        .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email, residence_city, residence_country, metadata, emploi, fonction, rejection_motif, rejection_observations', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+    if (profilesError) return error(profilesError.message, 500);
     return NextResponse.json({ 
-        profiles: profiles || [],
-        me: { 
-            id: user.id, 
-            role: (callerProfile.role || 'user').toLowerCase().trim(),
-            first_name: callerProfile.first_name,
-            last_name: callerProfile.last_name,
-            avatar_url: callerProfile.avatar_url
+        success: true,
+        data: {
+            profiles: profiles || [],
+            me: { 
+                id: user.id, 
+                role: (callerProfile.role || 'user').toLowerCase().trim(),
+                first_name: callerProfile.first_name,
+                last_name: callerProfile.last_name,
+                avatar_url: callerProfile.avatar_url
+            }
+        },
+        pagination: {
+            page,
+            limit,
+            total: count || 0,
+            totalPages: Math.ceil((count || 0) / limit),
+            hasMore: page * limit < (count || 0),
         }
     }, {
         headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }

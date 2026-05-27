@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { success, error } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
     try {
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
 
         // Validation
         if (!emailTo || !emailTo.includes('@')) {
-            return NextResponse.json({ error: 'Email invalide' }, { status: 400 });
+            return error('Email invalide', 400);
         }
 
         const resendApiKey = process.env.RESEND_API_KEY;
@@ -18,10 +19,7 @@ export async function POST(request: NextRequest) {
 
         if (!resendApiKey) {
             console.warn('[send-invitation] RESEND_API_KEY manquante dans les variables d\'environnement');
-            return NextResponse.json({
-                success: false,
-                message: 'RESEND_API_KEY non configurée côté serveur.',
-            });
+            return error('RESEND_API_KEY non configurée côté serveur.', 200);
         }
 
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://racines-plus.vercel.app';
@@ -73,14 +71,10 @@ export async function POST(request: NextRequest) {
 
         if (!resendResponse.ok) {
             console.error('[send-invitation] Resend a rejeté l\'email:', resendData);
-            return NextResponse.json(
-                { error: 'Resend a rejeté l\'email. Vérifiez que votre domaine est validé et que EMAIL_FROM est correct.', detail: resendData },
-                { status: resendResponse.status }
-            );
+            return error('Resend a rejeté l\'email. Vérifiez que votre domaine est validé et que EMAIL_FROM est correct.', resendResponse.status, resendData);
         }
 
-        return NextResponse.json({
-            success: true,
+        return success({
             message: `Invitation envoyée à ${emailTo} !`,
             resendId: resendData.id,
         });
@@ -88,6 +82,6 @@ export async function POST(request: NextRequest) {
     } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Erreur inattendue';
         console.error('[send-invitation] Exception:', msg);
-        return NextResponse.json({ error: msg }, { status: 500 });
+        return error(msg, 500);
     }
 }

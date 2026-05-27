@@ -84,8 +84,8 @@ export async function GET() {
             await session.close();
         }
 
-    } catch (error: unknown) {
-        console.error("Erreur Graph API (GET Tree):", error);
+    } catch (err: unknown) {
+        console.error("Erreur Graph API (GET Tree):", err);
         return error('Erreur lecture Arbre', 500);
     }
 }
