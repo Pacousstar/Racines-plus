@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { getSession } from '@/lib/neo4j';
 import { createClient } from '@/lib/supabase/server';
 
@@ -8,7 +8,7 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     try {
@@ -62,7 +62,7 @@ export async function GET() {
             if (nodesMap.size === 0) {
                 const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
                 if (profile) {
-                    return NextResponse.json({
+                    return success({
                         nodes: [{
                             id: user.id,
                             firstName: profile.first_name,
@@ -71,8 +71,6 @@ export async function GET() {
                             village: profile.village_origin
                         }],
                         links: []
-                    }, {
-                        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
                     });
                 }
             }
@@ -80,9 +78,7 @@ export async function GET() {
             // Convertir Map en Array
             const nodes = Array.from(nodesMap.values());
 
-            return NextResponse.json({ nodes, links }, {
-                headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' }
-            });
+            return success({ nodes, links });
 
         } finally {
             await session.close();
@@ -90,6 +86,6 @@ export async function GET() {
 
     } catch (error: unknown) {
         console.error("Erreur Graph API (GET Tree):", error);
-        return NextResponse.json({ error: 'Erreur lecture Arbre' }, { status: 500 });
+        return error('Erreur lecture Arbre', 500);
     }
 }

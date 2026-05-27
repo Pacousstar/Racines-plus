@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { success, error, paginated } from '@/lib/api-response';
+import { parsePagination } from '@/lib/pagination';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -8,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
  */
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
-    if (!authHeader) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    if (!authHeader) return error('Non autorisé', 401);
 
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,13 +19,16 @@ export async function GET(request: Request) {
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    if (authError || !user) return error('Non autorisé', 401);
 
     const { data: choProfile, error: profileErr } = await supabaseAdmin
         .from('profiles').select('first_name, last_name, role, village_origin, avatar_url').eq('id', user.id).single();
 
-    if (profileErr || !choProfile) return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 });
-    if (choProfile.role !== 'cho') return NextResponse.json({ error: 'Accès réservé aux CHO' }, { status: 403 });
+    if (profileErr || !choProfile) return error('Profil introuvable', 404);
+    if (choProfile.role !== 'cho') return error('Accès réservé aux CHO', 403);
+
+    const searchParams = new URL(request.url).searchParams;
+    const { page, limit, offset } = parsePagination(searchParams);
 
     // Charger les users du village avec leurs validations
     let query = supabaseAdmin
@@ -35,32 +39,26 @@ export async function GET(request: Request) {
             choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction,
             rejection_motif, rejection_observations
         `)
-        .eq('role', 'user')
-        .order('created_at', { ascending: false });
+        .eq('role', 'user');
+
+    let countQuery = supabaseAdmin
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('role', 'user');
 
     if (choProfile.village_origin) {
-        query = query.ilike('village_origin', `%${choProfile.village_origin.trim()}%`);
+        const filter = `%${choProfile.village_origin.trim()}%`;
+        query = query.ilike('village_origin', filter);
+        countQuery = countQuery.ilike('village_origin', filter);
     }
 
-    const { data: profiles, error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { count, error: countErr } = await countQuery;
+    if (countErr) return error(countErr.message, 500);
 
-    // Charger aussi l'équipe CHOa du village
-    const { data: team } = await supabaseAdmin
-        .from('profiles')
-        .select('id, first_name, last_name, quartier_nom, avatar_url, created_at, status')
-        .eq('role', 'choa')
-        .ilike('village_origin', `%${choProfile.village_origin?.trim() || ''}%`)
-        .order('created_at', { ascending: false });
+    const { data: profiles, error } = await query
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+    if (error) return error(error.message, 500);
 
-    return NextResponse.json({ 
-        profiles: profiles || [], 
-        team: team || [],
-        me: {
-            ...choProfile,
-            role: (choProfile.role || 'user').toLowerCase().trim()
-        }
-    }, {
-        headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
-    });
+    return paginated(profiles || [], count || 0, page, limit);
 }

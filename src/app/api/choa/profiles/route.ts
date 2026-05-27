@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { success, error, paginated } from '@/lib/api-response';
+import { parsePagination } from '@/lib/pagination';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -10,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     const supabaseAdmin = createClient(
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     // Récupérer le profil du CHOa pour connaître son village
@@ -34,19 +35,27 @@ export async function GET(request: Request) {
         .single();
 
     if (profileErr || !choaProfile) {
-        return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 });
+        return error('Profil introuvable', 404);
     }
 
     const isAuthorized = ['choa', 'assistant cho', 'assistant_cho', 'admin', 'cho'].includes(choaProfile.role || '');
     if (!isAuthorized) {
         console.warn(`[api/choa/profiles] Access denied for role: ${choaProfile.role}`);
-        return NextResponse.json({ error: 'Accès réservé aux CHOa' }, { status: 403 });
+        return error('Accès réservé aux CHOa', 403);
     }
+
+    const searchParams = new URL(request.url).searchParams;
+    const { page, limit, offset } = parsePagination(searchParams);
 
     // Récupérer TOUS les profils 'user' (le filtrage village se fera de manière plus souple)
     let query = supabaseAdmin
         .from('profiles')
         .select('id, first_name, last_name, village_origin, quartier_nom, status, avatar_url, created_at, birth_date, gender, residence_country, residence_city, metadata, choa_approvals, phone_1, whatsapp_1, niveau_etudes, emploi, fonction, rejection_motif, rejection_observations')
+        .eq('role', 'user');
+
+    let countQuery = supabaseAdmin
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
         .eq('role', 'user');
 
     // Filtrer par village seulement si le CHOa n'est pas Admin
@@ -56,22 +65,42 @@ export async function GET(request: Request) {
         const flexibleV = v.replace(/[-éèêëàâîïôûù]/g, '_');
         // Utilisation de guillemets doubles pour sécuriser les noms avec tirets/espaces
         query = query.or(`village_origin.ilike."${v}",village_origin.ilike."${flexibleV}"`);
+        countQuery = countQuery.or(`village_origin.ilike."${v}",village_origin.ilike."${flexibleV}"`);
         console.log(`[api/choa/profiles] Filtering for village: "${v}" (flexible: "${flexibleV}")`);
     } else {
         console.log(`[api/choa/profiles] No village filter applied (Role: ${choaProfile.role})`);
     }
 
-    const { data: profiles, error: usersErr } = await query.order('created_at', { ascending: false });
-
-    if (usersErr) {
-        return NextResponse.json({ error: usersErr.message }, { status: 500 });
+    const { count, error: countErr } = await countQuery;
+    if (countErr) {
+        return error(countErr.message, 500);
     }
 
-    return NextResponse.json({ 
-        profiles: profiles || [],
+    const { data: profiles, error: usersErr } = await query
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+    if (usersErr) {
+        return error(usersErr.message, 500);
+    }
+
+    return NextResponse.json({
+        success: true,
+        data: profiles || [],
+        pagination: {
+            page,
+            limit,
+            total: count || 0,
+            totalPages: Math.ceil((count || 0) / limit),
+            hasMore: page * limit < (count || 0),
+        },
         me: {
-            ...choaProfile,
-            role: (choaProfile.role || 'user').toLowerCase().trim()
+            id: choaProfile.id,
+            role: (choaProfile.role || 'user').toLowerCase().trim(),
+            village_origin: choaProfile.village_origin,
+            first_name: choaProfile.first_name,
+            last_name: choaProfile.last_name,
+            avatar_url: choaProfile.avatar_url,
         }
     }, {
         headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }

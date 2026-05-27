@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { success, error } from '@/lib/api-response';
 import { getSession } from '@/lib/neo4j';
 import { createClient } from '@/lib/supabase/server';
 
@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        return error('Non autorisé', 401);
     }
 
     try {
@@ -140,12 +140,12 @@ export async function POST(request: Request) {
                     RETURN a`;
 
             } else {
-                return NextResponse.json({ error: `Relation inconnue : ${relation}` }, { status: 400 });
+                return error(`Relation inconnue : ${relation}`, 400);
             }
 
             const result = await session.run(cypherQuery, params);
 
-            return NextResponse.json({ success: true, ancestor: result.records[0]?.get('a').properties });
+            return success({ ancestor: result.records[0]?.get('a').properties });
 
         } finally {
             await session.close();
@@ -154,6 +154,6 @@ export async function POST(request: Request) {
     } catch (error: unknown) {
         console.error("Erreur Graph API:", error);
         const msg = error instanceof Error ? error.message : 'Erreur interne Neo4j';
-        return NextResponse.json({ error: msg }, { status: 500 });
+        return error(msg, 500);
     }
 }
