@@ -1,34 +1,48 @@
 import { Redis } from '@upstash/redis';
 
-const url = process.env.KV_URL || process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+let client: Redis | null = null;
 
-const client = url && token ? new Redis({ url, token }) : null;
+function getClient(): Redis | null {
+    if (client) return client;
+    try {
+        client = Redis.fromEnv();
+    } catch {
+        const url = process.env.KV_URL || process.env.UPSTASH_REDIS_REST_URL;
+        const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+        if (url && token) {
+            client = new Redis({ url, token });
+        }
+    }
+    return client;
+}
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
-    if (!client) return null;
+    const c = getClient();
+    if (!c) return null;
     try {
-        return await client.get<T>(key);
+        return await c.get<T>(key);
     } catch {
         return null;
     }
 }
 
 export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
-    if (!client) return;
+    const c = getClient();
+    if (!c) return;
     try {
-        await client.set(key, value, { ex: ttlSeconds });
+        await c.set(key, value, { ex: ttlSeconds });
     } catch {
         // cache is best-effort
     }
 }
 
 export async function cacheDelete(pattern: string): Promise<void> {
-    if (!client) return;
+    const c = getClient();
+    if (!c) return;
     try {
-        const keys = await client.keys(pattern);
+        const keys = await c.keys(pattern);
         if (keys.length > 0) {
-            await client.del(...keys);
+            await c.del(...keys);
         }
     } catch {
         // cache is best-effort
