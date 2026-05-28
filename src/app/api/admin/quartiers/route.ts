@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cacheGet, cacheSet, cacheKey } from '@/lib/cache';
 
 export async function GET() {
     const supabaseAdmin = createClient(
@@ -7,6 +8,10 @@ export async function GET() {
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
+
+    const key = cacheKey('admin', 'quartiers');
+    const cached = await cacheGet<{ success: boolean; data: unknown[] }>(key);
+    if (cached) return NextResponse.json(cached);
 
     const { data, error } = await supabaseAdmin
         .from('quartiers')
@@ -17,7 +22,9 @@ export async function GET() {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data });
+    const responseData = { success: true, data };
+    await cacheSet(key, responseData, 600);
+    return NextResponse.json(responseData);
 }
 
 export async function POST(request: Request) {

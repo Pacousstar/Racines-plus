@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { error } from '@/lib/api-response';
 import { parsePagination } from '@/lib/pagination';
+import { cacheGet, cacheSet, cacheKey } from '@/lib/cache';
 
 /**
  * GET /api/admin/profiles
@@ -31,6 +32,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const { page, limit, offset } = parsePagination(searchParams);
 
+    const key = cacheKey('admin', 'profiles', String(page), String(limit));
+    const cached = await cacheGet<Record<string, unknown>>(key);
+    if (cached) return NextResponse.json(cached, {
+        headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
+    });
+
     const { data: profiles, error: profilesError, count } = await supabaseAdmin
         .from('profiles')
         .select('id, first_name, last_name, role, status, village_origin, quartier_nom, quartiers_assignes, avatar_url, created_at, is_ambassadeur, gender, niveau_etudes, birth_date, export_authorized, export_requested, certificate_requested, certificate_issued, certificate_issued_at, email, residence_city, residence_country, metadata, emploi, fonction, rejection_motif, rejection_observations', { count: 'exact' })
@@ -38,12 +45,13 @@ export async function GET(request: Request) {
         .range(offset, offset + limit - 1);
 
     if (profilesError) return error(profilesError.message, 500);
-    return NextResponse.json({ 
+
+    const responseData = {
         success: true,
         data: {
             profiles: profiles || [],
-            me: { 
-                id: user.id, 
+            me: {
+                id: user.id,
                 role: (callerProfile.role || 'user').toLowerCase().trim(),
                 first_name: callerProfile.first_name,
                 last_name: callerProfile.last_name,
@@ -57,7 +65,11 @@ export async function GET(request: Request) {
             totalPages: Math.ceil((count || 0) / limit),
             hasMore: page * limit < (count || 0),
         }
-    }, {
+    };
+
+    await cacheSet(key, responseData, 120);
+
+    return NextResponse.json(responseData, {
         headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' }
     });
 }

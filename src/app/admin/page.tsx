@@ -22,7 +22,7 @@ import { TreePine } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import ProofViewerModal from '@/components/ProofViewerModal';
 import type { Profile } from '@/types';
-import { computeStats, filterProfiles } from '@/services/admin';
+import { filterProfiles } from '@/services/admin';
 import { getServiceClient } from '@/services/supabase';
 
 interface Village {
@@ -278,15 +278,49 @@ export default function AdminDashboard() {
 
             // Charger le reste des données en parallèle
             const svc = getServiceClient();
-            const [villagesRes, quartiersRes, victimsRes, memorialVictims] = await Promise.all([
+            const [villagesRes, quartiersRes, victimsRes, memorialVictims, statsRes] = await Promise.all([
                 fetch('/api/admin/villages'),
                 fetch('/api/admin/quartiers'),
                 fetch('/api/admin/victims'),
-                svc.getMemorialVictims().catch(() => [])
+                svc.getMemorialVictims().catch(() => []),
+                fetch('/api/admin/stats', {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                    cache: 'no-store'
+                }).catch(() => null),
             ]);
 
-            if (profilesData && profilesData.length > 0) {
-                setStats(computeStats(profilesData));
+            // Aggregated stats from API (efficient server-side, cached 300s)
+            if (statsRes?.ok) {
+                const statsData = await statsRes.json();
+                if (statsData.success) {
+                    const s = statsData.data;
+                    const usersOnly = (profilesData || []).filter((p: Profile) => p.role === 'user');
+                    setStats({
+                        totalUsers: usersOnly.length,
+                        totalCollaborateurs: (profilesData || []).filter(
+                            (p: Profile) => ['cho', 'choa', 'admin'].includes(p.role) || p.is_ambassadeur
+                        ).length,
+                        confirmedUsers: s.confirmed,
+                        confirmedPrelim: (profilesData || []).filter(
+                            (p: Profile) => ['cho', 'choa', 'admin'].includes(p.role) && p.status === 'confirmed'
+                        ).length,
+                        pendingUsers: s.pending,
+                        rejectedUsers: s.rejected,
+                        genderStats: {
+                            male: s.genderBreakdown.male,
+                            female: s.genderBreakdown.female,
+                            unknown: s.genderBreakdown.other,
+                        },
+                        educationStats: s.educationLevels,
+                        pendingCertificates: Math.max(0, s.certificates.requested - s.certificates.issued),
+                        pendingExports: s.exports.requested,
+                        pendingRecours: s.recours,
+                        contactStats: {
+                            hasPhone: usersOnly.filter((p: Profile) => p.phone_1).length,
+                            hasWhatsapp: usersOnly.filter((p: Profile) => p.whatsapp_1).length,
+                        },
+                    });
+                }
             }
 
             if (villagesRes.ok) { const vData = await villagesRes.json(); if (vData.success) setVillages(vData.data); }

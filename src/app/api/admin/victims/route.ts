@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { error } from '@/lib/api-response';
 import { getSession } from '@/lib/neo4j';
 import { createClient } from '@/lib/supabase/server';
+import { cacheGet, cacheSet, cacheKey } from '@/lib/cache';
 
 export async function GET() {
     const supabase = await createClient();
@@ -18,6 +19,12 @@ export async function GET() {
     if (!profile || profile.role !== 'admin') {
         return error('Accès refusé. Rôle administrateur requis.', 403);
     }
+
+    const key = cacheKey('admin', 'victims');
+    const cached = await cacheGet<{ success: boolean; data: unknown[] }>(key);
+    if (cached) return NextResponse.json(cached, {
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' }
+    });
 
     try {
         const session = await getSession();
@@ -93,7 +100,9 @@ export async function GET() {
                 }
             }
 
-            return NextResponse.json({ success: true, data: victims }, {
+            const responseData = { success: true, data: victims };
+            await cacheSet(key, responseData, 120);
+            return NextResponse.json(responseData, {
                 headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' }
             });
         } finally {
